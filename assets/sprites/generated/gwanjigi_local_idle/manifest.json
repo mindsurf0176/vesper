@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "profile": "vesper-pixel",
+  "profileFingerprint": "12ad62b402fe41cc",
+  "kind": "pixel-character",
+  "tier": "battle",
+  "animation": "idle",
+  "direction": "east",
+  "canvasPolicy": "fixed",
+  "canvas": [
+    244,
+    247
+  ],
+  "anchor": [
+    123,
+    243
+  ],
+  "source": "/Users/minseo/gamedev-toolkit/work/final-fix/vesper/raw",
+  "output": "/Users/minseo/pixel-front/assets/sprites/generated/gwanjigi_local_idle",
+  "frames": [
+    {
+      "file": "idle_00.png",
+      "canvas": [
+        244,
+        247
+      ],
+      "bbox": [
+        43,
+        16,
+        203,
+        244
+      ],
+      "contentSize": [
+        160,
+        228
+      ],
+      "foot": [
+        122,
+        243
+      ],
+      "opaquePixels": 20455,
+      "colors": 191
+    }
+  ],
+  "contactSheet": "/Users/minseo/pixel-front/assets/sprites/generated/gwanjigi_local_idle/_contact.png"
+}

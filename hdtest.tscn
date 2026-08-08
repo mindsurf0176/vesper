@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://bvh2d7e5t0l00k"]
+
+[ext_resource type="Script" path="res://hdtest.gd" id="1"]
+
+[node name="HDTest" type="Node3D"]
+script = ExtResource("1")

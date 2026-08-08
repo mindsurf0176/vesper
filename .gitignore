@@ -1,0 +1,12 @@
+.godot/
+.DS_Store
+*.log
+*.tmp
+*.swp
+*.bak
+export/
+build/
+captures/
+screenshots/
+save/
+user_data/

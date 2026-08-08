@@ -1,0 +1,17 @@
+{
+  "_status": "template_fill_frame_urls_after_pixellab",
+  "character": "망종 중계사",
+  "slug": "mangjong_relay",
+  "out": "/Users/minseo/pixel-front/assets/sprites/mangjong_relay_pl",
+  "pad": 3,
+  "min_alpha": 20,
+  "bg_tol": 42,
+  "anims": [
+    { "name": "walk", "expected_count": 8, "frames": [] },
+    { "name": "aim", "expected_count": 4, "frames": [] },
+    { "name": "attack", "expected_count": 6, "frames": [] },
+    { "name": "hit", "expected_count": 4, "frames": [] },
+    { "name": "death", "expected_count": 6, "frames": [] }
+  ],
+  "idle_from": { "anim": "aim", "index": 0 }
+}

@@ -1,0 +1,79 @@
+{
+  "image": "spritesheet.png",
+  "cell": {
+    "w": 20,
+    "h": 67
+  },
+  "grid": {
+    "cols": 4,
+    "rows": 1
+  },
+  "frames": [
+    {
+      "name": "frame_00",
+      "cell": [
+        0,
+        0,
+        20,
+        67
+      ],
+      "rect": [
+        0,
+        0,
+        20,
+        67
+      ]
+    },
+    {
+      "name": "frame_01",
+      "cell": [
+        20,
+        0,
+        20,
+        67
+      ],
+      "rect": [
+        20,
+        0,
+        20,
+        67
+      ]
+    },
+    {
+      "name": "frame_02",
+      "cell": [
+        40,
+        0,
+        20,
+        67
+      ],
+      "rect": [
+        40,
+        0,
+        20,
+        67
+      ]
+    },
+    {
+      "name": "frame_03",
+      "cell": [
+        60,
+        0,
+        20,
+        67
+      ],
+      "rect": [
+        60,
+        0,
+        20,
+        67
+      ]
+    }
+  ],
+  "animation": {
+    "fps": 8,
+    "loop": true,
+    "motion": "assembled",
+    "frame_count": 4
+  }
+}

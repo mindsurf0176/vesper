@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3 uid="uid://bv3sp3sq0ad00"]
+
+[ext_resource type="Script" path="res://squad.gd" id="1"]
+
+[node name="Squad" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+script = ExtResource("1")

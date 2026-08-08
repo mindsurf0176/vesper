@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "project": "vesper_corridor",
+  "pipeline": "pixellab_combat_state_refresh",
+  "slug": "sodeungsa",
+  "name": "소등사",
+  "true_name": "서리안",
+  "role": "sniper executioner",
+  "reason": "Regenerate Sodeungsa combat sprite animation from the approved card illustration using the Jinhonbyeong v2 reference workflow.",
+  "source_hero_asset": "res://assets/art/card_sodeungsa.png",
+  "reference_image": "/Users/minseo/vesper-preview/sodeungsa_hero_ref_256.png",
+  "stage": "completed",
+  "base_character_id": "c8d7bc66-473b-4535-aeaf-2b5f2948bbfb",
+  "base_requested_at": "2026-07-16T12:08:00+0900",
+  "base_request": {
+    "tool": "create_character",
+    "mode": "v3_reference",
+    "size": 256,
+    "view": "side",
+    "n_directions": 8,
+    "generation_cost": 8,
+    "prompt_basis": "approved Sodeungsa card illustration: long dark auburn hair, amber eyes, black high-collar tactical funeral coat, gold-and-black scoped sniper rifle, black gloves and boots, melancholic sharp expression"
+  },
+  "base_preview": {
+    "east": "/Users/minseo/vesper-preview/pixellab_sodeungsa_v2_base/east.png",
+    "south": "/Users/minseo/vesper-preview/pixellab_sodeungsa_v2_base/south.png"
+  },
+  "state_requested_at": "2026-07-16T12:17:00+0900",
+  "state_character_ids": {
+    "aim_base": "f80d132a-f9b4-48f2-b72e-a94c536be6c0",
+    "run_base": "f99f5e34-7400-4537-97a1-4e7e8efefed1"
+  },
+  "state_preview": {
+    "aim_east": "/Users/minseo/vesper-preview/pixellab_sodeungsa_v2_states/aim_base_east.png",
+    "run_east": "/Users/minseo/vesper-preview/pixellab_sodeungsa_v2_states/run_base_east.png"
+  },
+  "animation_requested_at": "2026-07-16T12:25:00+0900",
+  "animation_requests": {
+    "walk": {
+      "source_state": "run_base",
+      "character_id": "f99f5e34-7400-4537-97a1-4e7e8efefed1",
+      "mode": "v3",
+      "directions": ["east"],
+      "requested_frames": 8,
+      "returned_frames": 9,
+      "generation_cost": 8
+    },
+    "aim": {
+      "source_state": "aim_base",
+      "character_id": "f80d132a-f9b4-48f2-b72e-a94c536be6c0",
+      "mode": "v3",
+      "directions": ["east"],
+      "requested_frames": 4,
+      "returned_frames": 5,
+      "generation_cost": 4
+    },
+    "attack": {
+      "source_state": "aim_base",
+      "character_id": "f80d132a-f9b4-48f2-b72e-a94c536be6c0",
+      "mode": "v3",
+      "directions": ["east"],
+      "requested_frames": 6,
+      "returned_frames": 7,
+      "generation_cost": 6
+    },
+    "hit": {
+      "source_state": "aim_base",
+      "character_id": "f80d132a-f9b4-48f2-b72e-a94c536be6c0",
+      "mode": "v3",
+      "directions": ["east"],
+      "requested_frames": 4,
+      "returned_frames": 5,
+      "generation_cost": 4
+    },
+    "death": {
+      "source_state": "aim_base",
+      "character_id": "f80d132a-f9b4-48f2-b72e-a94c536be6c0",
+      "mode": "v3",
+      "directions": ["east"],
+      "requested_frames": 6,
+      "returned_frames": 7,
+      "generation_cost": 6
+    }
+  },
+  "animation_ids": {
+    "walk": "3d2be93a-f652-4b25-bc3a-f6007ef315a0",
+    "aim": "e00de8fd-1050-4f54-b0df-8c784737ccae",
+    "attack": "776385a6-953e-401a-ba7f-8bc821a9e257",
+    "hit": "9f1004f7-8845-45e4-976b-e86b6db9ec3c",
+    "death": "fbff0f26-943e-4754-8510-08b8ab622366"
+  },
+  "assembled_at": "2026-07-16T12:31:00+0900",
+  "assembled_spec": "/Users/minseo/vesper-preview/pixellab_sodeungsa_v2.spec.json",
+  "assembled_frames": {
+    "walk": 8,
+    "aim": 5,
+    "attack": 7,
+    "hit": 5,
+    "death": 7,
+    "idle": 1
+  },
+  "assembled_crop": {
+    "width": 256,
+    "height": 252
+  },
+  "preview_contact_sheet": "/Users/minseo/vesper-preview/sodeungsa_pl_v2_contact.png",
+  "approved_at": "2026-07-16T12:31:00+0900",
+  "approved_candidate": "res://assets/sprites/sodeungsa_pl_v2",
+  "replaced_output": "res://assets/sprites/sodeungsa_pl",
+  "output_candidate": "res://assets/sprites/sodeungsa_pl_v2",
+  "replace_output_on_approval": "res://assets/sprites/sodeungsa_pl"
+}

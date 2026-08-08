@@ -1,0 +1,201 @@
+{
+  "schema_version": 1,
+  "project": "vesper_corridor",
+  "pipeline": "sodeungsa_quality_hero_illustration",
+  "status": "illustration_first_relock",
+  "decided_at": "2026-07-15",
+  "style_anchor": "res://assets/art/anchor_sniper.png",
+  "accepted_reference_assets": {
+    "hero": "res://assets/art/anchor_sniper.png",
+    "card": "res://assets/art/card_sodeungsa.png",
+    "face": "res://assets/art/face_sodeungsa.png"
+  },
+  "quality_gate": {
+    "minimum_bar": "New character hero art must read at least as polished as Sodeungsa: crisp emotional face and eyes, functional weapon/prop contact, matte painterly gouache texture, strong silhouette, controlled detail hierarchy, and no generic AI gloss.",
+    "must_have": [
+      "face and eyes are the sharpest area and survive a 256px face crop",
+      "class prop or weapon is functional and physically held, not decorative noise",
+      "silhouette reads in a 360x520 card crop",
+      "matte textured gouache with visible brushwork and canvas grain",
+      "single dominant key light with navy or plum shadow temperature",
+      "detail hierarchy: face, hands, and signature prop sharp; large clothing areas quieter",
+      "lost-and-found edges and varied line weight",
+      "character-specific palette and faction marks preserved from game_state.gd",
+      "not a copy of Sodeungsa's palette, weapon, pose, outfit, or face"
+    ],
+    "reject_if": [
+      "glossy 3D render, clean CG, plastic skin, or airbrushed finish",
+      "dead symmetrical eyes or face lower quality than Sodeungsa",
+      "generic centered full-body with no camera intent",
+      "uniform detail everywhere with no rest area",
+      "random greebles, unreadable badges, fake letters, or impossible straps",
+      "weapon or prop floats, clips, or is held incorrectly",
+      "chibi proportions or oversized head",
+      "neon/saturated palette that breaks the funeral fantasy tone",
+      "looks like a pasted concept mockup rather than production card art"
+    ]
+  },
+  "output_contract": {
+    "hero": {
+      "purpose": "card, recruitment, dossier, and marketing source art",
+      "composition": "portrait hero cut with intentional off-center balance; background allowed if it supports the character",
+      "minimum_size": [
+        1024,
+        1536
+      ],
+      "approved_extension": ".png"
+    },
+    "card_cutout": {
+      "purpose": "in-game card and roster composition",
+      "composition": "transparent-background or cleanly removable character cutout derived from approved hero",
+      "minimum_size": [
+        768,
+        1024
+      ],
+      "approved_extension": ".png"
+    },
+    "face": {
+      "purpose": "small UI portrait",
+      "composition": "square face crop derived from approved hero; eyes must remain crisp at 128px",
+      "minimum_size": [
+        256,
+        256
+      ],
+      "approved_extension": ".png"
+    }
+  },
+  "workflow": [
+    "use Sodeungsa anchor as style and quality reference only",
+    "generate 3 to 4 hero candidates for one character at a time",
+    "reject candidates below the quality_gate before any sprite or cutout work",
+    "derive card_cutout and face only from the approved hero image",
+    "connect art/card_art in game_state.gd only after hero, card_cutout, and face all pass review",
+    "start or continue PixelLab combat sprites after the hero illustration is locked"
+  ],
+  "prompt_style_lock_en": "matte textured gouache, visible brushstrokes and canvas grain, muted desaturated colors, gritty hand-painted; NOT glossy, NOT shiny, NOT clean CG, NOT 3D render, NOT neon, NOT bright glowing. Face and eyes rendered crisp and clean, sharper than the rest; body and background remain painterly. One cool key light from upper left, weak fill only, rich navy and plum shadows, varied line weight, lost-and-found edges, quiet negative space. Detail hierarchy: face, hands, and signature prop sharpest; large clothing areas simplified with drybrush texture. Do not copy the reference character, palette, pose, outfit, weapon, or face; use only the painterly quality.",
+  "characters": [
+    {
+      "priority": 0,
+      "name": "소등사",
+      "true_name": "서리안",
+      "slug": "sodeungsa",
+      "status": "reference_ready",
+      "role": "quality anchor sniper",
+      "reference_assets": {
+        "hero": "res://assets/art/anchor_sniper.png",
+        "card": "res://assets/art/card_sodeungsa.png",
+        "face": "res://assets/art/face_sodeungsa.png"
+      },
+      "brief_ko": "어번 다크레드 머리, 장거리 소총, 낮은 숨, 멜랑콜리한 눈. 이 품질을 캐스트 전체의 하한선으로 둔다."
+    },
+    {
+      "priority": 1,
+      "name": "진혼병",
+      "true_name": "유현",
+      "slug": "jinhonbyeong",
+      "status": "hero_ready",
+      "role": "starter melee striker",
+      "signature_palette": "soot black, burnt orange, dark ember",
+      "brief_ko": "그을린 장송 코트, 번트오렌지 완장, 짧은 검은 머리, 팔뚝에 관 끈을 감은 근접 선봉.",
+      "prompt_core_en": "A young frontline funeral striker named Yuhyeon, short black hair, scorched black burial coat, burnt-orange armband, coffin straps wrapped around the forearm, compact melee vanguard silhouette, worn boots, quiet exhausted resolve, no rifle, no shield.",
+      "candidate_sheet": "res://assets/art/candidates/jinhonbyeong_hero_candidates_v01.png",
+      "candidate_generated_at": "2026-07-16T10:19:29+0900",
+      "candidate_review": {
+        "direction": "approved",
+        "notes": "User approved the overall direction. Sheet is strong on matte funeral-fantasy mood, male sharp eyes, black coat, burnt-orange armband, and forearm strap silhouette. Treat as review reference, not final connected art.",
+        "recommended_next": "Pick the strongest quadrant as composition seed, then generate a single 1024x1536+ hero keyvisual before deriving card_cutout and face."
+      },
+      "hero_asset": "res://assets/art/jinhonbyeong_hero_v01.png",
+      "hero_generated_at": "2026-07-16T10:22:00+0900",
+      "hero_approved_at": "2026-07-16T10:47:38+0900",
+      "hero_review": {
+        "decision": "approved",
+        "notes": "User approved as exact direction. Strong silhouette, sharp male expression, matte funeral-fantasy brushwork, burnt-orange armband, and readable forearm strap/short blade contact. Keep as source hero for downstream card_cutout and face derivation.",
+        "next": "derive card_cutout and face from hero_asset, then connect art/card_art in game_state.gd"
+      }
+    },
+    {
+      "priority": 2,
+      "name": "집전 의무관",
+      "true_name": "한세라",
+      "slug": "jipjeon_medic",
+      "status": "hero_needed",
+      "role": "starter healer",
+      "signature_palette": "bone white, sage mint, dim oil amber",
+      "brief_ko": "본화이트 의무복, 세이지민트 숄, 작은 등유 성물, 피 묻은 장갑. 살리지 못해도 혼자 꺼지게 두지 않는 표정.",
+      "prompt_core_en": "A field medic officiant named Han Sera, bone-white medical robe, sage-mint shawl, small oil-lamp reliquary, blood-marked gloves, gentle but alert eyes, holding the reliquary with care, healer silhouette, no gun."
+    },
+    {
+      "priority": 3,
+      "name": "운구 소총수",
+      "true_name": "백이현",
+      "slug": "ungoo_rifle",
+      "status": "hero_ready",
+      "role": "starter ranger",
+      "signature_palette": "matte olive, khaki, dark ochre",
+      "brief_ko": "무광 올리브 운구복, 긴 소총, 관 손잡이를 닮은 슬링, 낮은 모자챙, 피로한 눈.",
+      "prompt_core_en": "A quiet coffin-bearer rifleman named Baek Ihyeon, matte olive funeral transport uniform, long rifle with coffin-handle sling, low cap brim, tired eyes lowered like closing a coffin lid, practical ammunition pouches, restrained posture.",
+      "candidate_sheet": "res://assets/art/candidates/ungoo_rifle_hero_candidates_v01.png",
+      "candidate_generated_at": "2026-07-16T14:05:00+0900",
+      "candidate_review": {
+        "direction": "approved",
+        "notes": "User approved the coffin-bearer rifleman direction. Strong matte olive funeral transport coat, low cap brim, long rifle, coffin-handle hardware, and tired undertaker posture. Top-right/bottom-right silhouettes are the identity basis.",
+        "recommended_next": "Use the final hero as PixelLab reference, then derive card/face art after runtime sprite approval."
+      },
+      "hero_asset": "res://assets/art/ungoo_rifle_hero_v01.png",
+      "hero_generated_at": "2026-07-16T14:18:27+0900",
+      "hero_approved_at": "2026-07-16T14:18:27+0900",
+      "hero_review": {
+        "decision": "approved",
+        "notes": "High-quality full-body hero. Readable long rifle, coffin backboard/handle hardware, low cap brim, tired pale expression, matte olive-black funeral coat. Use as source hero for PixelLab combat sprite reference."
+      }
+    },
+    {
+      "priority": 4,
+      "name": "사열 돌격수",
+      "true_name": "류단",
+      "slug": "sayeol_striker",
+      "status": "hero_needed",
+      "role": "mid-campaign heavy striker",
+      "signature_palette": "ash gray, burnt red cord, dull brass",
+      "brief_ko": "재색 장교 코트, 짧은 창검, 기울어진 깃발, 흐트러지지 않는 행렬감.",
+      "prompt_core_en": "A parade assault officer named Ryudan, ash-gray officer coat, short spear-sword, tilted funeral parade banner, burnt-red ornamental cord, disciplined forward pressure, rows and procession implied in the costume design, no modern rifle."
+    },
+    {
+      "priority": 5,
+      "name": "납골 방패병",
+      "true_name": "오서린",
+      "slug": "napgol_defender",
+      "status": "hero_needed",
+      "role": "SSR heavy defender",
+      "signature_palette": "bone white, slate metal, pale blue-gray",
+      "brief_ko": "방패 안쪽의 이름표들, 슬레이트 금속, 느린 성채 같은 자세. 든 이름들이 무거운 사람.",
+      "prompt_core_en": "A heavy ossuary shield defender named Oh Seorin, massive bone-white ossuary shield with small name tags inside, slate metal armor, slow fortress-like posture, carrying the weight of many names, broad grounded silhouette."
+    },
+    {
+      "priority": 6,
+      "name": "망종 중계사",
+      "true_name": "차미루",
+      "slug": "mangjong_relay",
+      "status": "hero_needed",
+      "role": "SR relay support",
+      "signature_palette": "sage green, mustard amber, dull cable black",
+      "brief_ko": "낡은 리시버, 작은 종 안테나, 잡음 속 목소리를 찾는 표정.",
+      "prompt_core_en": "A bell-relay operator named Cha Miru, old receiver, small bell-shaped antenna, relay backpack, sage and mustard cables, listening for a distant rescue signal through static, one hand near the earpiece, slightly delayed but intent expression."
+    },
+    {
+      "priority": 7,
+      "name": "관지기",
+      "true_name": "문가온",
+      "slug": "gwanjigi",
+      "status": "legacy_connected_review_needed",
+      "role": "defender legacy art",
+      "reference_assets": {
+        "hero": "res://assets/art/gwanjigi_defender.png",
+        "card": "res://assets/art/card_gwanjigi.png",
+        "face": "res://assets/art/face_gwanjigi.png"
+      },
+      "brief_ko": "실버 머리, 슬레이트블루 장갑, 코어 결정 방패, 넓은 어깨와 낮은 자세. 소등사 기준으로 재평가 후 유지/리터치 결정."
+    }
+  ]
+}

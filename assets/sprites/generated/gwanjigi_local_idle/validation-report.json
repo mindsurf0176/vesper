@@ -1,0 +1,46 @@
+{
+  "ok": true,
+  "profile": "vesper-pixel",
+  "profileFingerprint": "12ad62b402fe41cc",
+  "tier": "battle",
+  "animation": "idle",
+  "input": "/Users/minseo/pixel-front/assets/sprites/generated/gwanjigi_local_idle",
+  "frameCount": 1,
+  "heightDriftRatio": 0.0,
+  "widthDriftRatio": 0.0,
+  "errors": [],
+  "warnings": [],
+  "transparentHoles": [
+    {
+      "file": "idle_00.png",
+      "componentCount": 2,
+      "pixelCount": 908,
+      "largestComponentPixels": 555
+    }
+  ],
+  "frames": [
+    {
+      "file": "idle_00.png",
+      "canvas": [
+        244,
+        247
+      ],
+      "bbox": [
+        43,
+        16,
+        203,
+        244
+      ],
+      "contentSize": [
+        160,
+        228
+      ],
+      "foot": [
+        122,
+        243
+      ],
+      "opaquePixels": 20455,
+      "colors": 191
+    }
+  ]
+}

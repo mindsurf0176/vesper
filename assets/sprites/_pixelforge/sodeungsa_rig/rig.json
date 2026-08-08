@@ -1,0 +1,229 @@
+{
+  "canvas": [
+    136,
+    198
+  ],
+  "parts": {
+    "legb": {
+      "image": "legb.png",
+      "pivot": [
+        21,
+        4
+      ],
+      "joint": "hip_b",
+      "z": 1
+    },
+    "body": {
+      "image": "body.png",
+      "pivot": [
+        29,
+        7
+      ],
+      "joint": "spine",
+      "z": 2
+    },
+    "legf": {
+      "image": "legf.png",
+      "pivot": [
+        4,
+        4
+      ],
+      "joint": "hip_f",
+      "z": 3
+    },
+    "head": {
+      "image": "head.png",
+      "pivot": [
+        18,
+        45
+      ],
+      "joint": "neck",
+      "z": 4
+    }
+  },
+  "skeleton": {
+    "root": {
+      "parent": null,
+      "offset": [
+        55,
+        136
+      ]
+    },
+    "spine": {
+      "parent": "root",
+      "offset": [
+        -2,
+        -65
+      ]
+    },
+    "neck": {
+      "parent": "spine",
+      "offset": [
+        -2,
+        -2
+      ]
+    },
+    "hip_b": {
+      "parent": "root",
+      "offset": [
+        -5,
+        2
+      ]
+    },
+    "hip_f": {
+      "parent": "root",
+      "offset": [
+        4,
+        2
+      ]
+    }
+  },
+  "clips": {
+    "walk": {
+      "fps": 10,
+      "tracks": {
+        "hip_f": {
+          "rotation": [
+            [
+              0,
+              18
+            ],
+            [
+              0.5,
+              -18
+            ],
+            [
+              1,
+              18
+            ]
+          ]
+        },
+        "hip_b": {
+          "rotation": [
+            [
+              0,
+              -18
+            ],
+            [
+              0.5,
+              18
+            ],
+            [
+              1,
+              -18
+            ]
+          ]
+        },
+        "root": {
+          "offset_y": [
+            [
+              0,
+              0
+            ],
+            [
+              0.25,
+              -2
+            ],
+            [
+              0.5,
+              0
+            ],
+            [
+              0.75,
+              -2
+            ],
+            [
+              1,
+              0
+            ]
+          ]
+        },
+        "spine": {
+          "rotation": [
+            [
+              0,
+              0
+            ],
+            [
+              0.5,
+              1.5
+            ],
+            [
+              1,
+              0
+            ]
+          ]
+        },
+        "neck": {
+          "rotation": [
+            [
+              0,
+              0
+            ],
+            [
+              0.5,
+              -1.5
+            ],
+            [
+              1,
+              0
+            ]
+          ]
+        }
+      }
+    },
+    "aim_idle": {
+      "fps": 8,
+      "tracks": {
+        "spine": {
+          "rotation": [
+            [
+              0,
+              0
+            ],
+            [
+              0.5,
+              1.2
+            ],
+            [
+              1,
+              0
+            ]
+          ]
+        },
+        "root": {
+          "offset_y": [
+            [
+              0,
+              0
+            ],
+            [
+              0.5,
+              -1
+            ],
+            [
+              1,
+              0
+            ]
+          ]
+        },
+        "neck": {
+          "rotation": [
+            [
+              0,
+              -1
+            ],
+            [
+              0.5,
+              1
+            ],
+            [
+              1,
+              -1
+            ]
+          ]
+        }
+      }
+    }
+  }
+}
