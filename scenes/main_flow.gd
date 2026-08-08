@@ -1,0 +1,428 @@
+extends Control
+
+## STARLINE의 준비 → 전투 → 결과 → 게임오버 흐름.
+## STARLINE gameplay core와 Vesper passive presentation을 연결한다.
+
+enum Phase { PREP, BATTLE, RESULT, GAMEOVER }
+
+const FIRST_PREP_TIME := 45.0
+const PREP_TIME := 30.0
+const RESULT_TIME := 4.0
+
+var game: Match
+var sim: CombatSim = null
+var phase := Phase.PREP
+var speed := 1.0
+var rng := RandomNumberGenerator.new()
+var pairs: Array = []
+var foe_seat := -1
+
+var econ: Econ:
+	get: return game.econ
+var player: Econ.Player:
+	get: return game.human_seat().player
+var round_no: int:
+	get: return game.round_no
+
+var _accum := 0.0
+var _prep_left := FIRST_PREP_TIME
+var _result_left := RESULT_TIME
+var _font: Font
+var _prep: PrepView
+var _battle_layer: Control
+var _view: BattlePresenter
+var _battle_top: Label
+var _speed_btn: Button
+var _result_layer: Control
+var _result_title: Label
+var _result_body: Label
+var _result_count: Label
+var _help_layer: Control
+
+
+func _ready() -> void:
+	rng.randomize()
+	game = Match.create(rng.randi(), true)
+	_font = load("res://assets/Galmuri11.ttf")
+	var project_theme := Theme.new()
+	project_theme.default_font = _font
+	project_theme.default_font_size = 13
+	theme = project_theme
+	_build_ui()
+	_begin_round()
+	_show_help()
+
+
+func _build_ui() -> void:
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_prep = PrepView.new()
+	add_child(_prep)
+	_prep.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_prep.buy_requested.connect(_on_buy)
+	_prep.sell_requested.connect(_on_sell)
+	_prep.place_requested.connect(_on_place)
+	_prep.bench_requested.connect(_on_to_bench)
+	_prep.reroll_requested.connect(_on_reroll)
+	_prep.xp_requested.connect(_on_buy_xp)
+	_prep.lock_requested.connect(_on_lock)
+	_prep.ready_requested.connect(_start_battle)
+	_prep.help_requested.connect(_show_help)
+	_build_battle()
+	_build_result()
+	_build_help()
+
+
+func _build_battle() -> void:
+	_battle_layer = Control.new()
+	add_child(_battle_layer)
+	_battle_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_battle_layer.visible = false
+	var root_box := VBoxContainer.new()
+	root_box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	root_box.add_theme_constant_override("separation", 0)
+	_battle_layer.add_child(root_box)
+	var top := PanelContainer.new()
+	top.custom_minimum_size.y = 58
+	top.add_theme_stylebox_override("panel", _panel_style("122326"))
+	root_box.add_child(top)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	top.add_child(row)
+	_battle_top = _label("", 15, "e8efeb")
+	_battle_top.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(_battle_top)
+	_speed_btn = _button("배속 x1", _on_speed)
+	row.add_child(_speed_btn)
+	row.add_child(_button("도움말", _show_help))
+	_view = BattlePresenter.new()
+	_view.font = _font
+	_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root_box.add_child(_view)
+
+
+func _build_result() -> void:
+	_result_layer = Control.new()
+	_result_layer.mouse_filter = Control.MOUSE_FILTER_STOP
+	_result_layer.z_index = 50
+	add_child(_result_layer)
+	_result_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_result_layer.visible = false
+	var shade := ColorRect.new()
+	shade.color = Color(0.015, 0.03, 0.035, 0.82)
+	_result_layer.add_child(shade)
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var center := CenterContainer.new()
+	_result_layer.add_child(center)
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(650, 310)
+	panel.add_theme_stylebox_override("panel", _panel_style("183032"))
+	center.add_child(panel)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 14)
+	panel.add_child(box)
+	_result_title = _label("", 28, "f3c777")
+	_result_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(_result_title)
+	_result_body = _label("", 14, "e8efeb")
+	_result_body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_result_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_result_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	box.add_child(_result_body)
+	_result_count = _label("", 12, "8fa6a8")
+	_result_count.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(_result_count)
+	var next := _button("계속", _on_result_continue)
+	next.custom_minimum_size.y = 42
+	box.add_child(next)
+
+
+func _build_help() -> void:
+	_help_layer = Control.new()
+	_help_layer.mouse_filter = Control.MOUSE_FILTER_STOP
+	_help_layer.z_index = 100
+	add_child(_help_layer)
+	_help_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var shade := ColorRect.new()
+	shade.color = Color(0.015, 0.03, 0.035, 0.90)
+	_help_layer.add_child(shade)
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var center := CenterContainer.new()
+	_help_layer.add_child(center)
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(700, 0)
+	panel.add_theme_stylebox_override("panel", _panel_style("183032"))
+	center.add_child(panel)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 12)
+	panel.add_child(box)
+	var title := _label("STARLINE — 강림 순서를 설계하세요", 22, "f3c777")
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(title)
+	box.add_child(_help_step("① 5칸 상점에서 별을 산다", "같은 별 셋은 자동으로 합쳐지고, 같은 원소를 모으면 강해집니다."))
+	box.add_child(_help_step("② 9칸 대기석에서 강림 편성판으로 옮긴다", "편성판 왼쪽부터 차례로 단일 라인 전장에 강림합니다."))
+	box.add_child(_help_step("③ 상대 편성과 순위를 보고 준비 완료", "비싼 별을 앞에 두면 기운을 모으는 동안 전선이 빕니다."))
+	var rule := _label("근접 ▶ 원거리 ▶ 방어 ▶ 근접  ·  전투는 자동 진행", 14, "8bd9c6")
+	rule.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(rule)
+	var close := _button("관측 회랑으로", _hide_help)
+	close.custom_minimum_size.y = 42
+	box.add_child(close)
+
+
+func _help_step(title: String, body: String) -> VBoxContainer:
+	var box := VBoxContainer.new()
+	box.add_child(_label(title, 16, "e8efeb"))
+	box.add_child(_label("     " + body, 13, "b3c4c2"))
+	return box
+
+
+func _show_help() -> void:
+	_help_layer.visible = true
+
+
+func _hide_help() -> void:
+	_help_layer.visible = false
+
+
+func _begin_round() -> void:
+	phase = Phase.PREP
+	sim = null
+	_view.bind_sim(null)
+	_result_layer.visible = false
+	_battle_layer.visible = false
+	_prep.visible = true
+	game.run_ai_prep()
+	pairs = game.pair_up()
+	_normalize_human_pair()
+	_prep_left = FIRST_PREP_TIME if round_no == 1 else PREP_TIME
+	_prep.bind_match(game)
+	_prep.set_time_left(_prep_left)
+	_prep.set_message("상점에서 별을 사고, 왼쪽부터 강림 순서를 만드세요.")
+
+
+func _normalize_human_pair() -> void:
+	foe_seat = -1
+	var human := game.human_seat().index
+	for i in pairs.size():
+		var pair: Array = pairs[i]
+		if int(pair[0]) == human:
+			foe_seat = int(pair[1])
+			break
+		if int(pair[1]) == human:
+			pairs[i] = [human, int(pair[0])]
+			foe_seat = int(pair[0])
+			break
+	game.current_pairs = pairs.duplicate(true)
+
+
+func _process(delta: float) -> void:
+	if _help_layer != null and _help_layer.visible:
+		return
+	match phase:
+		Phase.PREP:
+			_prep_left = maxf(0.0, _prep_left - delta)
+			_prep.set_time_left(_prep_left)
+			if _prep_left <= 5.0 and player.queue_count() == 0:
+				_prep.set_message("편성된 별이 없습니다 — 이번 밤은 빈 성좌로 맞섭니다.")
+			if _prep_left <= 0.0:
+				_start_battle(true)
+		Phase.BATTLE:
+			_step_battle(delta)
+		Phase.RESULT:
+			_result_left = maxf(0.0, _result_left - delta)
+			_result_count.text = "%.1f초 뒤 다음 밤" % _result_left
+			if _result_left <= 0.0:
+				_next_round()
+
+
+func _start_battle(from_timeout: bool = false) -> void:
+	if phase != Phase.PREP:
+		return
+	if player.queue_count() == 0 and not from_timeout:
+		_prep.set_message("강림 편성판에 별을 하나 이상 올려야 준비를 마칠 수 있습니다.")
+		return
+	if foe_seat < 0 or foe_seat == game.human_seat().index:
+		_resolve_and_show({})
+		return
+	sim = game.build_sim(game.human_seat().index, foe_seat)
+	_view.label_left = game.human_seat().name
+	_view.label_right = game.seats[foe_seat].name
+	_view.bind_sim(sim)
+	_view.set_playback_speed(speed)
+	_accum = 0.0
+	phase = Phase.BATTLE
+	_prep.visible = false
+	_battle_layer.visible = true
+	_refresh_battle_hud()
+
+
+func _step_battle(delta: float) -> void:
+	if sim == null:
+		return
+	_accum += delta * speed
+	var guard := 0
+	while _accum >= Defs.TICK and not sim.finished and guard < 900:
+		sim.step(Defs.TICK)
+		_accum -= Defs.TICK
+		guard += 1
+	_refresh_battle_hud()
+	if sim.finished:
+		_resolve_and_show({game.human_seat().index: sim.result()})
+
+
+func _refresh_battle_hud() -> void:
+	if sim == null:
+		return
+	_battle_top.text = "%s  성좌 %d   ◀  %.1fs / %ds  ▶   성좌 %d  %s" % [
+		game.human_seat().name, int(sim.core_hp[0]), sim.time, int(Defs.MAX_BATTLE_TIME),
+		int(sim.core_hp[1]), game.seats[foe_seat].name]
+
+
+func _resolve_and_show(precomputed: Dictionary) -> void:
+	var before_hp := player.hp
+	var this_round := round_no
+	game.resolve_round(pairs, precomputed)
+	var lost := before_hp - player.hp
+	var human := game.human_seat().index
+	var settle := {}
+	var verdict := "별빛이 맞섰다"
+	for result in game.last_results:
+		if int(result["a"]) != human and int(result["b"]) != human:
+			continue
+		settle = result["settle_a"] if int(result["a"]) == human else result["settle_b"]
+		if int(result["winner_seat"]) == human:
+			verdict = "승리"
+		elif int(result["winner_seat"]) >= 0:
+			verdict = "패배"
+		break
+	var income := int(settle.get("income", 0))
+	var interest := int(settle.get("interest", 0))
+	var streak_bonus := int(settle.get("streak_bonus", 0))
+	_result_title.text = verdict
+	_result_body.text = "%d번째 밤 · %s vs %s\n\n체력 -%d   ·   수입 +%d   ·   이자 +%d   ·   연속 보너스 +%d\n현재 체력 %d   ·   골드 %d   ·   생존 별지기 %d/%d\n\n%s" % [
+		this_round, game.seats[human].name,
+		game.seats[foe_seat].name if foe_seat >= 0 else "고요한 밤", lost, income, interest,
+		streak_bonus, player.hp, player.gold, game.living_seats().size(), Match.SEATS,
+		_other_results(human)]
+	_result_layer.visible = true
+	_battle_layer.visible = true
+	_prep.visible = false
+	if sim != null:
+		_view.show_victory(sim.winner)
+	if not player.is_alive() or game.is_over():
+		phase = Phase.GAMEOVER
+		_result_title.text = "오늘의 밤이 끝났다 — 최종 %d등" % game.human_placement()
+		_result_count.text = "새로운 밤을 시작할 수 있습니다."
+	else:
+		phase = Phase.RESULT
+		_result_left = RESULT_TIME
+
+
+func _other_results(human: int) -> String:
+	var out: PackedStringArray = []
+	for result in game.last_results:
+		if int(result["a"]) == human or int(result["b"]) == human:
+			continue
+		var a := game.seats[int(result["a"])].name
+		var b := game.seats[int(result["b"])].name
+		var winner := int(result["winner_seat"])
+		out.append("%s = %s" % [a, b] if winner < 0 else "%s > %s" % [
+			game.seats[winner].name, b if winner == int(result["a"]) else a])
+	return "다른 성좌: " + "   ".join(out) if not out.is_empty() else ""
+
+
+func _on_result_continue() -> void:
+	if phase == Phase.RESULT:
+		_next_round()
+	elif phase == Phase.GAMEOVER:
+		_restart()
+
+
+func _next_round() -> void:
+	_begin_round()
+
+
+func _restart() -> void:
+	rng.randomize()
+	game = Match.create(rng.randi(), true)
+	speed = 1.0
+	_speed_btn.text = "배속 x1"
+	_begin_round()
+
+
+func _on_buy(slot: int) -> void:
+	_prep.set_message("" if econ.buy(player, slot) else "골드가 모자라거나 대기석이 가득 찼습니다.")
+	_prep.refresh_all()
+
+
+func _on_sell(index: int) -> void:
+	if econ.sell(player, index):
+		_prep.set_message("별을 밤하늘로 돌려보냈습니다.")
+	_prep.refresh_all()
+
+
+func _on_place(index: int, order: int) -> void:
+	_prep.set_message("" if econ.enqueue(player, index, order) else "강림 슬롯이 가득 찼습니다. 레벨을 올리세요.")
+	_prep.refresh_all()
+
+
+func _on_to_bench(index: int) -> void:
+	_prep.set_message("" if econ.to_bench(player, index) else "대기석이 가득 찼습니다.")
+	_prep.refresh_all()
+
+
+func _on_reroll() -> void:
+	if not econ.reroll(player):
+		_prep.set_message("새 별을 부를 골드가 모자랍니다.")
+	_prep.refresh_all()
+
+
+func _on_buy_xp() -> void:
+	if not econ.buy_xp(player):
+		_prep.set_message("경험치를 살 수 없습니다.")
+	_prep.refresh_all()
+
+
+func _on_lock() -> void:
+	econ.set_shop_locked(player, not player.shop_locked)
+	_prep.set_message("잠근 상점은 다음 밤에도 유지됩니다." if player.shop_locked else "상점 잠금을 풀었습니다.")
+	_prep.refresh_all()
+
+
+func _on_speed() -> void:
+	speed = 1.0 if speed >= 4.0 else speed * 2.0
+	_speed_btn.text = "배속 x%d" % int(speed)
+	_view.set_playback_speed(speed)
+
+
+func _panel_style(color_hex: String) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(color_hex)
+	style.content_margin_left = 12
+	style.content_margin_right = 12
+	style.content_margin_top = 10
+	style.content_margin_bottom = 10
+	style.border_color = Color("315257")
+	style.set_border_width_all(1)
+	style.corner_radius_top_left = 4
+	style.corner_radius_top_right = 4
+	style.corner_radius_bottom_left = 4
+	style.corner_radius_bottom_right = 4
+	return style
+
+
+func _label(text: String, font_size: int, color_hex: String) -> Label:
+	var label := Label.new()
+	label.text = text
+	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_color_override("font_color", Color(color_hex))
+	return label
+
+
+func _button(text: String, callback: Callable) -> Button:
+	var button := Button.new()
+	button.text = text
+	button.pressed.connect(callback)
+	return button

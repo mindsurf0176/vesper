@@ -1,26 +1,25 @@
-; 베스퍼 회랑 (THE VESPER CORRIDOR) — completion-stage playable loop
+; STARLINE — autochess prep x single-lane HD-2D battler
 config_version=5
 
 [application]
 
-config/name="베스퍼 회랑"
-run/main_scene="res://title.tscn"
-config/features=PackedStringArray("4.6", "Forward Plus")
+config/name="STARLINE"
+run/main_scene="res://scenes/main_flow.tscn"
+config/features=PackedStringArray("4.6", "GL Compatibility")
 boot_splash/show_image=false
-
-[autoload]
-
-GameState="*res://game_state.gd"
 
 [display]
 
 window/size/viewport_width=1280
 window/size/viewport_height=720
+window/size/window_width_override=1280
+window/size/window_height_override=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="keep"
 
 [rendering]
 
-renderer/rendering_method="forward_plus"
-renderer/rendering_method.mobile="mobile"
-environment/defaults/default_clear_color=Color(0.05, 0.09, 0.1, 1)
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/default_filters/use_nearest_mipmap_filter=false
+environment/defaults/default_clear_color=Color(0.03, 0.07, 0.08, 1)
