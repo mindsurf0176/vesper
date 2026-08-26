@@ -645,6 +645,9 @@ func _choose_corridor(option_index: int = -1) -> void:
 	_corridor_layer.visible = false
 	var node := corridor.current()
 	var kind := str(node.get("kind", "전투"))
+	if kind == "휴식":
+		_show_rest_choice()
+		return
 	if kind == "보급" or kind == "이벤트":
 		var p := game.human_seat().player
 		p.gold += 6 if kind == "보급" else 3
@@ -666,6 +669,65 @@ func _show_corridor_result() -> void:
 	_result_title.text = "회랑 돌파 완료"
 	_result_body.text = "베스퍼 매듭을 통과했습니다.\n\n새로운 시드로 다시 회랑에 도전할 수 있습니다."
 	_result_count.text = "RUN CLEAR"
+
+
+func _show_rest_choice() -> void:
+	phase = Phase.MAP
+	_prep.visible = false
+	_battle_layer.visible = false
+	_result_layer.visible = false
+	_help_layer.visible = false
+	_corridor_layer.visible = true
+	for child in _corridor_box.get_children():
+		child.queue_free()
+	var title := _label("휴식처  //  다음 전투를 준비하세요", 25, "f3c777")
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_corridor_box.add_child(title)
+	var body := _label("한 번만 선택할 수 있습니다. 회복하거나, 덱에서 카드를 제거하세요.", 14, "e8efeb")
+	body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_corridor_box.add_child(body)
+	var heal := _button("회복  ·  체력 +20", _rest_heal)
+	heal.custom_minimum_size.y = 58
+	_corridor_box.add_child(heal)
+	var remove := _button("덱 정리  ·  카드 1장 제거", _show_card_removal)
+	remove.custom_minimum_size.y = 58
+	remove.disabled = player.command_deck.size() <= 3
+	_corridor_box.add_child(remove)
+
+
+func _rest_heal() -> void:
+	if corridor.current().get("kind", "") != "휴식":
+		return
+	player.hp = mini(Econ.START_HP, player.hp + 20)
+	corridor.complete_current()
+	_show_corridor()
+
+
+func _show_card_removal() -> void:
+	for child in _corridor_box.get_children():
+		child.queue_free()
+	var title := _label("덱 정리  //  제거할 카드 선택", 25, "f3c777")
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_corridor_box.add_child(title)
+	var body := _label("덱은 작아질수록 원하는 카드를 더 자주 뽑습니다.", 14, "e8efeb")
+	body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_corridor_box.add_child(body)
+	for card_id in player.command_deck:
+		var card := _card_by_id(card_id)
+		var button := _button("%s  ·  %d AP\n%s" % [card["name"], card["cost"], card["hint"]], _remove_card.bind(card_id))
+		button.custom_minimum_size.y = 52
+		_corridor_box.add_child(button)
+
+
+func _remove_card(card_id: String) -> void:
+	if corridor.current().get("kind", "") != "휴식" or player.command_deck.size() <= 3:
+		return
+	var index := player.command_deck.find(card_id)
+	if index < 0:
+		return
+	player.command_deck.remove_at(index)
+	corridor.complete_current()
+	_show_corridor()
 
 
 func _queue_latest_reward_choices() -> void:

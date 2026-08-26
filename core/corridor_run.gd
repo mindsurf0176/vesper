@@ -8,6 +8,7 @@ const ENCOUNTERS := [
 	{"id":"ash_gate", "name":"재의 관문", "kind":"전투", "threat":1.0},
 	{"id":"signal_fork", "name":"끊긴 신호 분기점", "kind":"이벤트", "threat":1.0},
 	{"id":"hollow_depot", "name":"빈 보급고", "kind":"보급", "threat":1.1},
+	{"id":"quiet_anchor", "name":"고요한 정박지", "kind":"휴식", "threat":0.8},
 	{"id":"black_procession", "name":"검은 행렬", "kind":"엘리트", "threat":1.5},
 	{"id":"vesper_core", "name":"베스퍼 매듭", "kind":"보스", "threat":2.0},
 ]
@@ -73,7 +74,7 @@ func _build_route() -> void:
 	first["enemy_seed"] = rng.randi()
 	route.append(first)
 	map_layers.append([first.duplicate(true)])
-	var middle := [ENCOUNTERS[1], ENCOUNTERS[2], ENCOUNTERS[3]]
+	var middle := [ENCOUNTERS[1], ENCOUNTERS[2], ENCOUNTERS[4], ENCOUNTERS[3]]
 	for floor in range(1, 4):
 		var layer: Array[Dictionary] = []
 		var count := 3 if floor == 1 else 2
@@ -87,7 +88,7 @@ func _build_route() -> void:
 	route.append(branch_options[0].duplicate(true))
 	for floor in range(2, 4):
 		route.append(map_layers[floor][0].duplicate(true))
-	var boss := ENCOUNTERS[4].duplicate(true)
+	var boss := ENCOUNTERS[5].duplicate(true)
 	boss["floor"] = 5
 	boss["enemy_seed"] = rng.randi()
 	route.append(boss)

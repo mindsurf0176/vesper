@@ -15,6 +15,11 @@ func _init() -> void:
 	assert(a.current().get("kind", "") == "엘리트", "선택한 2층 경로가 현재 노드에 반영되지 않음")
 	a.complete_current()
 	assert(a.rewards.back().get("relic_choices", []).size() == 3, "엘리트 보상 유물 선택지가 없음")
+	var has_rest := false
+	for option in a.map_layers[3]:
+		if option.get("kind", "") == "휴식":
+			has_rest = true
+	assert(has_rest, "중간층에 휴식처 노드가 없음")
 	a.complete_current()
 	a.complete_current()
 	assert(a.current().get("kind", "") == "보스", "마지막 노드가 보스가 아님")
