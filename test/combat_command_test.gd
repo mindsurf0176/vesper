@@ -24,5 +24,12 @@ func _init() -> void:
 	assert(ally_unit.pos > before_pos, "전진 명령이 전선에 반영되지 않음")
 	assert(tactical.apply_tactical_order("방어"), "방어 명령을 적용하지 못함")
 	assert(ally_unit.shield > 0.0, "방어 명령이 보호막에 반영되지 않음")
+	var heavy := Sim.create([ally], [enemy], 3, 3)
+	for _i in 3:
+		heavy.step(1.0)
+	var target = heavy.units[1]
+	var before_hp: float = target.hp
+	assert(heavy.apply_tactical_order("집중", 2), "강화 집중 명령을 적용하지 못함")
+	assert(is_equal_approx(before_hp - target.hp, 72.0), "강화 집중 카드 피해량이 잘못됨")
 	print("PASS combat command")
 	quit(0)

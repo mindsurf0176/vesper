@@ -44,6 +44,9 @@ var _turn_left := 0.0
 var _plan_buttons: Array[Button] = []
 var _confirm_plan_btn: Button
 var _planned_orders: Array[String] = []
+var _planned_powers: Array[int] = []
+var _command_hand: Array[Dictionary] = []
+var _discarded_cards: Array[Dictionary] = []
 var _action_points := 3
 var _result_layer: Control
 var _result_title: Label
@@ -132,9 +135,9 @@ func _build_battle() -> void:
 	row.add_child(_speed_btn)
 	_command_btn = _button("지휘기", _on_command)
 	row.add_child(_command_btn)
-	for order in ["전진", "방어", "집중"]:
-		var plan_button := _button(order, _on_tactical_order.bind(order))
-		plan_button.custom_minimum_size.x = 64
+	for i in 3:
+		var plan_button := _button("", _on_card_pressed.bind(i))
+		plan_button.custom_minimum_size.x = 110
 		_plan_buttons.append(plan_button)
 		row.add_child(plan_button)
 	_confirm_plan_btn = _button("작전 확정", _confirm_plan)
@@ -343,11 +346,47 @@ func _on_tactical_order(order: String) -> void:
 	_refresh_battle_hud()
 
 
+func _card_catalog() -> Array[Dictionary]:
+	return [
+		{"id": "charge", "name": "선봉 돌격", "order": "전진", "power": 1, "cost": 1, "hint": "전선 +12"},
+		{"id": "breakthrough", "name": "강행 돌파", "order": "전진", "power": 2, "cost": 2, "hint": "전선 +24"},
+		{"id": "guard", "name": "보호 진형", "order": "방어", "power": 1, "cost": 1, "hint": "전원 보호막"},
+		{"id": "fortify", "name": "긴급 방벽", "order": "방어", "power": 2, "cost": 2, "hint": "강한 보호막"},
+		{"id": "focus", "name": "집중 사격", "order": "집중", "power": 1, "cost": 1, "hint": "최약 적 36 피해"},
+		{"id": "execute", "name": "처형 명령", "order": "집중", "power": 2, "cost": 2, "hint": "최약 적 72 피해"},
+	]
+
+
+func _draw_hand() -> void:
+	_command_hand.clear()
+	var deck := _card_catalog()
+	deck.shuffle()
+	for i in mini(3, deck.size()):
+		_command_hand.append(deck[i])
+
+
+func _on_card_pressed(hand_index: int) -> void:
+	if phase != Phase.PLAN or sim == null:
+		return
+	if hand_index < 0 or hand_index >= _command_hand.size():
+		return
+	var card: Dictionary = _command_hand[hand_index]
+	var card_cost := int(card["cost"])
+	if _action_points < card_cost:
+		return
+	_action_points -= card_cost
+	_planned_orders.append(str(card["order"]))
+	_planned_powers.append(int(card["power"]))
+	_discarded_cards.append(card)
+	_command_hand.remove_at(hand_index)
+	_refresh_battle_hud()
+
+
 func _confirm_plan() -> void:
 	if phase != Phase.PLAN or sim == null or _planned_orders.is_empty():
 		return
-	for order in _planned_orders:
-		sim.apply_tactical_order(order)
+	for i in _planned_orders.size():
+		sim.apply_tactical_order(_planned_orders[i], _planned_powers[i])
 	phase = Phase.BATTLE
 	_turn_left = 6.0
 	_refresh_battle_hud()
@@ -357,6 +396,8 @@ func _enter_plan() -> void:
 	phase = Phase.PLAN
 	_action_points = 3
 	_planned_orders.clear()
+	_planned_powers.clear()
+	_draw_hand()
 	_refresh_battle_hud()
 
 
@@ -395,7 +436,7 @@ func _refresh_battle_hud() -> void:
 		line_state = "전선 밀림"
 	var plan_text := "AP %d/3" % _action_points
 	if not _planned_orders.is_empty():
-		plan_text += "  " + " + ".join(_planned_orders)
+		plan_text += "  예약: " + " + ".join(_planned_orders)
 	var turn_state := plan_text if phase == Phase.PLAN else "라인 실행 중 · 다음 계획까지 %.1fs" % _turn_left
 	_battle_top.text = "NIGHT %02d   %s  %d HP     VS     %d HP  %s\n%.1fs / %ds   ·   %s  ·  %s" % [
 		round_no, game.human_seat().name, int(sim.core_hp[0]), int(sim.core_hp[1]),
@@ -404,8 +445,16 @@ func _refresh_battle_hud() -> void:
 		_battle_top.text += "   ·   유물: " + ", ".join(_relic_names(player.relics))
 	_command_btn.disabled = phase != Phase.BATTLE or _command_left > 0.0 or sim.finished
 	_command_btn.text = "지휘기 %.1f" % _command_left if _command_left > 0.0 else "지휘기"
-	for plan_button in _plan_buttons:
-		plan_button.disabled = phase != Phase.PLAN or sim.finished or _action_points <= 0
+	for i in _plan_buttons.size():
+		var plan_button := _plan_buttons[i]
+		if phase == Phase.PLAN and i < _command_hand.size():
+			var card: Dictionary = _command_hand[i]
+			plan_button.text = "%s\n%d AP · %s" % [card["name"], card["cost"], card["hint"]]
+			plan_button.tooltip_text = "%s: %s" % [card["name"], card["hint"]]
+			plan_button.disabled = sim.finished or _action_points < int(card["cost"])
+		else:
+			plan_button.text = "빈 손패"
+			plan_button.disabled = true
 	_confirm_plan_btn.disabled = phase != Phase.PLAN or sim.finished or _planned_orders.is_empty()
 
 

@@ -118,18 +118,19 @@ func cast_command_strike(damage: float = 48.0) -> bool:
 	return hit
 
 
-func apply_tactical_order(order: String) -> bool:
+func apply_tactical_order(order: String, power: int = 1) -> bool:
 	if finished:
 		return false
+	var strength := maxi(power, 1)
 	if order == "전진":
 		for unit in units:
 			if unit.team == 0 and unit.is_active():
-				unit.pos = minf(Defs.FIELD_LEN - 18.0, unit.pos + 12.0)
+				unit.pos = minf(Defs.FIELD_LEN - 18.0, unit.pos + 12.0 * strength)
 		return true
 	if order == "방어":
 		for unit in units:
 			if unit.team == 0 and unit.is_active():
-				unit.shield = maxf(unit.shield, unit.max_hp * 0.18)
+				unit.shield = maxf(unit.shield, unit.max_hp * 0.18 * strength)
 		return true
 	if order == "집중":
 		var target: SimUnit = null
@@ -138,8 +139,9 @@ func apply_tactical_order(order: String) -> bool:
 				target = unit
 		if target == null:
 			return false
-		target.hp = maxf(0.0, target.hp - 36.0)
-		_events.append({"t": "command_hit", "to": target.uid, "dmg": 36.0})
+		var damage := 36.0 * strength
+		target.hp = maxf(0.0, target.hp - damage)
+		_events.append({"t": "command_hit", "to": target.uid, "dmg": damage})
 		if target.hp <= 0.0:
 			target.alive = false
 			_events.append({"t": "death", "uid": target.uid})
