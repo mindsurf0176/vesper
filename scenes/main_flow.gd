@@ -416,7 +416,10 @@ func _other_results(human: int) -> String:
 
 func _on_result_continue() -> void:
 	if phase == Phase.RESULT:
-		_show_corridor()
+		if corridor.is_finished():
+			_show_corridor_result()
+		else:
+			_show_corridor()
 	elif phase == Phase.GAMEOVER:
 		_restart()
 
@@ -435,6 +438,9 @@ func _restart() -> void:
 
 
 func _show_corridor() -> void:
+	if corridor == null or corridor.is_finished():
+		_show_corridor_result()
+		return
 	phase = Phase.MAP
 	_prep.visible = false
 	_battle_layer.visible = false
