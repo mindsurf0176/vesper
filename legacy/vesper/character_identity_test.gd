@@ -76,7 +76,7 @@ func _ready() -> void:
 			assert(str(queued.get("output", "")) == "res://assets/sprites/%s_pl" % slug, "%s PixelLab output 경로 불일치" % cname)
 			assert(str(queued.get("spec_template", "")).ends_with("%s.template.json" % slug), "%s PixelLab spec 템플릿 경로 불일치" % cname)
 
-	var packed: PackedScene = load("res://roster.tscn")
+	var packed: PackedScene = load("res://legacy/vesper/roster.tscn")
 	assert(packed != null, "roster.tscn 로드 실패")
 	var inst = packed.instantiate()
 	add_child(inst)

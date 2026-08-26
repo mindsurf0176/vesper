@@ -7,7 +7,7 @@ func _ready() -> void:
 	GameState.set_setting("sfx_volume", 0.0)
 	GameState.feedback_log = []
 
-	var battle = load("res://battle3d.tscn").instantiate()
+	var battle = load("res://legacy/vesper/battle3d.tscn").instantiate()
 	add_child(battle)
 	await get_tree().process_frame
 

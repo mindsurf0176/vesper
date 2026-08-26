@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://bv3sp3r0st3r00"]
 
-[ext_resource type="Script" path="res://roster.gd" id="1"]
+[ext_resource type="Script" path="res://legacy/vesper/roster.gd" id="1"]
 
 [node name="Roster" type="Control"]
 layout_mode = 3

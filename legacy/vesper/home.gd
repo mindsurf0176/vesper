@@ -37,30 +37,30 @@ func _build() -> void:
 	add_child(daily)
 
 	_panel("전투 준비", "스테이지 규칙을 확인하고 편성·각인을 조정합니다.", Vector2(62, 310), Vector2(520, 180), COLD)
-	add_child(_nav_btn("회랑 진입", Vector2(92, 388), AMBER, "res://stagemap.tscn"))
-	add_child(_nav_btn("편성", Vector2(300, 388), COLD, "res://squad.tscn"))
+	add_child(_nav_btn("회랑 진입", Vector2(92, 388), AMBER, "res://legacy/vesper/stagemap.tscn"))
+	add_child(_nav_btn("편성", Vector2(300, 388), COLD, "res://legacy/vesper/squad.tscn"))
 
 	_panel("모바일 메타", "모집, 상점, 채팅, 미션, 우편, 성장, 시스템 화면까지 저장되는 목업 라이브옵스입니다.", Vector2(650, 150), Vector2(520, 430), Color(0.62, 0.64, 0.82))
-	add_child(_nav_btn("모집", Vector2(690, 238), AMBER, "res://gacha.tscn"))
-	add_child(_nav_btn("상점", Vector2(900, 238), Color(0.55, 0.72, 0.95), "res://shop.tscn"))
-	add_child(_nav_btn("채팅", Vector2(690, 306), Color(0.52, 0.78, 0.62), "res://chat.tscn"))
+	add_child(_nav_btn("모집", Vector2(690, 238), AMBER, "res://legacy/vesper/gacha.tscn"))
+	add_child(_nav_btn("상점", Vector2(900, 238), Color(0.55, 0.72, 0.95), "res://legacy/vesper/shop.tscn"))
+	add_child(_nav_btn("채팅", Vector2(690, 306), Color(0.52, 0.78, 0.62), "res://legacy/vesper/chat.tscn"))
 	var roster := _btn("도감", Vector2(900, 306), Color(0.45, 0.55, 0.70), Vector2(170, 48))
 	roster.pressed.connect(_open_roster)
 	add_child(roster)
-	add_child(_nav_btn("미션", Vector2(690, 374), Color(0.72, 0.56, 0.88), "res://missions.tscn"))
-	add_child(_nav_btn("우편", Vector2(900, 374), Color(0.78, 0.62, 0.40), "res://mail.tscn"))
-	add_child(_nav_btn("성장", Vector2(690, 442), Color(0.44, 0.78, 0.88), "res://growth.tscn"))
-	add_child(_nav_btn("설정", Vector2(900, 442), Color(0.60, 0.68, 0.78), "res://settings.tscn"))
+	add_child(_nav_btn("미션", Vector2(690, 374), Color(0.72, 0.56, 0.88), "res://legacy/vesper/missions.tscn"))
+	add_child(_nav_btn("우편", Vector2(900, 374), Color(0.78, 0.62, 0.40), "res://legacy/vesper/mail.tscn"))
+	add_child(_nav_btn("성장", Vector2(690, 442), Color(0.44, 0.78, 0.88), "res://legacy/vesper/growth.tscn"))
+	add_child(_nav_btn("설정", Vector2(900, 442), Color(0.60, 0.68, 0.78), "res://legacy/vesper/settings.tscn"))
 	var notice_text := "공지 %d" % GameState.unread_notice_count() if GameState.unread_notice_count() > 0 else "공지"
-	add_child(_nav_btn(notice_text, Vector2(690, 510), Color(0.92, 0.62, 0.42), "res://notice.tscn", Vector2(112, 40)))
-	add_child(_nav_btn("가이드", Vector2(820, 510), Color(0.48, 0.76, 0.70), "res://guide.tscn", Vector2(112, 40)))
-	add_child(_nav_btn("크레딧", Vector2(950, 510), Color(0.70, 0.62, 0.88), "res://credits.tscn", Vector2(112, 40)))
+	add_child(_nav_btn(notice_text, Vector2(690, 510), Color(0.92, 0.62, 0.42), "res://legacy/vesper/notice.tscn", Vector2(112, 40)))
+	add_child(_nav_btn("가이드", Vector2(820, 510), Color(0.48, 0.76, 0.70), "res://legacy/vesper/guide.tscn", Vector2(112, 40)))
+	add_child(_nav_btn("크레딧", Vector2(950, 510), Color(0.70, 0.62, 0.88), "res://legacy/vesper/credits.tscn", Vector2(112, 40)))
 
 	var bottom := _label("수익구조 목업: 초회팩 · 월정액 · 보상형 광고 · 루멘 모집. 실제 결제/광고 SDK는 미연동.", 14,
 		Color(0.58, 0.62, 0.64), Vector2(0, 625), Vector2(1280, 24))
 	bottom.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	add_child(bottom)
-	add_child(_nav_btn("타이틀", Vector2(48, 642), Color(0.4, 0.42, 0.46), "res://title.tscn", Vector2(120, 40)))
+	add_child(_nav_btn("타이틀", Vector2(48, 642), Color(0.4, 0.42, 0.46), "res://legacy/vesper/title.tscn", Vector2(120, 40)))
 
 func _claim_daily() -> void:
 	var res := GameState.claim_daily_reward()
@@ -70,7 +70,7 @@ func _claim_daily() -> void:
 func _open_roster() -> void:
 	var layer := CanvasLayer.new()
 	layer.layer = 20
-	layer.add_child(load("res://roster.tscn").instantiate())
+	layer.add_child(load("res://legacy/vesper/roster.tscn").instantiate())
 	add_child(layer)
 
 func _panel(title: String, body: String, pos: Vector2, size: Vector2, col: Color) -> void:

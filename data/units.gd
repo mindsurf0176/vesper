@@ -1,20 +1,16 @@
 class_name UnitDB
 extends RefCounted
 
-## 열두 별자리. 원소마다 정확히 셋씩.
+## STARLINE 12인 캐릭터 정본.
+## dictionary key와 motif는 save·pool·deterministic sim용 제작 metadata이며 UI에 노출하지 않는다.
 ## 모든 스탯은 ★1 기준이며 합성 시 STAR_SCALE만큼 곱해진다.
 
 const STAR_SCALE := 1.8
 const MAX_STAR := 3
 
-## 등급별 상점 풀 크기. 같은 별을 여러 명이 노리면 서로 마른다.
 const POOL_SIZE := {1: 22, 2: 16, 3: 12, 4: 8}
-
-## 강림 비용은 등급에서 그대로 나온다. 플레이어가 외울 숫자를 하나로 줄이기 위한
-## 규칙이다 — "비싼 별은 사기도 비싸고 내려오는 것도 늦다"로 끝난다.
 const DEPLOY_BY_TIER := {1: 2, 2: 4, 3: 7, 4: 11}
 
-## 별지기 레벨별 등급 등장 확률(%). 합은 100.
 const SHOP_ODDS := {
 	3: [75, 25, 0, 0],
 	4: [60, 32, 8, 0],
@@ -27,124 +23,164 @@ const SHOP_ODDS := {
 
 const MIN_LEVEL := 3
 const MAX_LEVEL := 9
-
-## 다음 레벨까지 필요한 경험치.
 const XP_TO_NEXT := {3: 4, 4: 8, 5: 14, 6: 22, 7: 34, 8: 50}
 
-## 별자리 정의.
-##   role: 상성 판정에만 쓴다 (근접 ▶ 원거리 ▶ 방어 ▶ 근접)
-##   element: 시너지 판정에만 쓴다 (같은 원소를 모으면 세진다)
-##   atk_range: 6이면 근접, 20 이상이면 뒤에서 지원 사격
-##   ability: 자동 발동하는 고유 능력. sim은 별자리 ID가 아니라 효과 키를 해석한다.
+
+## ability의 수치 effect key는 gameplay 계약이다. 이름·설명만 캐릭터 정체성에 맞춘다.
 static func table() -> Dictionary:
 	var R := Defs.Role
 	var E := Defs.Element
 	return {
-		# --- 불: 타오른다 ---
 		"aries": {
-			"name": "양", "tier": 1, "role": R.STRIKER, "element": E.FIRE,
+			"name": "라온", "true_name": "윤라온", "gender": "female",
+			"epithet": "열선의 척후", "motif": "양자리의 선두 돌파와 불의 뿔",
+			"faction": "선광 개척대", "personality": "결론보다 첫발이 빠르고 실패를 웃음으로 넘긴다",
+			"silhouette": "짧은 재킷과 앞으로 기운 낮은 자세, 양팔의 붉은 열선",
+			"weapon": "쌍열 파일 건틀릿", "tier": 1, "role": R.STRIKER, "element": E.FIRE,
 			"hp": 495.0, "atk": 52.0, "armor": 15.0, "atk_speed": 0.9,
 			"atk_range": 6.0, "move_speed": 12.0,
-			"ability": {"name": "선봉", "description": "강림 후 4초간 이동·공격 속도 +35%",
+			"ability": {"name": "점화 돌파", "description": "강림 후 4초간 이동·공격 속도 +35%",
 				"deploy_haste": 1.35, "duration": 4.0},
-			"flavor": "앞뒤 안 재고 먼저 뛰어든다",
+			"flavor": "길이 없으면 가장 먼저 불꽃으로 길을 만든다",
 		},
 		"sagittarius": {
-			"name": "사수", "tier": 2, "role": R.RANGER, "element": E.FIRE,
+			"name": "시온", "true_name": "권시온", "gender": "male",
+			"epithet": "궤적 판독관", "motif": "사수자리의 장거리 궤적과 사냥꾼",
+			"faction": "원일 측량국", "personality": "말보다 좌표를 믿고 한 번 정한 표적을 놓치지 않는다",
+			"silhouette": "긴 코트와 수평으로 뻗은 거대한 총궁, 한쪽 어깨의 거리계",
+			"weapon": "성궤 총궁", "tier": 2, "role": R.RANGER, "element": E.FIRE,
 			"hp": 490.0, "atk": 62.0, "armor": 8.0, "atk_speed": 0.55,
 			"atk_range": 32.0, "move_speed": 8.0,
-			"ability": {"name": "꿰뚫는 화살", "description": "공격할 때 상대 방어의 45%를 무시",
+			"ability": {"name": "적층 관통", "description": "공격할 때 상대 방어의 45%를 무시",
 				"armor_pierce": 0.45},
-			"flavor": "멀리서 정확히 쏜다",
+			"flavor": "보이지 않는 거리까지 이미 사선으로 바꾸어 두었다",
 		},
 		"leo": {
-			"name": "사자", "tier": 3, "role": R.STRIKER, "element": E.FIRE,
+			"name": "해율", "true_name": "강해율", "gender": "female",
+			"epithet": "황휘의 기수", "motif": "사자자리의 위광과 전장을 이끄는 태양",
+			"faction": "금양 함대", "personality": "화려하지만 허세가 없고 승리의 책임을 혼자 짊어진다",
+			"silhouette": "갈기처럼 퍼지는 금빛 망토와 높이 든 기창, 넓은 삼각 자세",
+			"weapon": "태양 기창", "tier": 3, "role": R.STRIKER, "element": E.FIRE,
 			"hp": 810.0, "atk": 98.0, "armor": 22.0, "atk_speed": 0.85,
 			"atk_range": 6.0, "move_speed": 11.0,
-			"ability": {"name": "왕의 불꽃", "description": "상대를 잠재울 때 공격력 +15% (최대 3회)",
+			"ability": {"name": "승전의 잔광", "description": "상대를 쓰러뜨릴 때 공격력 +15% (최대 3회)",
 				"kill_atk_mult": 0.15, "max_stacks": 3},
-			"flavor": "늦게 오지만 판을 뒤집는다",
+			"flavor": "한 번 밝아진 선두의 빛은 승리할수록 더 커진다",
 		},
-		# --- 흙: 단단하다 ---
 		"virgo": {
-			"name": "처녀", "tier": 1, "role": R.SUPPORT, "element": E.EARTH,
+			"name": "로아", "true_name": "이로아", "gender": "female",
+			"epithet": "생명 정비사", "motif": "처녀자리의 돌봄과 수확을 정밀 정비로 변환",
+			"faction": "백야 생환실", "personality": "작은 고장도 지나치지 않으며 다정함을 정확한 절차로 표현한다",
+			"silhouette": "민트색 반망토와 떠다니는 실타래 드론, 손바닥의 작은 등불",
+			"weapon": "항성 봉합사", "tier": 1, "role": R.SUPPORT, "element": E.EARTH,
 			"hp": 440.0, "atk": 24.0, "armor": 12.0, "atk_speed": 0.6,
 			"atk_range": 22.0, "move_speed": 9.0,
-			"ability": {"name": "별의 손길", "description": "강림해 있는 동안 아군 최대 체력의 1.4%를 매초 회복",
+			"ability": {"name": "생명 봉합", "description": "강림해 있는 동안 아군 최대 체력의 1.4%를 매초 회복",
 				"active_team_regen": 0.014},
-			"flavor": "조용히 뒤를 돌본다",
+			"flavor": "꺼져 가는 기억도 한 올씩 다시 이어 붙인다",
 		},
 		"taurus": {
-			"name": "황소", "tier": 2, "role": R.DEFENDER, "element": E.EARTH,
+			"name": "도건", "true_name": "백도건", "gender": "male",
+			"epithet": "중력 닻지기", "motif": "황소자리의 질량과 완고한 저지",
+			"faction": "흑철 정박단", "personality": "느리게 판단하지만 결정한 뒤에는 함대조차 밀지 못한다",
+			"silhouette": "거대한 사각 닻방패와 짧고 넓은 중장갑, 뒤로 박힌 고정 말뚝",
+			"weapon": "중력 닻방패", "tier": 2, "role": R.DEFENDER, "element": E.EARTH,
 			"hp": 1120.0, "atk": 33.0, "armor": 48.0, "atk_speed": 0.7,
 			"atk_range": 6.0, "move_speed": 7.5,
-			"ability": {"name": "우직함", "description": "한 번에 받는 피해가 최대 체력의 16%를 넘지 않음",
+			"ability": {"name": "질량 한계", "description": "한 번에 받는 피해가 최대 체력의 16%를 넘지 않음",
 				"damage_cap_ratio": 0.16},
-			"flavor": "밀리지 않는다",
+			"flavor": "그가 닻을 내린 자리가 곧 전선의 끝이다",
 		},
 		"capricorn": {
-			"name": "염소", "tier": 4, "role": R.DEFENDER, "element": E.EARTH,
+			"name": "나겸", "true_name": "천나겸", "gender": "female",
+			"epithet": "능선 수문장", "motif": "염소자리의 고지 등반과 흔들리지 않는 수호",
+			"faction": "천정 감시원", "personality": "높은 곳에서 전체를 보고 가장 위험한 책임을 조용히 맡는다",
+			"silhouette": "세로로 긴 백청색 탑방패와 등반 갈고리, 절벽 같은 직립 자세",
+			"weapon": "능선 탑방패", "tier": 4, "role": R.DEFENDER, "element": E.EARTH,
 			"hp": 1920.0, "atk": 60.0, "armor": 70.0, "atk_speed": 0.65,
 			"atk_range": 6.0, "move_speed": 7.0,
-			"ability": {"name": "산의 수호", "description": "강림해 있는 동안 내 성좌가 받는 피해 -20%",
+			"ability": {"name": "고지의 장막", "description": "강림해 있는 동안 아군 코어가 받는 피해 -20%",
 				"active_core_reduction": 0.20},
-			"flavor": "가장 늦게, 가장 굳건하게",
+			"flavor": "가장 늦게 도착해 마지막 관문이 된다",
 		},
-		# --- 바람: 빠르다 ---
 		"gemini": {
-			"name": "쌍둥이", "tier": 1, "role": R.STRIKER, "element": E.AIR,
+			"name": "모아", "true_name": "한모아", "gender": "female",
+			"epithet": "잔상의 무희", "motif": "쌍둥이자리의 이중성과 두 개의 동기화 잔상",
+			"faction": "청람 유격대", "personality": "혼잣말처럼 전술 드론과 대화하며 리듬이 깨지는 것을 싫어한다",
+			"silhouette": "좌우 비대칭 단발과 두 개의 사람형 잔상 드론, 교차하는 곡선 검광",
+			"weapon": "분절 쌍도", "tier": 1, "role": R.STRIKER, "element": E.AIR,
 			"hp": 450.0, "atk": 47.0, "armor": 12.0, "atk_speed": 1.1,
 			"atk_range": 6.0, "move_speed": 14.0,
-			"ability": {"name": "쌍성", "description": "매 3번째 공격이 60% 추가 피해",
+			"ability": {"name": "겹빛 연격", "description": "매 3번째 공격이 60% 추가 피해",
 				"every_n_attack": 3, "bonus_damage": 0.60},
-			"flavor": "둘이 함께 재빠르게",
+			"flavor": "한 번의 빈틈에 두 개의 궤적을 겹쳐 넣는다",
 		},
 		"libra": {
-			"name": "천칭", "tier": 2, "role": R.RANGER, "element": E.AIR,
+			"name": "재윤", "true_name": "문재윤", "gender": "male",
+			"epithet": "거리의 판관", "motif": "천칭자리의 계측과 불균형에 대한 판결",
+			"faction": "중립 궤도법원", "personality": "감정보다 수치를 앞세우지만 약자를 향한 불균형에는 냉정하게 분노한다",
+			"silhouette": "허리 양옆의 거울 권총과 부유 저울추, 수평으로 열린 긴 팔선",
+			"weapon": "균형추 권총", "tier": 2, "role": R.RANGER, "element": E.AIR,
 			"hp": 490.0, "atk": 55.0, "armor": 10.0, "atk_speed": 0.9,
 			"atk_range": 24.0, "move_speed": 10.0,
-			"ability": {"name": "균형의 심판", "description": "자신보다 체력 비율이 높은 상대에게 피해 +25%",
+			"ability": {"name": "우세 보정", "description": "자신보다 체력 비율이 높은 상대에게 피해 +25%",
 				"healthier_target_bonus": 0.25},
-			"flavor": "거리를 재며 균형을 잡는다",
+			"flavor": "기울어진 싸움일수록 그의 판결은 더 무거워진다",
 		},
 		"aquarius": {
-			"name": "물병", "tier": 3, "role": R.SUPPORT, "element": E.AIR,
+			"name": "서우", "true_name": "차서우", "gender": "female",
+			"epithet": "항로 조율사", "motif": "물병자리의 흐름 분배를 항로와 기류 재배치로 변환",
+			"faction": "유동항로국", "personality": "늘 한 수 뒤를 양보해 전체 흐름을 살리고 혼잡한 상황에서 오히려 차분하다",
+			"silhouette": "긴 청록 리본 안테나와 원형 중계륜, 바람에 뜬 발끝",
+			"weapon": "회류 지휘륜", "tier": 3, "role": R.SUPPORT, "element": E.AIR,
 			"hp": 720.0, "atk": 48.0, "armor": 18.0, "atk_speed": 0.65,
 			"atk_range": 22.0, "move_speed": 9.0,
-			"ability": {"name": "순풍", "description": "강림할 때 별의 기운 2를 되돌려줌",
+			"ability": {"name": "회류 배분", "description": "강림할 때 항성 기운 2를 되돌려줌",
 				"deploy_cost_refund": 2.0},
-			"flavor": "흐름을 바꾼다",
+			"flavor": "막힌 흐름을 돌려 다음 사람의 길을 먼저 연다",
 		},
-		# --- 물: 흐른다 ---
 		"cancer": {
-			"name": "게", "tier": 1, "role": R.DEFENDER, "element": E.WATER,
+			"name": "하린", "true_name": "문하린", "gender": "female",
+			"epithet": "심해 외피병", "motif": "게자리의 외피와 안쪽을 감싸는 보호 본능",
+			"faction": "심층 인양대", "personality": "경계심이 강하지만 자신의 방벽 안에 든 사람은 끝까지 지킨다",
+			"silhouette": "양옆으로 펼쳐지는 진남색 접이 방패와 둥근 잠수복, 낮은 중심",
+			"weapon": "접이식 외피 방패", "tier": 1, "role": R.DEFENDER, "element": E.WATER,
 			"hp": 880.0, "atk": 24.0, "armor": 38.0, "atk_speed": 0.7,
 			"atk_range": 6.0, "move_speed": 8.0,
-			"ability": {"name": "별껍질", "description": "강림할 때 최대 체력의 25%만큼 보호막 획득",
+			"ability": {"name": "폐각 전개", "description": "강림할 때 최대 체력의 25%만큼 보호막 획득",
 				"deploy_shield_ratio": 0.25},
-			"flavor": "껍질로 버틴다",
+			"flavor": "먼저 마음을 닫고 그 안에 모두를 숨긴다",
 		},
 		"pisces": {
-			"name": "물고기", "tier": 1, "role": R.RANGER, "element": E.WATER,
+			"name": "유라", "true_name": "남유라", "gender": "female",
+			"epithet": "수면 유격수", "motif": "물고기자리의 유영과 서로 엇갈리는 회피 궤적",
+			"faction": "백파 잠행대", "personality": "가벼운 농담으로 긴장을 풀지만 누구보다 주변의 움직임을 세밀하게 읽는다",
+			"silhouette": "물결형 자주색 코트와 양손의 짧은 유체총, 미끄러지는 한쪽 무릎",
+			"weapon": "쌍식 유체총", "tier": 1, "role": R.RANGER, "element": E.WATER,
 			"hp": 385.0, "atk": 43.0, "armor": 8.0, "atk_speed": 0.85,
 			"atk_range": 26.0, "move_speed": 9.0,
-			"ability": {"name": "유영", "description": "매 4번째 피격을 완전히 회피",
+			"ability": {"name": "미끄럼 위상", "description": "매 4번째 피격을 완전히 회피",
 				"dodge_every_n_hit": 4},
-			"flavor": "미끄러지듯 피하며 쏜다",
+			"flavor": "탄환이 닿을 때면 이미 다음 물결로 옮겨 가 있다",
 		},
 		"scorpio": {
-			"name": "전갈", "tier": 2, "role": R.STRIKER, "element": E.WATER,
+			"name": "무경", "true_name": "진무경", "gender": "male",
+			"epithet": "종결 집행자", "motif": "전갈자리의 숨은 침과 약점 처형",
+			"faction": "흑점 집행부", "personality": "불필요한 고통을 싫어해 끝내야 할 순간을 절대 놓치지 않는다",
+			"silhouette": "뒤로 길게 휘는 사슬 칼날과 검푸른 장갑, 표적 옆으로 파고든 측면 자세",
+			"weapon": "사슬침 도검", "tier": 2, "role": R.STRIKER, "element": E.WATER,
 			"hp": 630.0, "atk": 66.0, "armor": 16.0, "atk_speed": 1.0,
 			"atk_range": 6.0, "move_speed": 13.0,
-			"ability": {"name": "독침", "description": "체력이 40% 이하인 상대에게 피해 +35%",
+			"ability": {"name": "임계 절단", "description": "체력이 40% 이하인 상대에게 피해 +35%",
 				"execute_threshold": 0.40, "execute_bonus": 0.35},
-			"flavor": "한 방이 깊다",
+			"flavor": "끝나야 할 싸움에는 한 번의 정확한 마침표만 남긴다",
 		},
 	}
 
+
 static func get_def(def_id: String) -> Dictionary:
 	var t := table()
-	assert(t.has(def_id), "unknown star: %s" % def_id)
+	assert(t.has(def_id), "unknown unit: %s" % def_id)
 	return t[def_id]
 
 
@@ -157,9 +193,9 @@ static func ability_text(def_id: String) -> String:
 	return "%s — %s" % [a["name"], a["description"]]
 
 
-## 강림 비용. 등급에서 유도하므로 데이터에 따로 적지 않는다.
 static func deploy_cost(def_id: String) -> int:
 	return int(DEPLOY_BY_TIER[get_def(def_id)["tier"]])
+
 
 static func ids_by_tier(tier: int) -> Array[String]:
 	var out: Array[String] = []
@@ -170,6 +206,6 @@ static func ids_by_tier(tier: int) -> Array[String]:
 	out.sort()
 	return out
 
-## ★ 배율. ★1=1.0, ★2=1.8, ★3=3.24
+
 static func star_mult(star: int) -> float:
 	return pow(STAR_SCALE, float(star - 1))

@@ -31,7 +31,7 @@ func _build() -> void:
 	_title = Label.new()
 	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_title.add_theme_font_size_override("font_size", 10)
-	_title.add_theme_color_override("font_color", Color("8f99c8"))
+	_title.add_theme_color_override("font_color", Color("8ca7a5"))
 	v.add_child(_title)
 	_body = CenterContainer.new()
 	_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -39,7 +39,7 @@ func _build() -> void:
 	_hint = Label.new()
 	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_hint.add_theme_font_size_override("font_size", 9)
-	_hint.add_theme_color_override("font_color", Color("69739e"))
+	_hint.add_theme_color_override("font_color", Color("718c8a"))
 	v.add_child(_hint)
 	_apply_style()
 
@@ -86,13 +86,13 @@ func _drop_data(_at_position: Vector2, data: Variant) -> void:
 
 
 func _apply_style() -> void:
-	var bg := Color("171c35")
-	var border := Color("353e69")
+	var bg := Color("0d1b1e")
+	var border := Color("2c4a4e")
 	if locked:
-		bg = Color("101328")
-		border = Color("252b4a")
+		bg = Color("091315")
+		border = Color("1c3033")
 	elif selected:
-		border = Color("ffd98a")
+		border = Color("efc86d")
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = bg
 	sb.border_color = border

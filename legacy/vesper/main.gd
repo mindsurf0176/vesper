@@ -3,7 +3,7 @@ extends Node2D
 ## 단일 라인 / 코스트 / 소신(코어 HP 연소) / 병종 상성 / 지휘관 스킬 / 웨이브 / 승패 / 사인 진단.
 ## 아트는 전부 플레이스홀더 도형 — 재미(특히 소신 트롤리 딜레마) 검증용.
 
-const VUnit = preload("res://unit.gd")
+const VUnit = preload("res://legacy/vesper/unit.gd")
 
 const W := 1280.0
 const H := 720.0

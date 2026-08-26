@@ -3,6 +3,7 @@
 다크 SF 사이드뷰 **단일 라인 실시간 전략 RPG** (Godot 4.6). 카운터사이드식 라인 전투에 스도리카식 오브 커맨드를 결합한 PvE 라인 배틀러.
 
 - 기획: [DESIGN.md](DESIGN.md) · 세계관: [WORLD.md](WORLD.md) · 캐릭터 바이블: [CHARACTER-BIBLE.md](CHARACTER-BIBLE.md) · 에셋 큐: [ASSET-PIPELINE-QUEUE.md](ASSET-PIPELINE-QUEUE.md) · 출시 후보 기준: [RELEASE-CANDIDATE.md](RELEASE-CANDIDATE.md) · 모바일 메타: [MOBILE-META-SPEC.md](MOBILE-META-SPEC.md) · 피드백 연출: [PRESENTATION-SPEC.md](PRESENTATION-SPEC.md) · 전장 비주얼: [BATTLEFIELD-VISUAL-SPEC.md](BATTLEFIELD-VISUAL-SPEC.md)
+- 현재 시스템 전환 계약: [LINE-BATTLER-SPEC.md](docs/LINE-BATTLER-SPEC.md) · 오토배틀러 메타보다 실시간 소환·전선·오브 판단을 우선한다.
 - 현재 빌드: **타이틀 → 메인화면 → 회랑 맵 → 8인 편성·각인 → 전투 → 결과/보상/엔딩 → 변종 도전**과 **모집/상점/채팅/미션/우편/성장/패스/설정/공지/가이드/크레딧**까지 연결.
 - 시그니처 메커닉 **소신(燒身)** = 등불함 HP(=망자의 영혼)를 태워 코스트를 즉시 충전하는 도박.
 

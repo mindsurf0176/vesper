@@ -160,9 +160,9 @@ func _build_help() -> void:
 	var title := _label("STARLINE — 강림 순서를 설계하세요", 22, "f3c777")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
-	box.add_child(_help_step("① 5칸 상점에서 별을 산다", "같은 별 셋은 자동으로 합쳐지고, 같은 원소를 모으면 강해집니다."))
-	box.add_child(_help_step("② 9칸 대기석에서 강림 편성판으로 옮긴다", "편성판 왼쪽부터 차례로 단일 라인 전장에 강림합니다."))
-	box.add_child(_help_step("③ 상대 편성과 순위를 보고 준비 완료", "비싼 별을 앞에 두면 기운을 모으는 동안 전선이 빕니다."))
+	box.add_child(_help_step("① 5개의 항성 기억 중 사도를 호출한다", "같은 기억 셋은 자동으로 중첩 관측되고, 같은 원소의 사도를 모으면 강해집니다."))
+	box.add_child(_help_step("② 9칸 대기석에서 강림 편성판으로 옮긴다", "편성판 왼쪽 사도부터 차례로 단일 항성 회랑에 강림합니다."))
+	box.add_child(_help_step("③ 상대 편성과 관측 순위를 보고 순서를 확정한다", "강한 사도를 앞에 두면 항성 기운을 모으는 동안 전선이 빕니다."))
 	var rule := _label("근접 ▶ 원거리 ▶ 방어 ▶ 근접  ·  전투는 자동 진행", 14, "8bd9c6")
 	rule.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(rule)
@@ -199,7 +199,7 @@ func _begin_round() -> void:
 	_prep_left = FIRST_PREP_TIME if round_no == 1 else PREP_TIME
 	_prep.bind_match(game)
 	_prep.set_time_left(_prep_left)
-	_prep.set_message("상점에서 별을 사고, 왼쪽부터 강림 순서를 만드세요.")
+	_prep.set_message("항성 기억을 호출하고 왼쪽부터 강림 순서를 만드세요.")
 
 
 func _normalize_human_pair() -> void:
@@ -225,7 +225,7 @@ func _process(delta: float) -> void:
 			_prep_left = maxf(0.0, _prep_left - delta)
 			_prep.set_time_left(_prep_left)
 			if _prep_left <= 5.0 and player.queue_count() == 0:
-				_prep.set_message("편성된 별이 없습니다 — 이번 밤은 빈 성좌로 맞섭니다.")
+				_prep.set_message("편성된 사도가 없습니다 — 이번 회차는 빈 회랑으로 맞섭니다.")
 			if _prep_left <= 0.0:
 				_start_battle(true)
 		Phase.BATTLE:
@@ -241,7 +241,7 @@ func _start_battle(from_timeout: bool = false) -> void:
 	if phase != Phase.PREP:
 		return
 	if player.queue_count() == 0 and not from_timeout:
-		_prep.set_message("강림 편성판에 별을 하나 이상 올려야 준비를 마칠 수 있습니다.")
+		_prep.set_message("강림 편성판에 사도를 하나 이상 올려야 준비를 마칠 수 있습니다.")
 		return
 	if foe_seat < 0 or foe_seat == game.human_seat().index:
 		_resolve_and_show({})
@@ -275,7 +275,7 @@ func _step_battle(delta: float) -> void:
 func _refresh_battle_hud() -> void:
 	if sim == null:
 		return
-	_battle_top.text = "%s  성좌 %d   ◀  %.1fs / %ds  ▶   성좌 %d  %s" % [
+	_battle_top.text = "%s  코어 %d   ◀  %.1fs / %ds  ▶   코어 %d  %s" % [
 		game.human_seat().name, int(sim.core_hp[0]), sim.time, int(Defs.MAX_BATTLE_TIME),
 		int(sim.core_hp[1]), game.seats[foe_seat].name]
 
@@ -287,7 +287,7 @@ func _resolve_and_show(precomputed: Dictionary) -> void:
 	var lost := before_hp - player.hp
 	var human := game.human_seat().index
 	var settle := {}
-	var verdict := "별빛이 맞섰다"
+	var verdict := "두 관측 기록이 맞섰다"
 	for result in game.last_results:
 		if int(result["a"]) != human and int(result["b"]) != human:
 			continue
@@ -301,7 +301,7 @@ func _resolve_and_show(precomputed: Dictionary) -> void:
 	var interest := int(settle.get("interest", 0))
 	var streak_bonus := int(settle.get("streak_bonus", 0))
 	_result_title.text = verdict
-	_result_body.text = "%d번째 밤 · %s vs %s\n\n체력 -%d   ·   수입 +%d   ·   이자 +%d   ·   연속 보너스 +%d\n현재 체력 %d   ·   골드 %d   ·   생존 별지기 %d/%d\n\n%s" % [
+	_result_body.text = "%d번째 밤 · %s vs %s\n\n체력 -%d   ·   수입 +%d   ·   이자 +%d   ·   연속 보너스 +%d\n현재 체력 %d   ·   골드 %d   ·   생존 관측자 %d/%d\n\n%s" % [
 		this_round, game.seats[human].name,
 		game.seats[foe_seat].name if foe_seat >= 0 else "고요한 밤", lost, income, interest,
 		streak_bonus, player.hp, player.gold, game.living_seats().size(), Match.SEATS,
@@ -330,7 +330,7 @@ func _other_results(human: int) -> String:
 		var winner := int(result["winner_seat"])
 		out.append("%s = %s" % [a, b] if winner < 0 else "%s > %s" % [
 			game.seats[winner].name, b if winner == int(result["a"]) else a])
-	return "다른 성좌: " + "   ".join(out) if not out.is_empty() else ""
+	return "다른 회랑:" + "   ".join(out) if not out.is_empty() else ""
 
 
 func _on_result_continue() -> void:
@@ -359,7 +359,7 @@ func _on_buy(slot: int) -> void:
 
 func _on_sell(index: int) -> void:
 	if econ.sell(player, index):
-		_prep.set_message("별을 밤하늘로 돌려보냈습니다.")
+		_prep.set_message("항성 기억을 공용 관측망으로 돌려보냈습니다.")
 	_prep.refresh_all()
 
 
@@ -375,7 +375,7 @@ func _on_to_bench(index: int) -> void:
 
 func _on_reroll() -> void:
 	if not econ.reroll(player):
-		_prep.set_message("새 별을 부를 골드가 모자랍니다.")
+		_prep.set_message("새 항성 기억을 호출할 골드가 모자랍니다.")
 	_prep.refresh_all()
 
 
@@ -387,7 +387,7 @@ func _on_buy_xp() -> void:
 
 func _on_lock() -> void:
 	econ.set_shop_locked(player, not player.shop_locked)
-	_prep.set_message("잠근 상점은 다음 밤에도 유지됩니다." if player.shop_locked else "상점 잠금을 풀었습니다.")
+	_prep.set_message("잠근 호출 신호는 다음 회차에도 유지됩니다." if player.shop_locked else "호출 신호 잠금을 풀었습니다.")
 	_prep.refresh_all()
 
 

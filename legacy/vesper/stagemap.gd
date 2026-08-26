@@ -46,7 +46,7 @@ func _ready() -> void:
 		_stage_node(i, st, Vector2(x, cy), cleared, open)
 
 	var back := _flat_btn("← 메인", Vector2(48, 640), Color(0.5, 0.5, 0.56))
-	back.pressed.connect(func(): GameState.goto("res://home.tscn"))
+	back.pressed.connect(func(): GameState.goto("res://legacy/vesper/home.tscn"))
 	add_child(back)
 
 	if GameState.all_cleared():
@@ -58,7 +58,7 @@ func _ready() -> void:
 		loop.size = Vector2(140, 42)
 		loop.pressed.connect(func():
 			GameState.current_stage = GameState.STAGES.size()
-			GameState.goto("res://squad.tscn"))
+			GameState.goto("res://legacy/vesper/squad.tscn"))
 		add_child(loop)
 	_recent_records()
 
@@ -90,7 +90,7 @@ func _stage_node(idx: int, st: Dictionary, center: Vector2, cleared: bool, open:
 	if open:
 		b.pressed.connect(func():
 			GameState.current_stage = idx
-			GameState.goto("res://squad.tscn"))
+			GameState.goto("res://legacy/vesper/squad.tscn"))
 	add_child(b)
 	# 라벨(이름/부제)
 	var nm := _label(st["name"], 18, col if open else Color(0.5, 0.52, 0.55), 18)

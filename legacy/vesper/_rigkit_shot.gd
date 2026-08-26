@@ -16,7 +16,7 @@ var focus_unit: Node3D
 func _ready() -> void:
 	burst = "--burst" in OS.get_cmdline_user_args()
 	focus = "--focus" in OS.get_cmdline_user_args()
-	battle = load("res://battle3d.tscn").instantiate()
+		battle = load("res://legacy/vesper/battle3d.tscn").instantiate()
 	add_child(battle)
 
 func _process(delta: float) -> void:

@@ -75,7 +75,7 @@ func _menu_btn(text: String, y: float, col: Color, cb: Callable) -> void:
 func _open_roster() -> void:
 	var layer := CanvasLayer.new()
 	layer.layer = 20
-	layer.add_child(load("res://roster.tscn").instantiate())
+	layer.add_child(load("res://legacy/vesper/roster.tscn").instantiate())
 	add_child(layer)
 
 func _open_help() -> void:

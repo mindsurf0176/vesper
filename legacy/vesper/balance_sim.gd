@@ -40,7 +40,7 @@ func _ready() -> void:
 	GameState.current_stage = stage
 	run_stage = stage
 	# 속도: --fixed-fps 로 벽시계 분리, CPU 최대 속도 시뮬(헤드리스 무렌더)
-	battle = load("res://battle3d.tscn").instantiate()
+		battle = load("res://legacy/vesper/battle3d.tscn").instantiate()
 	battle.simulation_mode = true
 	add_child(battle)
 	battle.from_run = false   # 시뮬: 진행 저장·스테이지 전진 억제(공유 세이브 오염 방지)

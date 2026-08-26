@@ -4,7 +4,7 @@ extends Node
 func _ready() -> void:
 	GameState.squad = []
 	GameState.current_stage = 0
-	var battle = load("res://battle3d.tscn").instantiate()
+	var battle = load("res://legacy/vesper/battle3d.tscn").instantiate()
 	add_child(battle)
 	await get_tree().process_frame
 
@@ -89,7 +89,7 @@ func _ready() -> void:
 	battle.queue_free()
 	GameState.squad = ["진혼병", "운구 소총수", "관지기", "집전 의무관"]
 	GameState.current_stage = 0
-	var tutorial_battle = load("res://battle3d.tscn").instantiate()
+	var tutorial_battle = load("res://legacy/vesper/battle3d.tscn").instantiate()
 	add_child(tutorial_battle)
 	await get_tree().process_frame
 	assert(not tutorial_battle._tutorial_enabled("orbs"), "ST1 실제 런은 오브를 잠가야 함")
@@ -105,7 +105,7 @@ func _ready() -> void:
 
 	GameState.squad = []
 	GameState.current_stage = 0
-	var retreat_battle = load("res://battle3d.tscn").instantiate()
+	var retreat_battle = load("res://legacy/vesper/battle3d.tscn").instantiate()
 	add_child(retreat_battle)
 	await get_tree().process_frame
 	retreat_battle._on_retreat()
@@ -113,7 +113,7 @@ func _ready() -> void:
 	assert(retreat_battle.retreat_cause != "", "후퇴 종료는 별도 사인 진단 문구를 남겨야 함")
 	retreat_battle.queue_free()
 
-	var pause_battle = load("res://battle3d.tscn").instantiate()
+	var pause_battle = load("res://legacy/vesper/battle3d.tscn").instantiate()
 	add_child(pause_battle)
 	await get_tree().process_frame
 	pause_battle._toggle_pause()
@@ -134,7 +134,7 @@ func _ready() -> void:
 	var challenge: Dictionary = GameState.current_stage_def()
 	assert(str(challenge.get("id", "")).begins_with("loop_"), "완주 후에는 시드 기반 변종 스테이지를 생성해야 함")
 	assert(GameState.stage_open(GameState.STAGES.size()), "완주 후 변종 도전 노드가 열려야 함")
-	var map = load("res://stagemap.tscn").instantiate()
+	var map = load("res://legacy/vesper/stagemap.tscn").instantiate()
 	add_child(map)
 	await get_tree().process_frame
 	map.queue_free()

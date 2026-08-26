@@ -1,6 +1,6 @@
 extends Node
 
-const Unit3D = preload("res://unit3d.gd")
+const Unit3D = preload("res://legacy/vesper/unit3d.gd")
 
 
 func _ready() -> void:

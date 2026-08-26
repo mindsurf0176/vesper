@@ -64,8 +64,9 @@ func attack_fx(from: Vector3, to: Vector3, color: Color, ranged: bool) -> void:
 
 func impact_fx(position: Vector3, color: Color, heavy: bool = false) -> void:
 	var flash := MeshInstance3D.new()
-	var mesh := QuadMesh.new()
-	mesh.size = Vector2(0.65, 0.65) * (1.35 if heavy else 1.0)
+	var mesh := SphereMesh.new()
+	mesh.radius = 0.28 * (1.35 if heavy else 1.0)
+	mesh.height = mesh.radius * 2.0
 	flash.mesh = mesh
 	flash.position = position
 	var material := _fx_material(color, 3.2)
@@ -136,11 +137,11 @@ func _build_world() -> void:
 	add_child(world_environment)
 
 	camera = Camera3D.new()
-	camera.position = Vector3(0, 4.4, 16.0)
-	camera.fov = 40.0
+	camera.position = Vector3(0, 3.65, 13.2)
+	camera.fov = 36.0
 	camera.current = true
 	add_child(camera)
-	camera.look_at(Vector3(0, 1.0, 0), Vector3.UP)
+	camera.look_at(Vector3(0, 1.15, 0), Vector3.UP)
 	_camera_base = camera.position
 
 	var key_light := DirectionalLight3D.new()
@@ -206,12 +207,13 @@ func _build_motes() -> void:
 	particles.gravity = Vector3(0, 0.025, 0)
 	particles.initial_velocity_min = 0.03
 	particles.initial_velocity_max = 0.10
-	particles.scale_amount_min = 0.035
-	particles.scale_amount_max = 0.07
-	particles.color = Color(0.45, 0.86, 0.88, 0.55)
-	var mesh := QuadMesh.new()
-	mesh.size = Vector2(1, 1)
-	mesh.material = _fx_material(Color(0.45, 0.86, 0.88, 0.65), 1.5)
+	particles.scale_amount_min = 0.75
+	particles.scale_amount_max = 1.35
+	particles.color = Color(0.45, 0.86, 0.88, 0.42)
+	var mesh := SphereMesh.new()
+	mesh.radius = 0.035
+	mesh.height = 0.07
+	mesh.material = _fx_material(Color(0.45, 0.86, 0.88, 0.55), 1.2)
 	particles.mesh = mesh
 	add_child(particles)
 

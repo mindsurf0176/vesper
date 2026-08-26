@@ -19,6 +19,7 @@ var visual: Dictionary = {}
 var radius := 0.45
 var dead := false
 var ashen := false
+var manual_simulation := false
 
 var dir := 1
 var atk_timer := 0.0
@@ -336,6 +337,8 @@ func _physics_process(delta: float) -> void:
 		hitflash = max(0.0, hitflash - delta)
 		_flash(hitflash)
 	_update_hp_bar()
+	if manual_simulation:
+		return
 	# 4프레임 피격 연출 중에는 새 공격·회복·이동을 시작하지 않는다. 쿨다운은
 	# 계속 흐르므로 연출이 끝난 다음 프레임부터 현재 상황에 맞게 자연스럽게 복귀한다.
 	if hit_locked:

@@ -1,7 +1,8 @@
 extends Node3D
 ## 베스퍼 회랑 — HD-2D 전투(3D 디오라마 + 픽셀 빌보드). 로직은 MVP1(2D)에서 이식.
 
-const Unit3D = preload("res://unit3d.gd")
+const Unit3D = preload("res://legacy/vesper/unit3d.gd")
+const LineBattle = preload("res://core/line_battle.gd")
 
 const W := 1280.0
 const H := 720.0
@@ -96,6 +97,9 @@ var combat_audio_cooldowns: Dictionary = {}
 var pending_card_slot := -1
 var command_orbs: Array = []
 var selected_orbs: Array = []
+var line_core
+var line_core_mode := true
+var core_visuals: Dictionary = {}
 
 var ui: CanvasLayer
 var overlay: Node2D
@@ -110,6 +114,7 @@ var pause_panel: Control
 
 func _ready() -> void:
 	_apply_config()
+	line_core = LineBattle.new(enemy_hp, ally_hp_max)
 	font = load("res://assets/Galmuri11.ttf")
 	blob_tex = _make_blob_tex()
 	card_cd.resize(DECK.size())
@@ -184,18 +189,24 @@ func on_death(u) -> void:
 		ranged_deaths += 1
 
 # ---------- 스폰 ----------
-func _spawn(def: Dictionary, team: int, spawn_x := SPAWN_X_AUTO) -> void:
+func _spawn(def: Dictionary, team: int, spawn_x := SPAWN_X_AUTO, register_core := true):
 	var u := Unit3D.new()
 	var unit_def := _with_unit_visual(def, team)
 	u.setup(self, team, unit_def, _soldier_tex(int(unit_def["type"]), team, unit_def.get("visual", {})))
 	var x: float = spawn_x if spawn_x != SPAWN_X_AUTO else (ALLY_X + 1.4 if team == ALLY else ENEMY_X - 1.4)
 	u.position = Vector3(x, 0, randf_range(-0.55, 0.55))
+	u.manual_simulation = line_core_mode
 	units.append(u)
 	add_child(u)
+	if line_core_mode and register_core:
+		var core_uid: int = line_core.spawn_enemy(unit_def, _core_x_from_world(x)) if team == ENEMY else line_core.deploy(unit_def, _core_x_from_world(x))
+		if core_uid > 0:
+			core_visuals[core_uid] = u
+	return u
 
-func _spawn_ally(def: Dictionary, spawn_x := SPAWN_X_AUTO) -> void:
+func _spawn_ally(def: Dictionary, spawn_x := SPAWN_X_AUTO, register_core := true):
 	var x: float = spawn_x if spawn_x != SPAWN_X_AUTO else ALLY_X + 1.4
-	_spawn(def, ALLY, x)
+	return _spawn(def, ALLY, x, register_core)
 	float_world(def["name"], Vector3(x, 1.9, 0), AMBER)
 
 func _with_unit_visual(def: Dictionary, team: int) -> Dictionary:
@@ -338,16 +349,29 @@ func _deploy_card_slot(slot: int, world_x := SPAWN_X_AUTO) -> bool:
 	var deck_idx: int = int(hand_indices[slot])
 	var def: Dictionary = DECK[deck_idx]
 	var spawn_x := clamp_deploy_x(world_x if world_x != SPAWN_X_AUTO else deployment_max_x())
-	cost -= _card_cost(def)
+	var core_uid := -1
+	if line_core_mode:
+		core_uid = line_core.deploy(def, _core_x_from_world(spawn_x))
+		if core_uid < 0:
+			_set_deploy_feedback("라인 코어가 소환을 거부했습니다")
+			return false
+		cost = line_core.cost
+	else:
+		cost -= _card_cost(def)
 	card_cd[deck_idx] = float(def["cd"])
 	if def["type"] == DEFENDER: used_defender = true
-	_spawn_ally(def, spawn_x)
+	var visual = _spawn_ally(def, spawn_x, not line_core_mode)
+	if line_core_mode:
+		core_visuals[core_uid] = visual
 	_combat_audio("deploy", { "unit": str(def.get("name", "")) }, 0.12)
 	if _tutorial_enabled("hand_cycle"):
 		_advance_hand(slot)
 	pending_card_slot = -1
 	_set_deploy_feedback("%s 배치  ·  x %.1f  ·  전선 %d / %d" % [def["name"], spawn_x, ally_count(), CAP], 0.9)
 	return true
+
+func _core_x_from_world(world_x: float) -> float:
+	return clampf((world_x - ALLY_X) / (ENEMY_X - ALLY_X) * LineBattle.FIELD_LENGTH, 1.0, 45.0)
 
 func _alive_ally_of_role(role: int):
 	var best = null
@@ -454,6 +478,16 @@ func _resolve_orb_selection() -> bool:
 		selected_orbs.clear()
 		_refresh_orb_buttons()
 		return false
+	if line_core_mode:
+		if not line_core.cast_orb(role, count):
+			_set_deploy_feedback("오브 명령을 실행할 전장 유닛이 없습니다")
+			selected_orbs.clear()
+			_refresh_orb_buttons()
+			return false
+		_sync_core_visuals(line_core.snapshot())
+		_consume_selected_orbs()
+		_set_deploy_feedback("%s %d오브 발동" % [_orb_label(role), count], 1.4)
+		return true
 	_cast_orb_skill(caster, role, count)
 	_consume_selected_orbs()
 	return true
@@ -638,6 +672,18 @@ func _on_soshin() -> void:
 		_set_deploy_feedback("소신은 ST5에서 해금됩니다")
 		return
 	if not running or soshin_cd > 0.0: return
+	if line_core_mode:
+		if not line_core.use_soshin():
+			_set_deploy_feedback("등불이 더는 태울 수 없습니다")
+			return
+		cost = line_core.cost
+		ally_hp = line_core.ally_core_hp
+		soshin_count += 1
+		soshin_cd = 4.0
+		core_dim = 1.0
+		_set_deploy_feedback("소신  ·  코스트 +3  ·  등불함 HP -70", 2.4)
+		_combat_audio("soshin", {}, 1.0)
+		return
 	var floor_hp := ally_hp_max * 0.12
 	if ally_hp <= floor_hp: return
 	var burn: float = min(ally_hp - floor_hp, ally_hp_max * 0.08)
@@ -680,6 +726,18 @@ func _on_skill() -> void:
 		_set_deploy_feedback("등불함 지휘기는 ST5에서 해금됩니다")
 		return
 	if not running: return
+	if line_core_mode:
+		if ally_hp / ally_hp_max <= 0.25 and line_core.cast_last_stand():
+			core_invuln = 4.0
+			_sync_core_visuals(line_core.snapshot())
+			_set_deploy_feedback("최후 신호  ·  전선 후퇴  ·  방벽 4초", 3.0)
+			return
+		if skill_cd > 0.0 or not line_core.cast_command(float(command_skill.get("damage", 48.0)), float(command_skill.get("push", 0.0))):
+			return
+		skill_cd = float(command_skill.get("cooldown", 18.0))
+		_sync_core_visuals(line_core.snapshot())
+		_set_deploy_feedback("%s 발동" % str(command_skill.get("label", "등불함 포격")), 1.6)
+		return
 	if last_stand_ready:
 		last_stand_ready = false
 		last_stand_used = true
@@ -731,6 +789,9 @@ func _process(delta: float) -> void:
 			cam.position = cam_base + Vector3(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0), 0.0) * s * 0.35
 		elif cam.position != cam_base:
 			cam.position = cam_base
+	if line_core_mode:
+		_process_line_core(delta)
+		return
 	if ended:
 		return
 	if paused_by_player:
@@ -760,6 +821,44 @@ func _process(delta: float) -> void:
 		_end(true)
 	elif ally_hp <= 0.0:
 		_end(false)
+
+func _process_line_core(delta: float) -> void:
+	if ended or paused_by_player:
+		return
+	elapsed += delta
+	while wave_idx < WAVES.size() and elapsed >= float(WAVES[wave_idx]["t"]):
+		var wave: Dictionary = WAVES[wave_idx]
+		for _n in int(wave["n"]):
+			_spawn(EDEF[wave["id"]], ENEMY)
+		wave_idx += 1
+	line_core.step(delta)
+	var snapshot: Dictionary = line_core.snapshot()
+	cost = float(snapshot["cost"])
+	ally_hp = float(snapshot["ally_core_hp"])
+	enemy_hp = float(snapshot["enemy_core_hp"])
+	_sync_core_visuals(snapshot)
+	_update_buttons()
+	if line_core.ended:
+		_end(line_core.winner == LineBattle.ALLY)
+
+func _sync_core_visuals(snapshot: Dictionary) -> void:
+	for uid in core_visuals.keys():
+		var visual = core_visuals[uid]
+		if not is_instance_valid(visual):
+			continue
+		var found: Dictionary = {}
+		for state in snapshot["units"]:
+			if int(state["uid"]) == int(uid):
+				found = state
+				break
+		if found.is_empty():
+			continue
+		visual.position.x = lerpf(ALLY_X, ENEMY_X, float(found["x"]) / LineBattle.FIELD_LENGTH)
+		visual.hp = float(found["hp"])
+		visual.max_hp = float(found["max_hp"])
+		if not bool(found["alive"]) and not visual.dead:
+			visual.dead = true
+			visual.visible = false
 
 func _update_buttons() -> void:
 	if soshin_btn == null or skill_btn == null:
@@ -827,6 +926,9 @@ func _end(win: bool) -> void:
 func _on_retreat() -> void:
 	if ended:
 		return
+	if line_core_mode:
+		line_core.ended = true
+		line_core.winner = LineBattle.ENEMY
 	retreat_cause = "지휘관이 후퇴를 선택했다 — 편성과 배치 순서를 다시 조정하라."
 	_combat_audio("retreat", {}, 0.8)
 	_end(false)
@@ -872,7 +974,7 @@ func _show_pause_panel() -> void:
 	retry.pressed.connect(func(): get_tree().reload_current_scene())
 	pause_panel.add_child(retry)
 	var mapb := _pause_btn("메인", W * 0.5 - 90, 442, Color(0.24, 0.3, 0.34))
-	mapb.pressed.connect(func(): GameState.goto("res://home.tscn"))
+	mapb.pressed.connect(func(): GameState.goto("res://legacy/vesper/home.tscn"))
 	pause_panel.add_child(mapb)
 
 func _hide_pause_panel() -> void:
@@ -1339,7 +1441,7 @@ func _build_ui() -> void:
 	ui = CanvasLayer.new()
 	add_child(ui)
 	overlay = Node2D.new()
-	overlay.set_script(load("res://overlay.gd"))
+	overlay.set_script(load("res://legacy/vesper/overlay.gd"))
 	overlay.main = self
 	ui.add_child(overlay)
 
@@ -1414,7 +1516,7 @@ func _build_ui() -> void:
 func _open_roster() -> void:
 	var layer := CanvasLayer.new()
 	layer.layer = 20
-	layer.add_child(load("res://roster.tscn").instantiate())
+	layer.add_child(load("res://legacy/vesper/roster.tscn").instantiate())
 	add_child(layer)
 
 func _show_end(win: bool, cause: String) -> void:
@@ -1511,27 +1613,27 @@ func _show_end(win: bool, cause: String) -> void:
 			panel.add_child(ending)
 			var mapb := _end_btn("회랑 맵", W * 0.5 - 90, Color(0.5, 0.4, 0.2))
 			mapb.position.y = 490
-			mapb.pressed.connect(func(): GameState.goto("res://stagemap.tscn"))
+			mapb.pressed.connect(func(): GameState.goto("res://legacy/vesper/stagemap.tscn"))
 			panel.add_child(mapb)
 			var loopb := _end_btn("변종 도전", W * 0.5 + 90, Color(0.24, 0.3, 0.34))
 			loopb.position.y = 490
 			loopb.pressed.connect(func():
 				GameState.current_stage = GameState.STAGES.size()
-				GameState.goto("res://squad.tscn"))
+				GameState.goto("res://legacy/vesper/squad.tscn"))
 			panel.add_child(loopb)
 		else:
 			var nextb := _end_btn("다음 회랑 →", W * 0.5 - 176, Color(0.5, 0.4, 0.2))
-			nextb.pressed.connect(func(): GameState.goto("res://squad.tscn"))
+			nextb.pressed.connect(func(): GameState.goto("res://legacy/vesper/squad.tscn"))
 			panel.add_child(nextb)
 			var mapb := _end_btn("회랑 맵", W * 0.5 + 16, Color(0.24, 0.3, 0.34))
-			mapb.pressed.connect(func(): GameState.goto("res://stagemap.tscn"))
+			mapb.pressed.connect(func(): GameState.goto("res://legacy/vesper/stagemap.tscn"))
 			panel.add_child(mapb)
 	else:
 		var retry := _end_btn("다시", W * 0.5 - 176, Color(0.3, 0.24, 0.24))
 		retry.pressed.connect(func(): get_tree().reload_current_scene())
 		panel.add_child(retry)
 		var mapb := _end_btn("회랑 맵", W * 0.5 + 16, Color(0.24, 0.3, 0.34))
-		mapb.pressed.connect(func(): GameState.goto("res://stagemap.tscn"))
+		mapb.pressed.connect(func(): GameState.goto("res://legacy/vesper/stagemap.tscn"))
 		panel.add_child(mapb)
 
 func _end_btn(text: String, x: float, col: Color) -> Button:

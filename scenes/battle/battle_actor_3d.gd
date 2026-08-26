@@ -4,6 +4,8 @@ extends Node3D
 ## CombatSim snapshot과 event를 표현하는 passive 3D 배우.
 ## target, damage, cooldown, winner를 계산하지 않는다.
 
+enum State { SPAWN, LOCOMOTION, ATTACK, HIT, DEATH, RETIRED, VICTORY }
+
 const ANIMATION_FPS := {
 	"idle": 4.0,
 	"walk": 10.0,
@@ -14,6 +16,11 @@ const ANIMATION_FPS := {
 }
 const LOOPED := {"idle": true, "walk": true, "aim": true}
 const COMPLETION_GRACE := 0.02
+const MOVE_DEADZONE := 0.018
+const MOVE_HOLD := 0.10
+const DEATH_FADE := 0.20
+const DEATH_FALLBACK := 0.45
+const DEATH_HARD_LIMIT := 2.0
 
 var uid := -1
 var def_id := ""
@@ -31,12 +38,21 @@ var _visual_root: Node3D
 var _hp_back: MeshInstance3D
 var _hp_fill: MeshInstance3D
 var _shield_fill: MeshInstance3D
+var _state := State.SPAWN
 var _action_lock := ""
 var _action_left := 0.0
-var _last_sim_x := 0.0
+var _engaged := false
+var _moving_hold := 0.0
 var _base_brightness := 1.14
 var _hit_flash := 0.0
 var _base_scale := 1.0
+var _opacity := 1.0
+var _death_left := 0.0
+var _death_total := 0.0
+var _death_elapsed := 0.0
+var _retire_ready := false
+var _color_tween: Tween
+var _motion_tween: Tween
 
 
 func setup(state: Dictionary, world_position: Vector3) -> void:
@@ -48,25 +64,23 @@ func setup(state: Dictionary, world_position: Vector3) -> void:
 	element = int(UnitDB.get_def(def_id)["element"])
 	position = world_position
 	target_position = world_position
-	_last_sim_x = float(state.get("x", 0.0))
 	_build_visual()
 	apply_snapshot(state, world_position, true)
+	_state = State.LOCOMOTION
+	_resolve_locomotion()
 
 
 func apply_snapshot(state: Dictionary, world_position: Vector3, snap: bool = false) -> void:
+	if retiring:
+		return
 	target_position = world_position
+	_engaged = bool(state.get("engaged", false))
 	if snap:
 		position = target_position
+		_moving_hold = 0.0
 	var hp_ratio := clampf(float(state.get("hp", 0.0)) / maxf(float(state.get("max_hp", 1.0)), 1.0), 0.0, 1.0)
 	var shield_ratio := clampf(float(state.get("shield", 0.0)) / maxf(float(state.get("max_hp", 1.0)), 1.0), 0.0, 1.0)
 	_update_bars(hp_ratio, shield_ratio)
-	var sim_x := float(state.get("x", _last_sim_x))
-	var moving := absf(sim_x - _last_sim_x) > 0.005
-	_last_sim_x = sim_x
-	if _action_lock.is_empty() and not retiring:
-		_play_loop("walk" if moving else ("aim" if _sprite.sprite_frames.has_animation("aim") else "idle"))
-	if not bool(state.get("alive", true)) and not retiring:
-		play_death()
 
 
 func set_playback_speed(value: float) -> void:
@@ -78,31 +92,39 @@ func set_playback_speed(value: float) -> void:
 func play_deploy() -> void:
 	if retiring:
 		return
+	_state = State.SPAWN
 	_visual_root.scale = Vector3(_base_scale * 0.65, _base_scale * 1.2, _base_scale)
-	_sprite.modulate = Color(1.35, 1.15, 0.9, 0.0)
-	var tween := create_tween()
-	tween.set_speed_scale(playback_speed)
-	tween.tween_property(_sprite, "modulate", Color(_base_brightness, _base_brightness, _base_brightness, 1), 0.24)
-	tween.parallel().tween_property(_visual_root, "scale", Vector3.ONE * _base_scale, 0.24)
+	_opacity = 0.0
+	_apply_sprite_color()
+	_kill_tween(_color_tween)
+	_color_tween = create_tween()
+	_color_tween.set_speed_scale(playback_speed)
+	_color_tween.tween_method(_set_opacity, 0.0, 1.0, 0.24)
+	_color_tween.parallel().tween_property(_visual_root, "scale", Vector3.ONE * _base_scale, 0.24)
+	_color_tween.tween_callback(_finish_spawn)
 
 
 func play_attack() -> void:
-	_play_action("attack")
+	if retiring or _state == State.HIT:
+		return
+	_play_action("attack", State.ATTACK)
 	_punch(-0.13 if team == 0 else 0.13)
 
 
 func play_skill(_ability_name: String = "") -> void:
-	_play_action("attack")
-	var tween := create_tween()
-	tween.set_speed_scale(playback_speed)
-	tween.tween_property(_sprite, "modulate", Color(1.45, 1.18, 0.72, 1), 0.08)
-	tween.tween_property(_sprite, "modulate", Color(_base_brightness, _base_brightness, _base_brightness, 1), 0.22)
+	if retiring or _state == State.HIT:
+		return
+	_play_action("attack", State.ATTACK)
+	_kill_tween(_color_tween)
+	_color_tween = create_tween()
+	_color_tween.set_speed_scale(playback_speed)
+	_color_tween.tween_method(_set_tint_strength, 1.0, 0.0, 0.22)
 
 
 func play_hit() -> void:
 	if retiring:
 		return
-	_play_action("hit", true)
+	_play_action("hit", State.HIT, true)
 	_hit_flash = 0.16
 	_punch(0.10 if team == 0 else -0.10)
 
@@ -111,34 +133,53 @@ func play_death() -> void:
 	if retiring:
 		return
 	retiring = true
+	_state = State.DEATH
+	_action_lock = "death"
+	_hit_flash = 0.0
+	_engaged = false
+	_moving_hold = 0.0
+	_hide_bars()
+	_kill_tween(_color_tween)
+	_kill_tween(_motion_tween)
+	var clip_duration := DEATH_FALLBACK
 	if _sprite.sprite_frames.has_animation("death"):
-		_play_action("death", true)
+		_sprite.stop()
+		_sprite.play("death")
+		clip_duration = _animation_duration("death") + COMPLETION_GRACE
 	else:
-		_action_lock = "death"
-		_action_left = 0.45
-	var tween := create_tween()
-	tween.set_speed_scale(playback_speed)
-	tween.tween_interval(maxf(_action_left - 0.18, 0.0))
-	tween.tween_property(_sprite, "modulate:a", 0.0, 0.18)
-	tween.parallel().tween_property(_visual_root, "scale", Vector3(_base_scale * 0.72, _base_scale * 0.56, _base_scale), 0.18)
+		_sprite.stop()
+	_death_total = minf(clip_duration + DEATH_FADE, DEATH_HARD_LIMIT)
+	_death_left = _death_total
+	_death_elapsed = 0.0
+	_action_left = clip_duration
 
 
 func play_victory() -> void:
 	if retiring:
 		return
+	_state = State.VICTORY
 	_action_lock = "victory"
 	_action_left = 0.75
 	_play_loop("idle")
-	var tween := create_tween()
-	tween.set_speed_scale(playback_speed)
-	tween.tween_property(_visual_root, "position:y", 0.13, 0.20)
-	tween.tween_property(_visual_root, "position:y", 0.0, 0.20)
-	tween.tween_property(_visual_root, "position:y", 0.09, 0.16)
-	tween.tween_property(_visual_root, "position:y", 0.0, 0.16)
+	_kill_tween(_motion_tween)
+	_motion_tween = create_tween()
+	_motion_tween.set_speed_scale(playback_speed)
+	_motion_tween.tween_property(_visual_root, "position:y", 0.13, 0.20)
+	_motion_tween.tween_property(_visual_root, "position:y", 0.0, 0.20)
+	_motion_tween.tween_property(_visual_root, "position:y", 0.09, 0.16)
+	_motion_tween.tween_property(_visual_root, "position:y", 0.0, 0.16)
 
 
 func can_remove() -> bool:
-	return retiring and _action_left <= 0.0
+	return retiring and _retire_ready
+
+
+func state_name_for_test() -> String:
+	return State.keys()[_state].to_lower()
+
+
+func opacity_for_test() -> float:
+	return _opacity
 
 
 func attack_socket_global() -> Vector3:
@@ -154,18 +195,71 @@ func top_world() -> Vector3:
 
 
 func _process(delta: float) -> void:
+	if _state == State.RETIRED:
+		return
+	var scaled_delta := delta * playback_speed
+	if retiring:
+		_process_death(scaled_delta)
+		return
+
+	var distance := position.distance_to(target_position)
 	position = position.lerp(target_position, clampf(delta * 12.0 * minf(playback_speed, 2.0), 0.0, 1.0))
+	if distance > MOVE_DEADZONE:
+		_moving_hold = MOVE_HOLD
+	else:
+		_moving_hold = maxf(0.0, _moving_hold - scaled_delta)
+
 	if _action_left > 0.0:
-		_action_left = maxf(0.0, _action_left - delta * playback_speed)
-		if _action_left <= 0.0 and not retiring:
+		_action_left = maxf(0.0, _action_left - scaled_delta)
+		if _action_left <= 0.0 and _state != State.SPAWN:
 			_action_lock = ""
-			_play_loop("idle")
+			_state = State.LOCOMOTION
+	if _action_lock.is_empty() and _state == State.LOCOMOTION:
+		_resolve_locomotion()
+	_process_hit_flash(scaled_delta)
+
+
+func _process_death(delta: float) -> void:
+	_death_elapsed += delta
+	_death_left = maxf(0.0, _death_left - delta)
+	_action_left = maxf(0.0, _action_left - delta)
+	if _death_left <= DEATH_FADE:
+		_opacity = clampf(_death_left / DEATH_FADE, 0.0, 1.0)
+		var squash := lerpf(0.62, 1.0, _opacity)
+		_visual_root.scale = Vector3(_base_scale * lerpf(0.74, 1.0, _opacity), _base_scale * squash, _base_scale)
+	_apply_sprite_color()
+	if _death_left <= 0.0 or _death_elapsed >= DEATH_HARD_LIMIT:
+		_opacity = 0.0
+		_apply_sprite_color()
+		_retire_ready = true
+		_state = State.RETIRED
+		_action_lock = ""
+
+
+func _process_hit_flash(delta: float) -> void:
 	if _hit_flash > 0.0:
-		_hit_flash = maxf(0.0, _hit_flash - delta * playback_speed)
-		var flash := _hit_flash / 0.16
-		_sprite.modulate = Color(_base_brightness + flash * 2.8, _base_brightness + flash * 2.8, _base_brightness + flash * 2.8, 1)
-	elif _sprite != null:
-		_sprite.modulate = Color(_base_brightness, _base_brightness, _base_brightness, 1)
+		_hit_flash = maxf(0.0, _hit_flash - delta)
+	_apply_sprite_color()
+
+
+func _resolve_locomotion() -> void:
+	if retiring or not _action_lock.is_empty():
+		return
+	_state = State.LOCOMOTION
+	if _moving_hold > 0.0:
+		_play_loop("walk")
+	elif _engaged and _sprite.sprite_frames.has_animation("aim"):
+		_play_loop("aim")
+	else:
+		_play_loop("idle")
+
+
+func _finish_spawn() -> void:
+	if retiring:
+		return
+	_state = State.LOCOMOTION
+	_action_lock = ""
+	_resolve_locomotion()
 
 
 func _build_visual() -> void:
@@ -181,24 +275,28 @@ func _build_visual() -> void:
 
 	_sprite = AnimatedSprite3D.new()
 	_sprite.sprite_frames = frames
-	_sprite.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
-	_sprite.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-	_sprite.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
-	_sprite.shaded = true
-	_sprite.pixel_size = float(spec.get("sps", 0.0081))
+	_sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	_sprite.texture_filter = _texture_filter_for_spec(spec)
+	_sprite.alpha_cut = SpriteBase3D.ALPHA_CUT_DISABLED
+	_sprite.shaded = false
 	_sprite.flip_h = team == 1
 	_sprite.speed_scale = playback_speed
 
-	var texture_height := 150.0
+	var bounds := spec.get("visible_bounds", Rect2i(0, 0, 64, 96)) as Rect2i
+	var visible_height := maxf(float(bounds.size.y), 1.0)
+	var target_height := float(spec.get("target_height", 2.28))
+	_sprite.pixel_size = target_height / visible_height
+	visual_height = target_height
+	var canvas_height := visible_height
 	if frames.get_frame_count("idle") > 0:
 		var first := frames.get_frame_texture("idle", 0)
 		if first != null:
-			texture_height = float(first.get_height())
-	visual_height = texture_height * _sprite.pixel_size
-	if not bool(spec.get("tight", true)):
-		visual_height *= 0.70
-	_sprite.position.y = texture_height * _sprite.pixel_size * (0.5 if bool(spec.get("tight", true)) else 0.35)
-	_base_scale = 1.0 + 0.10 * float(star - 1)
+			canvas_height = float(first.get_height())
+	var visible_bottom_from_center := float(bounds.end.y) - canvas_height * 0.5
+	# Sprite3D의 texture Y축은 world Y와 반대이므로, 불투명 하단을 지면까지 올린다.
+	_sprite.position.y = visible_bottom_from_center * _sprite.pixel_size \
+		+ float(spec.get("ground_offset", 0.0))
+	_base_scale = 1.0 + 0.08 * float(star - 1)
 
 	_visual_root = Node3D.new()
 	_visual_root.name = "Visual"
@@ -206,8 +304,15 @@ func _build_visual() -> void:
 	add_child(_visual_root)
 	_visual_root.add_child(_sprite)
 	_sprite.play("idle")
+	_apply_sprite_color()
 	_add_blob()
 	_add_hp_bars()
+
+
+func _texture_filter_for_spec(spec: Dictionary) -> BaseMaterial3D.TextureFilter:
+	if String(spec.get("filtering", "nearest")) == "linear":
+		return BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	return BaseMaterial3D.TEXTURE_FILTER_NEAREST
 
 
 func _add_animation(frames: SpriteFrames, animation: String, folder: String) -> void:
@@ -222,11 +327,21 @@ func _add_animation(frames: SpriteFrames, animation: String, folder: String) -> 
 
 
 func _build_debug_frame(frames: SpriteFrames) -> void:
+	# 미제작 캐릭터는 최종 아트로 오인되지 않는 저채도 관측 홀로그램으로 표시한다.
 	var image := Image.create(64, 96, false, Image.FORMAT_RGBA8)
 	image.fill(Color.TRANSPARENT)
-	var colors: Array[Color] = [Color("ef8354"), Color("b8a56b"), Color("7cc5cf"), Color("5d8db7")]
+	var colors: Array[Color] = [Color("8f5f50"), Color("77735d"), Color("58777a"), Color("536a7a")]
 	var color: Color = colors[element]
-	image.fill_rect(Rect2i(18, 18, 28, 64), color)
+	var glow := Color(color.r, color.g, color.b, 0.26)
+	var body := Color(color.r, color.g, color.b, 0.72)
+	image.fill_rect(Rect2i(24, 14, 16, 16), glow)
+	image.fill_rect(Rect2i(26, 16, 12, 12), body)
+	image.fill_rect(Rect2i(18, 31, 28, 7), glow)
+	image.fill_rect(Rect2i(22, 34, 20, 34), body)
+	image.fill_rect(Rect2i(15, 38, 7, 32), glow)
+	image.fill_rect(Rect2i(42, 38, 7, 32), glow)
+	image.fill_rect(Rect2i(22, 68, 8, 25), glow)
+	image.fill_rect(Rect2i(34, 68, 8, 25), glow)
 	frames.add_animation("idle")
 	frames.set_animation_loop("idle", true)
 	frames.add_frame("idle", ImageTexture.create_from_image(image))
@@ -273,13 +388,19 @@ func _bar(width: float, height: float, color: Color) -> MeshInstance3D:
 
 
 func _update_bars(hp_ratio: float, shield_ratio: float) -> void:
-	if _hp_fill == null:
+	if _hp_fill == null or retiring:
 		return
 	_set_bar_ratio(_hp_fill, hp_ratio)
 	_hp_back.visible = hp_ratio < 0.999 or shield_ratio > 0.001
 	_hp_fill.visible = _hp_back.visible
 	_shield_fill.visible = shield_ratio > 0.001
 	_set_bar_ratio(_shield_fill, minf(shield_ratio, 1.0))
+
+
+func _hide_bars() -> void:
+	for bar in [_hp_back, _hp_fill, _shield_fill]:
+		if bar != null:
+			bar.visible = false
 
 
 func _set_bar_ratio(bar: MeshInstance3D, ratio: float) -> void:
@@ -296,11 +417,12 @@ func _play_loop(animation: String) -> void:
 		_sprite.play(animation)
 
 
-func _play_action(animation: String, restart: bool = false) -> void:
-	if retiring and animation != "death":
+func _play_action(animation: String, next_state: State, restart: bool = false) -> void:
+	if retiring:
 		return
 	if not _sprite.sprite_frames.has_animation(animation):
 		animation = "attack" if _sprite.sprite_frames.has_animation("attack") else "idle"
+	_state = next_state
 	_action_lock = animation
 	_action_left = _animation_duration(animation) + COMPLETION_GRACE
 	if restart:
@@ -317,7 +439,35 @@ func _animation_duration(animation: String) -> float:
 
 
 func _punch(offset: float) -> void:
-	var tween := create_tween()
-	tween.set_speed_scale(playback_speed)
-	tween.tween_property(_visual_root, "position:x", offset, 0.045)
-	tween.tween_property(_visual_root, "position:x", 0.0, 0.13)
+	_kill_tween(_motion_tween)
+	_motion_tween = create_tween()
+	_motion_tween.set_speed_scale(playback_speed)
+	_motion_tween.tween_property(_visual_root, "position:x", offset, 0.045)
+	_motion_tween.tween_property(_visual_root, "position:x", 0.0, 0.13)
+
+
+func _set_opacity(value: float) -> void:
+	_opacity = clampf(value, 0.0, 1.0)
+	_apply_sprite_color()
+
+
+func _set_tint_strength(value: float) -> void:
+	if retiring:
+		return
+	var warm := Color(1.45, 1.18, 0.72)
+	var base := Color(_base_brightness, _base_brightness, _base_brightness)
+	var rgb := base.lerp(warm, clampf(value, 0.0, 1.0))
+	_sprite.modulate = Color(rgb.r, rgb.g, rgb.b, _opacity)
+
+
+func _apply_sprite_color() -> void:
+	if _sprite == null:
+		return
+	var flash := clampf(_hit_flash / 0.16, 0.0, 1.0)
+	var value := _base_brightness + flash * 2.8
+	_sprite.modulate = Color(value, value, value, _opacity)
+
+
+func _kill_tween(tween: Tween) -> void:
+	if tween != null and tween.is_valid():
+		tween.kill()

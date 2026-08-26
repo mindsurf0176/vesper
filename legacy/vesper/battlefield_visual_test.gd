@@ -15,7 +15,7 @@ func _ready() -> void:
 		var ev := GameState.battle_visual_for(str(e.get("name", "")), int(e.get("type", GameState.STRIKER)), true)
 		assert(ev.has("shape") and bool(ev.get("enemy", false)), "%s 적 비주얼 계약 누락" % enemy_id)
 
-	var battle = load("res://battle3d.tscn").instantiate()
+	var battle = load("res://legacy/vesper/battle3d.tscn").instantiate()
 	add_child(battle)
 	await get_tree().process_frame
 	battle.simulation_mode = true

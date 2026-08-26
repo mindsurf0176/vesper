@@ -11,22 +11,22 @@ func _ready() -> void:
 	]
 
 	var scenes := [
-		"res://title.tscn",
-		"res://home.tscn",
-		"res://stagemap.tscn",
-		"res://squad.tscn",
-		"res://roster.tscn",
-		"res://gacha.tscn",
-		"res://shop.tscn",
-		"res://chat.tscn",
-		"res://missions.tscn",
-		"res://mail.tscn",
-		"res://growth.tscn",
-		"res://settings.tscn",
-		"res://notice.tscn",
-		"res://guide.tscn",
-		"res://credits.tscn",
-		"res://battle3d.tscn",
+		"res://legacy/vesper/title.tscn",
+		"res://legacy/vesper/home.tscn",
+		"res://legacy/vesper/stagemap.tscn",
+		"res://legacy/vesper/squad.tscn",
+		"res://legacy/vesper/roster.tscn",
+		"res://legacy/vesper/gacha.tscn",
+		"res://legacy/vesper/shop.tscn",
+		"res://legacy/vesper/chat.tscn",
+		"res://legacy/vesper/missions.tscn",
+		"res://legacy/vesper/mail.tscn",
+		"res://legacy/vesper/growth.tscn",
+		"res://legacy/vesper/settings.tscn",
+		"res://legacy/vesper/notice.tscn",
+		"res://legacy/vesper/guide.tscn",
+		"res://legacy/vesper/credits.tscn",
+		"res://legacy/vesper/battle3d.tscn",
 	]
 	for path in scenes:
 		var packed: PackedScene = load(path)
@@ -35,7 +35,7 @@ func _ready() -> void:
 		add_child(inst)
 		await get_tree().process_frame
 		assert(is_instance_valid(inst), "%s 인스턴스 생성 실패" % path)
-		if path == "res://title.tscn":
+		if path == "res://legacy/vesper/title.tscn":
 			inst._open_help()
 			await get_tree().process_frame
 		inst.queue_free()

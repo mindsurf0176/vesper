@@ -7,7 +7,7 @@ extends RefCounted
 ## 플레이어가 기억할 것이 두 배가 된다.
 enum Role { STRIKER, RANGER, DEFENDER, SUPPORT }
 
-## 4원소. 별자리 12종이 원소마다 정확히 셋씩 나뉜다.
+## 4원소. 관측체 12종이 원소마다 정확히 셋씩 나뉜다.
 enum Element { FIRE, EARTH, AIR, WATER }
 
 const ROLE_NAMES := {
@@ -37,8 +37,8 @@ const ELEMENT_HINTS := {
 const FIELD_LEN := 100.0
 const SPAWN_OFFSET := 15.0   ## 코어에서 출격 지점까지의 거리
 
-## 승리조건은 상대 성좌를 꺼뜨리는 것. 별이 모두 잠드는 것은 그 자체로 패배가 아니라
-## "성좌가 무방비가 된 상태"다.
+## 승리조건은 상대 관측 코어를 꺼뜨리는 것. 사도가 모두 쓰러지는 것은 그 자체로 패배가 아니라
+## "코어가 무방비가 된 상태"다.
 const CORE_HP := 350.0
 const TICK := 1.0 / 30.0
 const MAX_BATTLE_TIME := 45.0

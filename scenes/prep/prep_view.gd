@@ -51,7 +51,7 @@ func set_time_left(value: float) -> void:
 	if _timer != null:
 		_timer.text = "준비 %02d" % ceili(prep_time)
 		_timer.add_theme_color_override("font_color",
-			Color("f2909f") if prep_time <= 5.0 else Color("ffd98a"))
+			Color("ef8f9c") if prep_time <= 5.0 else Color("efc86d"))
 
 
 func set_message(value: String) -> void:
@@ -78,7 +78,7 @@ func refresh_all() -> void:
 	_rebuild_rank(foe)
 	_reroll_btn.disabled = p.gold < Econ.REROLL_COST
 	_xp_btn.disabled = p.gold < Econ.XP_COST or p.level >= UnitDB.MAX_LEVEL
-	_lock_btn.text = "상점 잠금 ✓" if p.shop_locked else "상점 잠금"
+	_lock_btn.text = "호출 잠금 ✓" if p.shop_locked else "호출 잠금"
 	_sell_btn.disabled = selected_roster < 0
 	_ready_btn.disabled = p.queue_count() == 0
 
@@ -86,117 +86,128 @@ func refresh_all() -> void:
 func _build_ui() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var bg := ColorRect.new()
-	bg.color = Color("12162c")
+	bg.color = Color("071214")
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(bg)
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 	var root := VBoxContainer.new()
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	root.add_theme_constant_override("separation", 4)
+	root.add_theme_constant_override("separation", 5)
 	add_child(root)
 
 	var top := PanelContainer.new()
-	top.custom_minimum_size.y = 52
-	top.add_theme_stylebox_override("panel", _panel("202643", 8))
+	top.custom_minimum_size.y = 54
+	top.add_theme_stylebox_override("panel", _panel("102226", 9))
 	root.add_child(top)
 	var top_row := HBoxContainer.new()
 	top_row.add_theme_constant_override("separation", 10)
 	top.add_child(top_row)
-	_hud = _label("", 14, "f0f2ff")
+	var mode := _label("OBSERVATORY / PREP", 11, "70aaa4")
+	mode.custom_minimum_size.x = 154
+	top_row.add_child(mode)
+	_hud = _label("", 14, "eef4f1")
 	_hud.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top_row.add_child(_hud)
-	_timer = _label("준비 45", 20, "ffd98a")
-	_timer.custom_minimum_size.x = 90
+	_timer = _label("준비 45", 20, "efc86d")
+	_timer.custom_minimum_size.x = 94
 	_timer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	top_row.add_child(_timer)
-	var help := _button("?", func(): help_requested.emit())
-	help.custom_minimum_size = Vector2(40, 36)
+	var help := _button("도움말", func(): help_requested.emit())
+	help.custom_minimum_size = Vector2(72, 36)
 	top_row.add_child(help)
 
 	var middle := HBoxContainer.new()
 	middle.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	middle.add_theme_constant_override("separation", 4)
+	middle.add_theme_constant_override("separation", 5)
 	root.add_child(middle)
 
-	var left := _section("원소의 흐름", 190)
+	var left := _section("원소 흐름", 142)
 	middle.add_child(left)
 	_synergy_box = VBoxContainer.new()
-	_synergy_box.add_theme_constant_override("separation", 8)
+	_synergy_box.add_theme_constant_override("separation", 6)
 	left.get_child(0).add_child(_synergy_box)
 
 	var center := VBoxContainer.new()
 	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	center.add_theme_constant_override("separation", 4)
+	center.add_theme_constant_override("separation", 5)
 	middle.add_child(center)
-	var foe_panel := _section("다음 상대의 강림 순서", 0)
-	foe_panel.custom_minimum_size.y = 104
+	var foe_panel := _section("상대 관측 · 예상 강림 순서", 0)
+	foe_panel.custom_minimum_size.y = 92
 	center.add_child(foe_panel)
 	_foe_box = HBoxContainer.new()
 	_foe_box.alignment = BoxContainer.ALIGNMENT_CENTER
-	_foe_box.add_theme_constant_override("separation", 3)
+	_foe_box.add_theme_constant_override("separation", 4)
 	foe_panel.get_child(0).add_child(_foe_box)
 
-	var board_panel := _section("강림 편성판   왼쪽부터 차례로 내려온다", 0)
+	var board_panel := _section("강림 편성 · 왼쪽 사도부터 회랑에 고정", 0)
 	board_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	center.add_child(board_panel)
 	_board_box = HBoxContainer.new()
 	_board_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_board_box.alignment = BoxContainer.ALIGNMENT_CENTER
-	_board_box.add_theme_constant_override("separation", 4)
+	_board_box.add_theme_constant_override("separation", 5)
 	board_panel.get_child(0).add_child(_board_box)
 
-	var right := _section("별지기", 175)
+	var right := _section("관측 순위", 144)
 	middle.add_child(right)
 	_rank_box = VBoxContainer.new()
-	_rank_box.add_theme_constant_override("separation", 5)
+	_rank_box.add_theme_constant_override("separation", 4)
 	right.get_child(0).add_child(_rank_box)
 
 	var lower := VBoxContainer.new()
-	lower.custom_minimum_size.y = 238
-	lower.add_theme_constant_override("separation", 3)
+	lower.custom_minimum_size.y = 276
+	lower.add_theme_constant_override("separation", 4)
 	root.add_child(lower)
 
-	var bench_panel := _section("대기석   카드를 선택한 뒤 편성 슬롯을 눌러도 된다", 0)
-	bench_panel.custom_minimum_size.y = 112
+	var bench_panel := _section("대기석 · 선택 후 강림 슬롯을 누르면 배치", 0)
+	bench_panel.custom_minimum_size.y = 118
 	lower.add_child(bench_panel)
 	_bench_box = HBoxContainer.new()
 	_bench_box.alignment = BoxContainer.ALIGNMENT_CENTER
-	_bench_box.add_theme_constant_override("separation", 3)
+	_bench_box.add_theme_constant_override("separation", 4)
 	bench_panel.get_child(0).add_child(_bench_box)
 
-	var shop_panel := _section("별 상점", 0)
+	var shop_panel := _section("사도 호출 · 항성 기억을 선택하세요", 0)
 	shop_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	lower.add_child(shop_panel)
 	var shop_row := HBoxContainer.new()
-	shop_row.add_theme_constant_override("separation", 4)
+	shop_row.add_theme_constant_override("separation", 8)
 	shop_panel.get_child(0).add_child(shop_row)
 	_shop_box = HBoxContainer.new()
 	_shop_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_shop_box.alignment = BoxContainer.ALIGNMENT_CENTER
-	_shop_box.add_theme_constant_override("separation", 4)
+	_shop_box.add_theme_constant_override("separation", 6)
 	shop_row.add_child(_shop_box)
 	var controls := VBoxContainer.new()
-	controls.custom_minimum_size.x = 210
+	controls.custom_minimum_size.x = 206
+	controls.add_theme_constant_override("separation", 4)
 	shop_row.add_child(controls)
 	var econ_row := HBoxContainer.new()
+	econ_row.add_theme_constant_override("separation", 4)
 	controls.add_child(econ_row)
-	_reroll_btn = _button("새 별 (%d)" % Econ.REROLL_COST, func(): reroll_requested.emit())
-	_xp_btn = _button("XP (%d)" % Econ.XP_COST, func(): xp_requested.emit())
+	_reroll_btn = _button("새 호출 %dG" % Econ.REROLL_COST, func(): reroll_requested.emit())
+	_xp_btn = _button("XP %dG" % Econ.XP_COST, func(): xp_requested.emit())
+	_reroll_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_xp_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	econ_row.add_child(_reroll_btn)
 	econ_row.add_child(_xp_btn)
 	var manage_row := HBoxContainer.new()
+	manage_row.add_theme_constant_override("separation", 4)
 	controls.add_child(manage_row)
-	_lock_btn = _button("상점 잠금", func(): lock_requested.emit())
+	_lock_btn = _button("호출 잠금", func(): lock_requested.emit())
+	_lock_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	manage_row.add_child(_lock_btn)
 	_sell_btn = _button("선택 판매", _on_sell_selected)
+	_sell_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_sell_btn.disabled = true
 	manage_row.add_child(_sell_btn)
-	_ready_btn = _button("준비 완료", func(): ready_requested.emit())
-	_ready_btn.custom_minimum_size.y = 38
+	_ready_btn = _button("강림 순서 확정", func(): ready_requested.emit())
+	_ready_btn.custom_minimum_size.y = 42
 	controls.add_child(_ready_btn)
 
-	_message = _label("", 11, "ffd98a")
+	_message = _label("", 11, "efc86d")
+	_message.custom_minimum_size.y = 18
 	_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	root.add_child(_message)
 
@@ -217,19 +228,21 @@ func _rebuild_synergy(p: Econ.Player) -> void:
 		var text := "%s  %d/3" % [Defs.ELEMENT_NAMES[e], n]
 		if n >= Traits.TRINE:
 			text += "  트라인"
-		row.add_child(_label(text, 13, "f0f2ff" if n >= 2 else "7781ae"))
+		row.add_child(_label(text, 12, "e5efec" if n >= 2 else "718c8a"))
 		_synergy_box.add_child(row)
-	_synergy_box.add_child(_label("근접 ▶ 원거리 ▶ 방어 ▶ 근접", 10, "9aa3d4"))
+	var cycle := _label("근접 ▶ 원거리\n원거리 ▶ 방어\n방어 ▶ 근접", 9, "7ca09d")
+	cycle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_synergy_box.add_child(cycle)
 
 
 func _rebuild_foe(foe: int) -> void:
 	_clear(_foe_box)
 	if foe < 0:
-		_foe_box.add_child(_label("이번 밤은 맞설 상대가 없다", 12, "7781ae"))
+		_foe_box.add_child(_label("이번 회차는 관측할 상대가 없습니다", 12, "718c8a"))
 		return
 	for u in game.seats[foe].player.queued_units().slice(0, 7):
 		var card := _make_card(u, -1, "foe", "")
-		card.custom_minimum_size = Vector2(62, 72)
+		card.custom_minimum_size = Vector2(74, 82)
 		card.selectable = false
 		card.draggable = false
 		_foe_box.add_child(card)
@@ -248,7 +261,7 @@ func _rebuild_board(p: Econ.Player) -> void:
 			if float(item["wait"]) >= 0.1:
 				hint += "  대기 %.1f" % float(item["wait"])
 		var slot := UnitSlot.new()
-		slot.custom_minimum_size = Vector2(86, 120)
+		slot.custom_minimum_size = Vector2(96, 132)
 		slot.setup("board", i, "%d" % (i + 1), locked, hint)
 		slot.pressed.connect(_on_slot_pressed)
 		slot.unit_dropped.connect(_on_unit_dropped)
@@ -265,7 +278,7 @@ func _rebuild_bench(p: Econ.Player) -> void:
 	var bench := p.bench_units()
 	for i in Econ.BENCH_SIZE:
 		var slot := UnitSlot.new()
-		slot.custom_minimum_size = Vector2(88, 92)
+		slot.custom_minimum_size = Vector2(100, 108)
 		slot.setup("bench", i, "", false, "")
 		slot.pressed.connect(_on_slot_pressed)
 		slot.unit_dropped.connect(_on_unit_dropped)
@@ -283,13 +296,13 @@ func _rebuild_shop(p: Econ.Player) -> void:
 		var id: String = p.shop[i] if i < p.shop.size() else ""
 		if id == "":
 			var empty := PanelContainer.new()
-			empty.custom_minimum_size = Vector2(112, 92)
-			empty.add_child(_label("품절", 12, "59628c"))
+			empty.custom_minimum_size = Vector2(126, 126)
+			empty.add_child(_label("관측 신호 없음", 11, "526c6a"))
 			_shop_box.add_child(empty)
 			continue
 		var d := UnitDB.get_def(id)
 		var card := _make_card({"def_id": id, "star": 1, "order": -1}, -1, "shop", "")
-		card.custom_minimum_size = Vector2(112, 92)
+		card.custom_minimum_size = Vector2(126, 126)
 		card.draggable = false
 		card.selectable = p.gold >= int(d["tier"])
 		var shop_slot := i
@@ -303,15 +316,15 @@ func _rebuild_rank(foe: int) -> void:
 	var rank := 1
 	for s in game.standings():
 		var text := "%d  %s   ♥%d" % [rank, s.name, s.player.hp]
-		var col := "f0f2ff"
+		var col := "dce9e6"
 		if s.index == human:
-			col = "6ec8f0"
+			col = "72c7bd"
 			text += "  나"
 		elif s.index == foe:
-			col = "f2909f"
+			col = "ef8f9c"
 			text += "  상대"
 		if not s.alive():
-			col = "59628c"
+			col = "526c6a"
 			text = "%d  %s   %d등" % [rank, s.name, s.placement]
 		_rank_box.add_child(_label(text, 12, col))
 		rank += 1
@@ -387,7 +400,7 @@ func _unit_tooltip(def_id: String, star: int) -> String:
 	var d := UnitDB.get_def(def_id)
 	var m := UnitDB.star_mult(star)
 	var e: int = d["element"]
-	return "%s  %s\n%s\n\n고유 능력: %s\n%s · %s\n체력 %d  공격 %d  방어 %d\n별의 기운 %d" % [
+	return "%s  %s\n%s\n\n고유 능력: %s\n%s · %s\n체력 %d  공격 %d  방어 %d\n항성 기운 %d" % [
 		d["name"], "★".repeat(star), d["flavor"], UnitDB.ability_text(def_id),
 		Defs.ELEMENT_NAMES[e], Defs.ROLE_NAMES[d["role"]], int(float(d["hp"]) * m),
 		int(float(d["atk"]) * m), int(d["armor"]), UnitDB.deploy_cost(def_id)]
@@ -396,11 +409,11 @@ func _unit_tooltip(def_id: String, star: int) -> String:
 func _section(title: String, min_w: float) -> PanelContainer:
 	var p := PanelContainer.new()
 	p.custom_minimum_size.x = min_w
-	p.add_theme_stylebox_override("panel", _panel("202643", 6))
+	p.add_theme_stylebox_override("panel", _panel("0d1d20", 7))
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 3)
+	v.add_theme_constant_override("separation", 4)
 	p.add_child(v)
-	v.add_child(_label(title, 11, "9aa3d4"))
+	v.add_child(_label(title, 11, "83aaa6"))
 	return p
 
 
@@ -411,6 +424,12 @@ func _panel(hex: String, margin: int) -> StyleBoxFlat:
 	sb.content_margin_right = margin
 	sb.content_margin_top = margin
 	sb.content_margin_bottom = margin
+	sb.border_color = Color("28474b")
+	sb.set_border_width_all(1)
+	sb.corner_radius_top_left = 5
+	sb.corner_radius_top_right = 5
+	sb.corner_radius_bottom_left = 5
+	sb.corner_radius_bottom_right = 5
 	return sb
 
 

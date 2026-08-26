@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3]
 
-[ext_resource path="res://combat_audio_test.gd" type="Script" id="1"]
+[ext_resource path="res://legacy/vesper/combat_audio_test.gd" type="Script" id="1"]
 
 [node name="CombatAudioTest" type="Node"]
 script = ExtResource("1")

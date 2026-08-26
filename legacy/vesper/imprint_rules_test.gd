@@ -1,7 +1,7 @@
 extends Node
 ## ★각인 데이터·선택·전투효과 회귀 테스트. 실제 세이브에는 기록하지 않는다.
 
-const Unit3D = preload("res://unit3d.gd")
+const Unit3D = preload("res://legacy/vesper/unit3d.gd")
 
 func _ready() -> void:
 	GameState.unlocked = ["소등사"]
@@ -21,7 +21,7 @@ func _ready() -> void:
 	var deck := GameState.squad_defs()
 	assert(deck.size() == 1 and deck[0]["imprint"]["id"] == second["id"], "편성 덱에 선택한 각인이 주입되어야 함")
 
-	var battle = load("res://battle3d.tscn").instantiate()
+	var battle = load("res://legacy/vesper/battle3d.tscn").instantiate()
 	add_child(battle)
 	await get_tree().process_frame
 

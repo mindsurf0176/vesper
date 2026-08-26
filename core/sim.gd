@@ -51,7 +51,7 @@ class SimUnit extends RefCounted:
 			"uid": uid, "def_id": def_id, "name": display_name, "team": team,
 			"order": order, "pos": pos, "x": screen_x(), "hp": hp, "max_hp": max_hp,
 			"shield": shield, "deployed": deployed, "alive": alive, "star": star,
-			"role": role, "ability_name": ability.get("name", ""),
+			"role": role, "ability_name": ability.get("name", ""), "target_uid": target_uid,
 		}
 
 
@@ -440,8 +440,19 @@ func result() -> Dictionary:
 func snapshot() -> Array:
 	var out: Array = []
 	for u in units:
-		out.append(u.snapshot())
+		var state := u.snapshot()
+		state["engaged"] = _engaged_for_presentation(u)
+		out.append(state)
 	return out
+
+
+func _engaged_for_presentation(u: SimUnit) -> bool:
+	if not u.is_active():
+		return false
+	var target := _by_uid.get(u.target_uid) as SimUnit
+	if target != null and target.is_active():
+		return _gap(u, target) <= u.atk_range
+	return Defs.FIELD_LEN - u.pos <= u.atk_range
 
 
 func consume_events() -> Array:

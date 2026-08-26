@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3]
 
-[ext_resource path="res://presentation_system_test.gd" type="Script" id="1"]
+[ext_resource path="res://legacy/vesper/presentation_system_test.gd" type="Script" id="1"]
 
 [node name="PresentationSystemTest" type="Node"]
 script = ExtResource("1")

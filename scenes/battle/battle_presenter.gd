@@ -35,7 +35,7 @@ func bind_sim(value: CombatSim) -> void:
 	sim = value
 	_event_sim = value
 	if sim != null:
-		_sync_actors(true)
+		_sync_actors(sim.snapshot(), true)
 	queue_redraw()
 
 
@@ -47,6 +47,7 @@ func reset_presentation() -> void:
 	_actors.clear()
 	_retiring.clear()
 	_ability_calls.clear()
+	sim = null
 	_event_sim = null
 
 
@@ -98,8 +99,10 @@ func _process(_delta: float) -> void:
 		return
 	if sim != _event_sim:
 		bind_sim(sim)
-	_sync_actors(false)
+	var states := sim.snapshot()
+	_sync_actors(states, false)
 	_consume_events()
+	_reconcile_actor_lifetimes(states)
 	_cleanup_retiring()
 	_stage.set_core_state(sim.core_hp, Defs.CORE_HP)
 	var now := Time.get_ticks_msec() / 1000.0
@@ -107,21 +110,34 @@ func _process(_delta: float) -> void:
 	queue_redraw()
 
 
-func _sync_actors(snap: bool) -> void:
-	for state in sim.snapshot():
+func _sync_actors(states: Array, snap: bool) -> void:
+	for state in states:
 		var uid := int(state["uid"])
 		if not bool(state["deployed"]) and not _actors.has(uid):
 			continue
-		if not _actors.has(uid) and not _retiring.has(uid):
+		if not _actors.has(uid) and not _retiring.has(uid) and bool(state["alive"]):
 			_spawn_actor(state)
 		var actor := _actors.get(uid) as BattleActor3D
-		if actor == null:
-			continue
-		actor.apply_snapshot(state, _actor_position(state), snap)
-		if not bool(state["alive"]):
-			actor.play_death()
-			_actors.erase(uid)
-			_retiring[uid] = actor
+		if actor != null:
+			actor.apply_snapshot(state, _actor_position(state), snap)
+
+
+func _reconcile_actor_lifetimes(states: Array) -> void:
+	for state in states:
+		if bool(state["deployed"]) and not bool(state["alive"]):
+			_begin_retirement(int(state["uid"]))
+
+
+func _begin_retirement(uid: int) -> BattleActor3D:
+	if _retiring.has(uid):
+		return _retiring[uid] as BattleActor3D
+	var actor := _actors.get(uid) as BattleActor3D
+	if actor == null:
+		return null
+	_actors.erase(uid)
+	_retiring[uid] = actor
+	actor.play_death()
+	return actor
 
 
 func _spawn_actor(state: Dictionary) -> void:
@@ -137,13 +153,13 @@ func _consume_events() -> void:
 		var kind := String(event.get("t", ""))
 		match kind:
 			"deploy":
-				var deployed := _actor_for(int(event["uid"]))
+				var deployed := _active_actor(int(event["uid"]))
 				if deployed != null:
 					deployed.play_deploy()
 					_stage.deploy_fx(deployed.position, _element_color(deployed.element))
 			"hit":
-				var attacker := _actor_for(int(event["from"]))
-				var target := _actor_for(int(event["to"]))
+				var attacker := _active_actor(int(event["from"]))
+				var target := _active_actor(int(event["to"]))
 				if attacker != null:
 					attacker.play_attack()
 				if target != null:
@@ -154,7 +170,7 @@ func _consume_events() -> void:
 						attacker.role == Defs.Role.RANGER or attacker.role == Defs.Role.SUPPORT)
 					_stage.impact_fx(target.hit_socket_global(), color, float(event.get("dmg", 0.0)) >= 80.0)
 			"ability":
-				var caster := _actor_for(int(event["uid"]))
+				var caster := _active_actor(int(event["uid"]))
 				if caster != null:
 					caster.play_skill(String(event.get("name", "")))
 					_stage.ability_fx(caster.position, _element_color(caster.element))
@@ -164,9 +180,10 @@ func _consume_events() -> void:
 						"until": Time.get_ticks_msec() / 1000.0 + 0.9 / maxf(playback_speed, 1.0),
 					})
 			"death":
-				var dying := _actor_for(int(event["uid"]))
-				if dying != null:
-					dying.play_death()
+				var uid := int(event["uid"])
+				var was_active := _actors.has(uid)
+				var dying := _begin_retirement(uid)
+				if dying != null and was_active:
 					_stage.death_fx(dying.hit_socket_global(), _element_color(dying.element))
 			"core":
 				_stage.core_impact(int(event["team"]))
@@ -181,12 +198,23 @@ func _cleanup_retiring() -> void:
 			_retiring.erase(uid)
 
 
+func _active_actor(uid: int) -> BattleActor3D:
+	return _actors.get(uid) as BattleActor3D
+
+
 func _actor_for(uid: int) -> BattleActor3D:
-	if _actors.has(uid):
-		return _actors[uid] as BattleActor3D
-	if _retiring.has(uid):
-		return _retiring[uid] as BattleActor3D
-	return null
+	var actor := _active_actor(uid)
+	if actor != null:
+		return actor
+	return _retiring.get(uid) as BattleActor3D
+
+
+func active_actor_count_for_test() -> int:
+	return _actors.size()
+
+
+func retiring_actor_count_for_test() -> int:
+	return _retiring.size()
 
 
 func _actor_position(state: Dictionary) -> Vector3:
@@ -215,7 +243,7 @@ func _draw_battle_hud() -> void:
 		draw_rect(Rect2(x, y, bar_width * ratio, 16), BattleStage3D.TEAM_COLOR[team] * Color(1, 1, 1, 0.75))
 		draw_rect(Rect2(x, y, bar_width, 16), Color("71868c"), false, 1.0)
 		var name := label_left if team == 0 else label_right
-		_text(Vector2(x, y - 7), "%s  별의 기운 %.1f" % [name, sim.cost[team]], Color("e8efeb"), 12)
+		_text(Vector2(x, y - 7), "%s  항성 기운 %.1f" % [name, sim.cost[team]], Color("e8efeb"), 12)
 	var panel := Rect2(width * 0.5 - 90, 14, 180, 28)
 	draw_rect(panel, Color(0.02, 0.04, 0.05, 0.80))
 	draw_rect(panel, Color("597177"), false, 1.0)

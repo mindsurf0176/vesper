@@ -1365,6 +1365,13 @@ func on_battle_end(win: bool, metrics := {}) -> void:
 
 # ---------- 씬 이동 ----------
 func goto(scene_path: String) -> void:
+	# Vesper 화면을 legacy/vesper로 보존한 뒤에도 기존 메타 화면의
+	# 짧은 res:// 경로가 남아 있을 수 있다. 이동 직전에 정본 경로로
+	# 보정해 오래된 버튼이 조용히 실패하지 않게 한다.
+	if not ResourceLoader.exists(scene_path) and scene_path.begins_with("res://"):
+		var legacy_path := "res://legacy/vesper/" + scene_path.trim_prefix("res://")
+		if ResourceLoader.exists(legacy_path):
+			scene_path = legacy_path
 	emit_feedback("navigate", { "scene": scene_path })
 	if bool(settings_copy().get("reduced_motion", false)) or transition_active:
 		get_tree().change_scene_to_file(scene_path)

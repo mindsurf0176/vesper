@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://bv3sp3rb4tt13d"]
 
-[ext_resource type="Script" path="res://battle3d.gd" id="1"]
+[ext_resource type="Script" path="res://legacy/vesper/battle3d.gd" id="1"]
 
 [node name="Battle3D" type="Node3D"]
 script = ExtResource("1")

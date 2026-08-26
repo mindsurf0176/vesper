@@ -51,7 +51,7 @@ func _ready() -> void:
 	add_child(brand_label)
 
 	var back := _btn("← 회랑", Vector2(60, 646), Color(0.5, 0.5, 0.56), Vector2(120, 44))
-	back.pressed.connect(func(): GameState.goto("res://stagemap.tscn"))
+	back.pressed.connect(func(): GameState.goto("res://legacy/vesper/stagemap.tscn"))
 	add_child(back)
 
 	launch_btn = _btn("출격 →", Vector2(1280 - 240, 636), AMBER, Vector2(180, 56))
@@ -151,7 +151,7 @@ func _launch() -> void:
 		if selected.has(c["name"]):
 			order.append(c["name"])
 	GameState.squad = order
-	GameState.goto("res://battle3d.tscn")
+	GameState.goto("res://legacy/vesper/battle3d.tscn")
 
 func _label(text: String, sz: int, col: Color, pos: Vector2, size: Vector2) -> Label:
 	var l := Label.new()

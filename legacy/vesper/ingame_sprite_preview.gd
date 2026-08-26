@@ -14,7 +14,7 @@ var shot_idx := 0
 
 func _ready() -> void:
 	DirAccess.make_dir_recursive_absolute(OUT_DIR)
-	battle = load("res://battle3d.tscn").instantiate()
+		battle = load("res://legacy/vesper/battle3d.tscn").instantiate()
 	add_child(battle)
 
 
