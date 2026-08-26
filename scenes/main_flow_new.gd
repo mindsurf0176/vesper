@@ -239,7 +239,7 @@ func _launch_battle() -> void:
 	var svp := SubViewport.new()
 	svp.size = Vector2i(1280, 720)
 	svp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
-	svp.transparent_bg = false
+	svp.transparent_bg = true
 	svp.own_world_3d = true
 
 	var battle_scene = load("res://legacy/vesper/battle3d.tscn")
@@ -250,6 +250,11 @@ func _launch_battle() -> void:
 
 	_battle_node = battle_scene.instantiate()
 	svp.add_child(_battle_node)
+
+	var backdrop := Control.new()
+	backdrop.set_script(load("res://scenes/battle/vesper_backdrop.gd"))
+	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_battle_layer.add_child(backdrop)
 
 	var svpc := SubViewportContainer.new()
 	svpc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

@@ -267,6 +267,21 @@ func _set_anim(name: String) -> void:
 	if asp != null and asp.animation != name and asp.sprite_frames.has_animation(name):
 		asp.play(name)
 
+func set_manual_motion(moving_state: bool, engaged_state: bool) -> void:
+	# 코어가 확정한 상태를 다음 물리 프레임까지 보존한다. 위치 차이를
+	# 렌더러가 다시 추정하지 않으므로 작은 delta에서도 walk가 끊기지 않는다.
+	moving = moving_state
+	in_combat = engaged_state
+
+func play_manual_attack() -> void:
+	in_combat = true
+	atk_anim = 0.55
+
+func play_manual_hit() -> void:
+	in_combat = true
+	if use_sprite:
+		_begin_hit_animation()
+
 func _flash(f: float) -> void:
 	if use_sprite:
 		var v: float = base_bright + f * 6.0
@@ -315,7 +330,8 @@ func _update_sprite_animation(delta: float) -> bool:
 	else:
 		_resolve_locomotion_animation()
 	_anim_motion(delta)
-	moving = false
+	if not manual_simulation:
+		moving = false
 	return hit_locked
 
 func _resolve_locomotion_animation() -> void:

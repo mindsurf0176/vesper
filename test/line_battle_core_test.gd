@@ -14,9 +14,12 @@ func _init() -> void:
 
 	battle.reset(520.0, 1000.0)
 	battle.cost = LB.MAX_COST
-	battle.deploy(striker)
-	battle.spawn_enemy({"name":"확산체", "role":LB.RANGER, "hp":10, "atk":1, "range":1.0, "speed":0.0, "aspd":1.0}, 17.0)
-	for _i in 120:
+	battle.deploy(striker, 10.0)
+	battle.spawn_enemy({"name":"확산체", "role":LB.RANGER, "hp":10, "atk":1, "range":1.0, "speed":0.0, "aspd":1.0}, 90.0)
+	battle.step(1.0 / 30.0)
+	var moving_snapshot: Dictionary = battle.snapshot()
+	assert(bool(moving_snapshot["units"][0]["moving"]), "라인 코어가 이동 상태를 기록하지 않음")
+	for _i in 119:
 		battle.step(1.0 / 30.0)
 	assert(battle.enemy_core_hp < 520.0 or not battle.consume_events().is_empty(), "전투 진행 이벤트 없음")
 

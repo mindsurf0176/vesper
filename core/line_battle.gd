@@ -73,6 +73,8 @@ func deploy(definition: Dictionary, x: float = -1.0) -> int:
 		"attack_cd": 0.0,
 		"attack_interval": 1.0 / maxf(float(definition.get("aspd", 1.0)), 0.05),
 		"x": 15.0 if x < 0.0 else clampf(x, 1.0, 45.0),
+		"moving": false,
+		"engaged": false,
 		"alive": true,
 	}
 	units.append(unit)
@@ -97,6 +99,8 @@ func spawn_enemy(definition: Dictionary, x: float = -1.0) -> int:
 		"attack_cd": 0.0,
 		"attack_interval": 1.0 / maxf(float(definition.get("aspd", 1.0)), 0.05),
 		"x": 85.0 if x < 0.0 else clampf(x, 55.0, 99.0),
+		"moving": false,
+		"engaged": false,
 		"alive": true,
 	}
 	units.append(unit)
@@ -113,21 +117,28 @@ func step(delta: float) -> void:
 	for unit in units:
 		if not bool(unit["alive"]):
 			continue
+		unit["moving"] = false
+		unit["engaged"] = false
 		unit["attack_cd"] = maxf(0.0, float(unit["attack_cd"]) - dt)
 		var target = _nearest_target(unit)
 		if target == null:
 			var direction := 1.0 if unit["team"] == ALLY else -1.0
-			unit["x"] = clampf(float(unit["x"]) + float(unit["speed"]) * direction * dt, 0.0, FIELD_LENGTH)
+			var old_x := float(unit["x"])
+			unit["x"] = clampf(old_x + float(unit["speed"]) * direction * dt, 0.0, FIELD_LENGTH)
+			unit["moving"] = absf(float(unit["x"]) - old_x) > 0.00001
 			if (unit["team"] == ALLY and float(unit["x"]) >= FIELD_LENGTH - 1.0):
 				_damage_core(ENEMY, float(unit["atk"]) * dt)
 			elif (unit["team"] == ENEMY and float(unit["x"]) <= 1.0):
 				_damage_core(ALLY, float(unit["atk"]) * dt)
 		elif absf(float(target["x"]) - float(unit["x"])) <= float(unit["range"]):
+			unit["engaged"] = true
 			if float(unit["attack_cd"]) <= 0.0:
 				_attack(unit, target)
 				unit["attack_cd"] = float(unit["attack_interval"])
 		else:
-			unit["x"] = move_toward(float(unit["x"]), float(target["x"]) - (0.5 if unit["team"] == ALLY else -0.5), float(unit["speed"]) * dt)
+			var old_x := float(unit["x"])
+			unit["x"] = move_toward(old_x, float(target["x"]) - (0.5 if unit["team"] == ALLY else -0.5), float(unit["speed"]) * dt)
+			unit["moving"] = absf(float(unit["x"]) - old_x) > 0.00001
 	_check_end()
 
 func use_soshin() -> bool:

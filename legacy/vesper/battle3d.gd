@@ -885,12 +885,9 @@ func _consume_line_core_events() -> void:
 			var attacker = core_visuals.get(int(event.get("attacker", -1)))
 			var target = core_visuals.get(int(event.get("target", -1)))
 			if is_instance_valid(attacker):
-				attacker.in_combat = true
-				attacker.atk_anim = 0.55
+				attacker.play_manual_attack()
 			if is_instance_valid(target):
-				target.in_combat = true
-				if target.use_sprite and target.asp != null and target.asp.sprite_frames.has_animation("hit"):
-					target._begin_hit_animation()
+				target.play_manual_hit()
 		elif kind == "death":
 			var dying = core_visuals.get(int(event.get("uid", -1)))
 			if is_instance_valid(dying) and not dying.dead:
@@ -913,8 +910,7 @@ func _sync_core_visuals(snapshot: Dictionary) -> void:
 		if found.is_empty():
 			continue
 		var next_x := lerpf(ALLY_X, ENEMY_X, float(found["x"]) / LineBattle.FIELD_LENGTH)
-		visual.moving = absf(next_x - visual.position.x) > 0.01
-		visual.in_combat = false
+		visual.set_manual_motion(bool(found.get("moving", false)), bool(found.get("engaged", false)))
 		visual.position.x = next_x
 		visual.hp = float(found["hp"])
 		visual.max_hp = float(found["max_hp"])
@@ -1185,32 +1181,13 @@ func hitstop(d: float) -> void:
 
 # ---------- 3D 월드 ----------
 func _build_world() -> void:
-	# 환경
+	# 배경은 main_flow의 2D 백드롭이 담당한다. 3D 월드는 캐릭터와 최소
+	# 조명만 렌더링해 웹/저사양 기기의 픽셀 비용을 낮춘다.
 	var env := Environment.new()
-	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color(0.045, 0.085, 0.095)
+	env.background_mode = Environment.BG_CLEAR_COLOR
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.30, 0.48, 0.52)
-	env.ambient_light_energy = 0.42
-	env.tonemap_mode = Environment.TONE_MAPPER_ACES
-	env.tonemap_exposure = 1.0
-	env.glow_enabled = true
-	env.glow_intensity = 0.9
-	env.glow_strength = 1.1
-	env.glow_bloom = 0.2
-	env.glow_blend_mode = Environment.GLOW_BLEND_MODE_ADDITIVE
-	env.glow_hdr_threshold = 0.95
-	env.fog_enabled = true
-	env.fog_light_color = Color(0.20, 0.40, 0.43)
-	env.fog_density = 0.008
-	env.fog_aerial_perspective = 0.3
-	env.volumetric_fog_enabled = true
-	env.volumetric_fog_density = 0.011
-	env.volumetric_fog_emission = Color(0.10, 0.30, 0.32)
-	env.volumetric_fog_emission_energy = 0.25
-	env.ssao_enabled = true
-	env.ssao_radius = 0.7
-	env.ssao_intensity = 1.4
+	env.ambient_light_color = Color(0.45, 0.58, 0.58)
+	env.ambient_light_energy = 0.65
 	var we := WorldEnvironment.new(); we.environment = env
 	add_child(we)
 	# 카메라
@@ -1219,15 +1196,6 @@ func _build_world() -> void:
 	cam.fov = 40.0
 	add_child(cam)
 	cam.look_at(Vector3(0, 1.0, 0), Vector3.UP)
-	var ca := CameraAttributesPractical.new()
-	ca.dof_blur_far_enabled = true
-	ca.dof_blur_far_distance = 20.0
-	ca.dof_blur_far_transition = 4.0
-	ca.dof_blur_near_enabled = true
-	ca.dof_blur_near_distance = 11.5
-	ca.dof_blur_near_transition = 3.0
-	ca.dof_blur_amount = 0.1
-	cam.attributes = ca
 	cam.current = true
 	cam_base = cam.position
 	# 조명
@@ -1235,17 +1203,16 @@ func _build_world() -> void:
 	dl.rotation_degrees = Vector3(-48, -34, 0)
 	dl.light_color = Color(1.0, 0.93, 0.82)
 	dl.light_energy = 0.7
-	dl.shadow_enabled = true
+	dl.shadow_enabled = false
 	add_child(dl)
 	var ol := OmniLight3D.new()
 	ol.position = Vector3(ALLY_X, 1.7, 0.6); ol.light_color = AMBER
-	ol.light_energy = 6.0; ol.omni_range = 13.0; ol.shadow_enabled = true
+	ol.light_energy = 2.0; ol.omni_range = 8.0; ol.shadow_enabled = false
 	add_child(ol)
 	var oc := OmniLight3D.new()
 	oc.position = Vector3(ENEMY_X, 1.7, 0.6); oc.light_color = CYAN
-	oc.light_energy = 4.5; oc.omni_range = 12.0
+	oc.light_energy = 1.5; oc.omni_range = 8.0
 	add_child(oc)
-	_diorama()
 	_cores()
 	_spores()
 
