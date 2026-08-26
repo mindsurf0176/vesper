@@ -459,15 +459,26 @@ func _show_corridor() -> void:
 	var note := _label("전투 노드에서는 기존 라인배틀러 준비와 전투가 이어집니다.\n보급과 이벤트를 선택하면 다음 전투를 유리하게 만들 수 있습니다.", 14, "e8efeb")
 	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_corridor_box.add_child(note)
-	var enter := _button("%s 진입" % current.get("name", "회랑"), _choose_corridor)
-	enter.custom_minimum_size.y = 52
-	_corridor_box.add_child(enter)
+	var options := corridor.available_options()
+	if not options.is_empty():
+		_corridor_box.add_child(_label("2층 경로를 선택하세요", 15, "f3c777"))
+		for i in options.size():
+			var option: Dictionary = options[i]
+			var option_button := _button("%s  ·  위협 %.1f" % [option.get("name", "회랑"), float(option.get("threat", 1.0))], _choose_corridor.bind(i))
+			option_button.custom_minimum_size.y = 46
+			_corridor_box.add_child(option_button)
+	else:
+		var enter := _button("%s 진입" % current.get("name", "회랑"), _choose_corridor)
+		enter.custom_minimum_size.y = 52
+		_corridor_box.add_child(enter)
 	var restart := _button("새 회랑 생성", _restart)
 	_corridor_box.add_child(restart)
 
 
-func _choose_corridor() -> void:
+func _choose_corridor(option_index: int = -1) -> void:
 	if phase != Phase.MAP:
+		return
+	if option_index >= 0 and not corridor.choose_option(option_index):
 		return
 	_corridor_layer.visible = false
 	var node := corridor.current()

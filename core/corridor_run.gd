@@ -15,6 +15,8 @@ const ENCOUNTERS := [
 var seed: int
 var rng := RandomNumberGenerator.new()
 var route: Array[Dictionary] = []
+var branch_options: Array[Dictionary] = []
+var branch_chosen := false
 var route_index := 0
 var cleared := false
 var failed := false
@@ -40,6 +42,18 @@ func complete_current() -> void:
 	rewards.append(_reward_for(node))
 	route_index += 1
 
+func available_options() -> Array[Dictionary]:
+	if route_index == 1 and not branch_chosen:
+		return branch_options.duplicate(true)
+	return []
+
+func choose_option(option_index: int) -> bool:
+	if route_index != 1 or branch_chosen or option_index < 0 or option_index >= branch_options.size():
+		return false
+	route[route_index] = branch_options[option_index].duplicate(true)
+	branch_chosen = true
+	return true
+
 func fail() -> void:
 	failed = true
 
@@ -48,15 +62,19 @@ func is_finished() -> bool:
 
 func _build_route() -> void:
 	route.clear()
+	branch_options.clear()
+	branch_chosen = false
 	var first := ENCOUNTERS[0].duplicate(true)
 	first["floor"] = 1
 	first["enemy_seed"] = rng.randi()
 	route.append(first)
 	var middle := [ENCOUNTERS[1], ENCOUNTERS[2], ENCOUNTERS[3]]
-	var picked: Dictionary = middle[rng.randi_range(0, middle.size() - 1)].duplicate(true)
-	picked["floor"] = 2
-	picked["enemy_seed"] = rng.randi()
-	route.append(picked)
+	for encounter in middle:
+		var option: Dictionary = encounter.duplicate(true)
+		option["floor"] = 2
+		option["enemy_seed"] = rng.randi()
+		branch_options.append(option)
+	route.append(branch_options[0].duplicate(true))
 	var second := ENCOUNTERS[0].duplicate(true)
 	second["floor"] = 3
 	second["enemy_seed"] = rng.randi()
