@@ -45,7 +45,7 @@ func build_sim(a: int, b: int) -> CombatSim:
 	var enemies: Array = []
 	for unit in pb.queued_units():
 		enemies.append(unit.duplicate(true))
-	return CombatSim.create(allies, enemies, pa.level, pb.level)
+	return CombatSim.create(allies, enemies, pa.level, pb.level, true)
 
 func resolve_round(pairs: Array, precomputed: Dictionary = {}) -> void:
 	last_results.clear()

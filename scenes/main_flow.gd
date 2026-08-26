@@ -142,12 +142,13 @@ func _build_battle() -> void:
 	_command_btn = _button("지휘기", _on_command)
 	row.add_child(_command_btn)
 	for i in 3:
-		var plan_button := _button("", _on_card_pressed.bind(i))
+		var plan_button := _button("", _on_deploy_card.bind(i))
 		plan_button.custom_minimum_size.x = 110
 		_plan_buttons.append(plan_button)
 		row.add_child(plan_button)
 	_confirm_plan_btn = _button("작전 확정", _confirm_plan)
 	_confirm_plan_btn.custom_minimum_size.x = 88
+	_confirm_plan_btn.visible = false
 	row.add_child(_confirm_plan_btn)
 	row.add_child(_button("도움말", _show_help))
 	_view = BattlePresenter.new()
@@ -219,7 +220,7 @@ func _build_help() -> void:
 	box.add_child(_help_step("① 5개의 항성 기억 중 사도를 호출한다", "같은 기억 셋은 자동으로 중첩 관측되고, 같은 원소의 사도를 모으면 강해집니다."))
 	box.add_child(_help_step("② 9칸 대기석에서 강림 편성판으로 옮긴다", "편성판 왼쪽 사도부터 차례로 단일 항성 회랑에 강림합니다."))
 	box.add_child(_help_step("③ 상대 편성과 관측 순위를 보고 순서를 확정한다", "강한 사도를 앞에 두면 항성 기운을 모으는 동안 전선이 빕니다."))
-	var rule := _label("근접 ▶ 원거리 ▶ 방어 ▶ 근접  ·  전투는 자동 진행", 14, "8bd9c6")
+	var rule := _label("코스트가 차면 하단 사도 카드를 눌러 출격  ·  전투는 실시간 진행", 14, "8bd9c6")
 	rule.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(rule)
 	var close := _button("관측 회랑으로", _hide_help)
@@ -340,7 +341,7 @@ func _start_battle(from_timeout: bool = false) -> void:
 	_view.set_playback_speed(speed)
 	_command_left = 0.0
 	_turn_left = 0.0
-	_enter_plan()
+	phase = Phase.BATTLE
 	_accum = 0.0
 	_prep.visible = false
 	_battle_layer.visible = true
@@ -440,8 +441,6 @@ func _step_battle(delta: float) -> void:
 	_refresh_battle_hud()
 	if sim.finished:
 		_resolve_and_show({game.human_seat().index: sim.result()})
-	elif _turn_left <= 0.0:
-		_enter_plan()
 
 
 func _refresh_battle_hud() -> void:
@@ -461,11 +460,7 @@ func _refresh_battle_hud() -> void:
 		line_state = "아군 전선 우세"
 	elif enemy_front - ally_front > 8.0:
 		line_state = "전선 밀림"
-	var plan_text := "AP %d/3" % _action_points
-	if not _planned_orders.is_empty():
-		plan_text += "  예약: " + " + ".join(_planned_orders)
-	plan_text += "  ·  덱 %d / 버림 %d" % [_draw_pile.size(), _discard_pile.size()]
-	var turn_state := plan_text if phase == Phase.PLAN else "라인 실행 중 · 다음 계획까지 %.1fs" % _turn_left
+	var turn_state := "실시간 출격 · 코스트 %.1f/14" % float(sim.cost[0])
 	var pattern_state := ""
 	var interval := 6.0 if _encounter_kind == "엘리트" else 5.0 if _encounter_kind == "보스" else 0.0
 	if interval > 0.0:
@@ -478,17 +473,36 @@ func _refresh_battle_hud() -> void:
 		_battle_top.text += "   ·   유물: " + ", ".join(_relic_names(player.relics))
 	_command_btn.disabled = phase != Phase.BATTLE or _command_left > 0.0 or sim.finished
 	_command_btn.text = "지휘기 %.1f" % _command_left if _command_left > 0.0 else "지휘기"
+	var available: Array = []
+	for unit in sim.units:
+		if unit.team == 0 and not unit.deployed and unit.alive:
+			available.append(unit)
 	for i in _plan_buttons.size():
 		var plan_button := _plan_buttons[i]
-		if phase == Phase.PLAN and i < _command_hand.size():
-			var card: Dictionary = _command_hand[i]
-			plan_button.text = "%s\n%d AP · %s" % [card["name"], card["cost"], card["hint"]]
-			plan_button.tooltip_text = "%s: %s" % [card["name"], card["hint"]]
-			plan_button.disabled = sim.finished or _action_points < int(card["cost"])
+		if phase == Phase.BATTLE and i < available.size():
+			var unit: CombatSim.SimUnit = available[i]
+			var can_deploy := float(sim.cost[0]) >= unit.deploy_cost
+			plan_button.text = "%s\n%d 코스트 · %s" % [unit.display_name, int(unit.deploy_cost), "출격 가능" if can_deploy else "충전 중"]
+			plan_button.tooltip_text = "%s 출격 · 현재 코스트 %.1f" % [unit.display_name, float(sim.cost[0])]
+			plan_button.disabled = sim.finished or not can_deploy
 		else:
-			plan_button.text = "빈 손패"
+			plan_button.text = "출격 완료"
 			plan_button.disabled = true
-	_confirm_plan_btn.disabled = phase != Phase.PLAN or sim.finished or _planned_orders.is_empty()
+	_confirm_plan_btn.disabled = true
+
+
+func _on_deploy_card(hand_index: int) -> void:
+	if phase != Phase.BATTLE or sim == null or sim.finished:
+		return
+	var available: Array = []
+	for unit in sim.units:
+		if unit.team == 0 and not unit.deployed and unit.alive:
+			available.append(unit)
+	if hand_index < 0 or hand_index >= available.size():
+		return
+	var unit: CombatSim.SimUnit = available[hand_index]
+	if sim.manual_deploy(0, unit.uid):
+		_refresh_battle_hud()
 
 
 func _on_command() -> void:
@@ -689,7 +703,7 @@ func _show_expedition_intro() -> void:
 	for unit in player.queued_units():
 		var def := UnitDB.get_def(str(unit.get("def_id", "")))
 		squad_names.append(str(def.get("name", "미확인")))
-	var squad := _label("원정대  ·  " + "  /  ".join(squad_names) + "\n덱  ·  전술 카드 %d장  ·  유물 %d개" % [player.command_deck.size(), player.relics.size()], 14, "f2b95f")
+	var squad := _label("원정대  ·  " + "  /  ".join(squad_names) + "\n출격 카드  ·  3장  ·  유물 %d개" % player.relics.size(), 14, "f2b95f")
 	squad.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_corridor_box.add_child(squad)
 	var warning := _label("경고  ·  회랑에서는 쓰러진 사도를 되살릴 수 없습니다.", 12, "d28d7d")
@@ -752,16 +766,15 @@ func _show_rest_choice() -> void:
 	var title := _label("휴식처  //  다음 전투를 준비하세요", 25, "f3c777")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_corridor_box.add_child(title)
-	var body := _label("한 번만 선택할 수 있습니다. 회복하거나, 덱에서 카드를 제거하세요.", 14, "e8efeb")
+	var body := _label("한 번만 선택할 수 있습니다. 회복하거나, 출격 진형을 재정비하세요.", 14, "e8efeb")
 	body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_corridor_box.add_child(body)
 	var heal := _button("회복  ·  체력 +20", _rest_heal)
 	heal.custom_minimum_size.y = 58
 	_corridor_box.add_child(heal)
-	var remove := _button("덱 정리  ·  카드 1장 제거", _show_card_removal)
-	remove.custom_minimum_size.y = 58
-	remove.disabled = player.command_deck.size() <= 3
-	_corridor_box.add_child(remove)
+	var reorder := _button("진형 재정비  ·  선봉 교대", _rest_reorder)
+	reorder.custom_minimum_size.y = 58
+	_corridor_box.add_child(reorder)
 
 
 func _rest_heal() -> void:
@@ -772,29 +785,13 @@ func _rest_heal() -> void:
 	_show_corridor()
 
 
-func _show_card_removal() -> void:
-	for child in _corridor_box.get_children():
-		child.queue_free()
-	var title := _label("덱 정리  //  제거할 카드 선택", 25, "f3c777")
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_corridor_box.add_child(title)
-	var body := _label("덱은 작아질수록 원하는 카드를 더 자주 뽑습니다.", 14, "e8efeb")
-	body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_corridor_box.add_child(body)
-	for card_id in player.command_deck:
-		var card := _card_by_id(card_id)
-		var button := _button("%s  ·  %d AP\n%s" % [card["name"], card["cost"], card["hint"]], _remove_card.bind(card_id))
-		button.custom_minimum_size.y = 52
-		_corridor_box.add_child(button)
-
-
-func _remove_card(card_id: String) -> void:
-	if corridor.current().get("kind", "") != "휴식" or player.command_deck.size() <= 3:
+func _rest_reorder() -> void:
+	if corridor.current().get("kind", "") != "휴식" or player.queued_units().size() < 2:
 		return
-	var index := player.command_deck.find(card_id)
-	if index < 0:
-		return
-	player.command_deck.remove_at(index)
+	var queued := player.queued_units()
+	var first_order := int(queued[0].get("order", 0))
+	queued[0]["order"] = int(queued[queued.size() - 1].get("order", queued.size() - 1))
+	queued[queued.size() - 1]["order"] = first_order
 	corridor.complete_current()
 	_show_corridor()
 
@@ -822,17 +819,12 @@ func _show_relic_choice() -> void:
 	_corridor_layer.visible = true
 	for child in _corridor_box.get_children():
 		child.queue_free()
-	var title := _label("회랑 보상  //  카드 또는 유물 하나", 25, "f3c777")
+	var title := _label("회랑 보상  //  유물 하나를 선택하세요", 25, "f3c777")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_corridor_box.add_child(title)
-	var body := _label("카드는 다음 전투 손패에 추가되고, 유물은 이번 런 동안 유지됩니다.", 14, "e8efeb")
+	var body := _label("선택한 유물은 이번 런 동안 모든 라인 전투에 적용됩니다.", 14, "e8efeb")
 	body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_corridor_box.add_child(body)
-	for card_id in _pending_card_choices:
-		var card := _card_by_id(card_id)
-		var card_button := _button("카드  ·  %s\n%d AP  ·  %s" % [card["name"], card["cost"], card["hint"]], _choose_card.bind(card_id))
-		card_button.custom_minimum_size.y = 58
-		_corridor_box.add_child(card_button)
 	for relic in _pending_relic_choices:
 		var button := _button("%s\n%s" % [_relic_name(relic), _relic_description(relic)], _choose_relic.bind(relic))
 		button.custom_minimum_size.y = 58

@@ -96,9 +96,9 @@ func _build_route() -> void:
 func _reward_for(node: Dictionary) -> Dictionary:
 	var kind := str(node.get("kind", "전투"))
 	if kind == "보급":
-		return {"type":"supply", "name":"보급 상자", "gold":8, "hp":12, "relic_choices":["ember_cache", "signal_lens"], "card_choices":["breakthrough", "fortify"]}
+		return {"type":"supply", "name":"보급 상자", "gold":8, "hp":12, "relic_choices":["ember_cache", "signal_lens"]}
 	if kind == "이벤트":
-		return {"type":"event", "name":"신호 해석", "gold":4, "hp":0, "relic_choices":["signal_lens", "hollow_crown", "ember_cache"], "card_choices":["execute", "charge"]}
+		return {"type":"event", "name":"신호 해석", "gold":4, "hp":0, "relic_choices":["signal_lens", "hollow_crown", "ember_cache"]}
 	if kind == "엘리트":
-		return {"type":"relic", "name":"희귀 각인", "gold":14, "hp":0, "relic_choices":["hollow_crown", "signal_lens", "ember_cache"], "card_choices":["execute", "breakthrough", "fortify"]}
+		return {"type":"relic", "name":"희귀 각인", "gold":14, "hp":0, "relic_choices":["hollow_crown", "signal_lens", "ember_cache"]}
 	return {"type":"battle", "name":"전투 보상", "gold":5, "hp":0}

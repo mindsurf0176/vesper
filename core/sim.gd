@@ -62,6 +62,7 @@ var time := 0.0
 var finished := false
 var winner := -1               ## 0/1, 무승부는 -1
 var traits_by_team: Array = [null, null]
+var manual_control: Array[bool] = [false, false]
 
 var _by_uid := {}
 var _queue: Array = [[], []]   ## 팀별 미출격 유닛(출격 순서대로)
@@ -80,8 +81,10 @@ var _events: Array = []        ## 시각화용. consume_events()로 비우며 �
 ## level은 코스트 충전 속도를 결정한다. 정원(=레벨)이 커지면 충전도 빨라져야
 ## 큐 뒤쪽 유닛이 전투 시간 안에 나올 수 있다.
 static func create(team0: Array, team1: Array,
-		level0: int = Defs.LEVEL_BASE, level1: int = Defs.LEVEL_BASE) -> CombatSim:
+		level0: int = Defs.LEVEL_BASE, level1: int = Defs.LEVEL_BASE,
+		manual_team0: bool = false) -> CombatSim:
 	var sim := CombatSim.new()
+	sim.manual_control[0] = manual_team0
 	sim._regen = [Defs.cost_regen_for(level0), Defs.cost_regen_for(level1)]
 	sim._build_team(0, team0)
 	sim._build_team(1, team1)
@@ -152,6 +155,21 @@ func apply_tactical_order(order: String, power: int = 1) -> bool:
 		_check_end()
 		return true
 	return false
+
+
+func manual_deploy(team: int, uid: int) -> bool:
+	## 수동 조작 팀의 카드 출격. 대기 큐 안의 카드는 순서와 무관하게 선택할 수 있다.
+	if finished or team < 0 or team > 1 or cost[team] < 0.0:
+		return false
+	var unit := _by_uid.get(uid) as SimUnit
+	if unit == null or unit.team != team or unit.deployed or not unit.alive:
+		return false
+	if cost[team] < unit.deploy_cost:
+		return false
+	cost[team] -= unit.deploy_cost
+	_queue[team].erase(unit)
+	_deploy_unit(team, unit)
+	return true
 
 
 func _make_unit(team: int, p: Dictionary, order: int, tr: Traits) -> SimUnit:
@@ -256,6 +274,8 @@ func _tick_cost(dt: float) -> void:
 ## 그 막힘을 감수하고 순서를 짜는 것이 이 게임의 핵심 판단이다.
 func _tick_deploy() -> void:
 	for team in 2:
+		if manual_control[team]:
+			continue
 		var q: Array = _queue[team]
 		while not q.is_empty():
 			var u: SimUnit = q[0]
@@ -263,23 +283,26 @@ func _tick_deploy() -> void:
 				break
 			cost[team] -= u.deploy_cost
 			q.pop_front()
-			u.deployed = true
-			u.deployed_at = time
-			u.pos = Defs.SPAWN_OFFSET
-			# 첫 공격이 동시에 터지지 않도록 위상을 분산시킨다.
-			# uid가 아니라 출격 순번으로 계산해야 양 팀이 대칭을 유지한다.
-			u.cd = float(u.order % 7) * 0.03
-			var shield_ratio := float(u.ability.get("deploy_shield_ratio", 0.0))
-			if shield_ratio > 0.0:
-				u.shield = u.max_hp * shield_ratio
-				_emit_ability(u)
-			var refund := float(u.ability.get("deploy_cost_refund", 0.0))
-			if refund > 0.0:
-				cost[team] = minf(Defs.MAX_COST, cost[team] + refund)
-				_emit_ability(u)
-			if u.ability.has("deploy_haste"):
-				_emit_ability(u)
-			_events.append({"t": "deploy", "uid": u.uid, "team": team, "time": time})
+			_deploy_unit(team, u)
+
+
+func _deploy_unit(team: int, u: SimUnit) -> void:
+	u.deployed = true
+	u.deployed_at = time
+	u.pos = Defs.SPAWN_OFFSET
+	# 첫 공격이 동시에 터지지 않도록 위상을 분산시킨다.
+	u.cd = float(u.order % 7) * 0.03
+	var shield_ratio := float(u.ability.get("deploy_shield_ratio", 0.0))
+	if shield_ratio > 0.0:
+		u.shield = u.max_hp * shield_ratio
+		_emit_ability(u)
+	var refund := float(u.ability.get("deploy_cost_refund", 0.0))
+	if refund > 0.0:
+		cost[team] = minf(Defs.MAX_COST, cost[team] + refund)
+		_emit_ability(u)
+	if u.ability.has("deploy_haste"):
+		_emit_ability(u)
+	_events.append({"t": "deploy", "uid": u.uid, "team": team, "time": time})
 
 
 func _apply_regen(dt: float) -> void:

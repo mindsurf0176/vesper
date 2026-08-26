@@ -42,7 +42,7 @@ func refresh_all() -> void:
 		return
 	var p := game.human_seat().player
 	_status.text = "NIGHT %02d   ·   HP %d   ·   보유 유물 %d개" % [game.round_no, p.hp, p.relics.size()]
-	_message.text = message if not message.is_empty() else "3명을 선택하고 전투 시작을 누르세요."
+	_message.text = message if not message.is_empty() else "이번 원정에 데려갈 3명을 선택하고 전투 시작을 누르세요."
 	_ready_btn.disabled = p.queued_units().size() != 3
 	_rebuild_squad(p)
 	_rebuild_pool(p)

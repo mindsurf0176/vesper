@@ -48,5 +48,11 @@ func _init() -> void:
 		if String(event.get("t", "")) == "pattern":
 			pattern_seen = true
 	assert(pattern_seen, "엘리트 패턴 이벤트가 발생하지 않음")
+	var manual := Sim.create([ally], [enemy], 3, 3, true)
+	for _i in 3:
+		manual.step(1.0)
+	assert(not manual.units[0].deployed, "수동 출격 팀이 자동으로 출격함")
+	assert(manual.manual_deploy(0, manual.units[0].uid), "사도 카드 출격이 실패함")
+	assert(manual.units[0].deployed, "사도 카드 출격이 상태에 반영되지 않음")
 	print("PASS combat command")
 	quit(0)
