@@ -3,13 +3,14 @@ extends Control
 ## STARLINE의 준비 → 전투 → 결과 → 게임오버 흐름.
 ## STARLINE gameplay core와 Vesper passive presentation을 연결한다.
 
-enum Phase { PREP, BATTLE, RESULT, GAMEOVER }
+enum Phase { MAP, PREP, BATTLE, RESULT, GAMEOVER }
 
 const FIRST_PREP_TIME := 45.0
 const PREP_TIME := 30.0
 const RESULT_TIME := 4.0
 
 var game: Match
+var corridor: CorridorRun
 var sim: CombatSim = null
 var phase := Phase.PREP
 var speed := 1.0
@@ -40,6 +41,8 @@ var _result_title: Label
 var _result_body: Label
 var _result_count: Label
 var _help_layer: Control
+var _corridor_layer: Control
+var _corridor_box: VBoxContainer
 
 
 func _ready() -> void:
@@ -51,8 +54,8 @@ func _ready() -> void:
 	project_theme.default_font_size = 13
 	theme = project_theme
 	_build_ui()
-	_begin_round()
-	_show_help()
+	corridor = CorridorRun.new(rng.randi())
+	_show_corridor()
 
 
 func _build_ui() -> void:
@@ -72,6 +75,28 @@ func _build_ui() -> void:
 	_build_battle()
 	_build_result()
 	_build_help()
+	_build_corridor()
+
+
+func _build_corridor() -> void:
+	_corridor_layer = Control.new()
+	_corridor_layer.z_index = 60
+	add_child(_corridor_layer)
+	_corridor_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var shade := ColorRect.new()
+	shade.color = Color("071116")
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_corridor_layer.add_child(shade)
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_corridor_layer.add_child(center)
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(760, 410)
+	panel.add_theme_stylebox_override("panel", _panel_style("122326"))
+	center.add_child(panel)
+	_corridor_box = VBoxContainer.new()
+	_corridor_box.add_theme_constant_override("separation", 14)
+	panel.add_child(_corridor_box)
 
 
 func _build_battle() -> void:
@@ -191,6 +216,9 @@ func _hide_help() -> void:
 
 
 func _begin_round() -> void:
+	if corridor != null and corridor.is_finished():
+		_show_corridor_result()
+		return
 	phase = Phase.PREP
 	sim = null
 	_view.bind_sim(null)
@@ -226,6 +254,8 @@ func _process(delta: float) -> void:
 	if _help_layer != null and _help_layer.visible:
 		return
 	match phase:
+		Phase.MAP:
+			return
 		Phase.PREP:
 			_prep_left = maxf(0.0, _prep_left - delta)
 			_prep.set_time_left(_prep_left)
@@ -348,6 +378,7 @@ func _resolve_and_show(precomputed: Dictionary) -> void:
 		_result_title.text = "오늘의 밤이 끝났다 — 최종 %d등" % game.human_placement()
 		_result_count.text = "새로운 밤을 시작할 수 있습니다."
 	else:
+		corridor.complete_current()
 		phase = Phase.RESULT
 		_result_left = RESULT_TIME
 
@@ -367,7 +398,7 @@ func _other_results(human: int) -> String:
 
 func _on_result_continue() -> void:
 	if phase == Phase.RESULT:
-		_next_round()
+		_show_corridor()
 	elif phase == Phase.GAMEOVER:
 		_restart()
 
@@ -379,9 +410,64 @@ func _next_round() -> void:
 func _restart() -> void:
 	rng.randomize()
 	game = Match.create(rng.randi(), true)
+	corridor = CorridorRun.new(rng.randi())
 	speed = 1.0
 	_speed_btn.text = "배속 x1"
+	_show_corridor()
+
+
+func _show_corridor() -> void:
+	phase = Phase.MAP
+	_prep.visible = false
+	_battle_layer.visible = false
+	_result_layer.visible = false
+	_help_layer.visible = false
+	_corridor_layer.visible = true
+	for child in _corridor_box.get_children():
+		child.queue_free()
+	var title := _label("VESPER CORRIDOR  //  회랑 탐험", 26, "f3c777")
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_corridor_box.add_child(title)
+	var current := corridor.current()
+	var info := _label("SEED %d   ·   FLOOR %d/4\n%s  ·  위협 배율 %.1f" % [corridor.seed, int(current.get("floor", 1)), current.get("name", ""), float(current.get("threat", 1.0))], 15, "b9cfca")
+	info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_corridor_box.add_child(info)
+	var note := _label("전투 노드에서는 기존 라인배틀러 준비와 전투가 이어집니다.\n보급과 이벤트를 선택하면 다음 전투를 유리하게 만들 수 있습니다.", 14, "e8efeb")
+	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_corridor_box.add_child(note)
+	var enter := _button("%s 진입" % current.get("name", "회랑"), _choose_corridor)
+	enter.custom_minimum_size.y = 52
+	_corridor_box.add_child(enter)
+	var restart := _button("새 회랑 생성", _restart)
+	_corridor_box.add_child(restart)
+
+
+func _choose_corridor() -> void:
+	if phase != Phase.MAP:
+		return
+	_corridor_layer.visible = false
+	var node := corridor.current()
+	var kind := str(node.get("kind", "전투"))
+	if kind == "보급" or kind == "이벤트":
+		var p := game.human_seat().player
+		p.gold += 6 if kind == "보급" else 3
+		p.hp = mini(Econ.START_HP, p.hp + (12 if kind == "보급" else 0))
+		corridor.complete_current()
+		_show_corridor()
+		return
+	game.seats[1].name = str(node.get("name", "회랑의 적"))
 	_begin_round()
+	_show_help()
+
+
+func _show_corridor_result() -> void:
+	phase = Phase.GAMEOVER
+	_result_layer.visible = true
+	_battle_layer.visible = false
+	_prep.visible = false
+	_result_title.text = "회랑 돌파 완료"
+	_result_body.text = "베스퍼 매듭을 통과했습니다.\n\n새로운 시드로 다시 회랑에 도전할 수 있습니다."
+	_result_count.text = "RUN CLEAR"
 
 
 func _on_buy(slot: int) -> void:
