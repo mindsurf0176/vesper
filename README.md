@@ -4,7 +4,7 @@
 
 - 기획: [DESIGN.md](DESIGN.md) · 세계관: [WORLD.md](WORLD.md) · 캐릭터 바이블: [CHARACTER-BIBLE.md](CHARACTER-BIBLE.md) · 에셋 큐: [ASSET-PIPELINE-QUEUE.md](ASSET-PIPELINE-QUEUE.md) · 출시 후보 기준: [RELEASE-CANDIDATE.md](RELEASE-CANDIDATE.md) · 모바일 메타: [MOBILE-META-SPEC.md](MOBILE-META-SPEC.md) · 피드백 연출: [PRESENTATION-SPEC.md](PRESENTATION-SPEC.md) · 전장 비주얼: [BATTLEFIELD-VISUAL-SPEC.md](BATTLEFIELD-VISUAL-SPEC.md)
 - 현재 시스템 계약: [CORRIDOR_GAME_SPEC.md](CORRIDOR_GAME_SPEC.md) · [LINE-BATTLER-SPEC.md](docs/LINE-BATTLER-SPEC.md) · 단일 원정대와 실시간 사도 출격을 우선한다.
-- 현재 빌드: **원정 브리핑 → 3명 후보 드래프트로 4인 스쿼드 구성 → 회랑 분기 → 실시간 출격 카드 전투 → 유물/휴식 → 5층 보스**가 실제 실행된다. 이전 8인 매치와 메타 화면은 레거시 보존용으로 비활성화되어 있다.
+- 현재 빌드: **원정 브리핑 → 4인 고정 원정대 → 끝없는 회랑 분기 → 실시간 출격 카드 전투 → 15종 유물/휴식 → 전멸 전까지 거리 기록**이 실제 실행된다. 이전 8인 매치와 메타 화면은 레거시 보존용으로 비활성화되어 있다.
 - 시그니처 메커닉 **실시간 출격** = 0에서 차오르는 코스트를 어디에 먼저 쓸지 결정하는 도박.
 
 ## 실행
@@ -21,12 +21,12 @@ godot --path .
 - **코스트**는 전투 시작 시 0이며 자동으로 차오른다. 충전된 순간 하단 카드를 눌러 직접 출격한다.
 - **긴 단일 전선**: 논리 거리 280의 전장을 카메라로 좌우 스크롤하며 전선과 적 증원을 읽는다.
 - **엘리트/보스 패턴**: 검은 파동과 매듭 재생의 예고를 보고 출격 코스트를 남겨 둔다.
-- **유물**: 전투 보상에서 하나를 선택해 이번 런의 체력·공격 속도·공격력을 강화한다.
+- **유물**: 전투 보상에서 하나를 선택해 이번 런의 체력·공격 속도·공격력·보호막·관통·회복·코어 피해 등을 조합한다. 총 15종.
 - **병종 상성**: 스트라이커▶레인저▶디펜더▶스나이퍼▶스트라이커(+서포터 힐).
 - **4인 드래프트 원정대 + 실시간 출격 카드**: 매번 제시되는 3명 중 1명을 네 번 고른 뒤 전투 중 하단 카드로 코스트가 찬 사도를 직접 출격한다.
 - **긴 단일 전선**: 코어 간 논리 거리를 늘려 초반 이동·출격·교전 시간을 확보한다.
 - **지휘기**: 전투 중 한 번 적 전선을 직접 타격하는 보조 개입 수단이다.
-- **5층 회랑**: 분기·보급·이벤트·휴식·엘리트 노드를 지나 보스에 도달한다.
+- **끝없는 회랑**: 분기·보급·이벤트·휴식·엘리트·보스 노드가 거리와 함께 계속 생성된다. 목표는 클리어가 아니라 최고 거리 갱신이다.
 - **캐릭터 계약**: 8명 전원이 본명, 이명, 등급, 소속, 대사, 인연 대사, 일러스트 브리프, 전장 비주얼 마크를 가진다.
 - **이번 제출 범위**: 현재 런 안에서만 유지되는 4인 원정대와 유물 성장. 상점·가챠·계정 메타는 비활성 레거시다.
 - **일러스트 기준**: 신규 캐릭터는 전투 스프라이트보다 소등사(`assets/art/anchor_sniper.png`, `card_sodeungsa.png`, `face_sodeungsa.png`)급 히어로 일러스트를 먼저 잠근다. 정본 큐는 `assets/pipeline/illustration/manifest.json`.
@@ -54,6 +54,8 @@ godot --headless --path . res://legacy/vesper/battlefield_visual_test.tscn
 godot --headless --path . res://legacy/vesper/character_identity_test.tscn
 godot --headless --path . res://legacy/vesper/scene_smoke_test.tscn
 godot --headless --path . --script res://test/vesper_vertical_slice_test.gd
+godot --headless --path . --script res://test/relic_effects_test.gd
+godot --headless --path . --script res://test/corridor_run_test.gd
 for stage in 0 1 2 3 4; do
   godot --headless --fixed-fps 240 --path . res://legacy/vesper/balance_sim.tscn -- --stage "$stage"
 done

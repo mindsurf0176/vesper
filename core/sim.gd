@@ -28,6 +28,16 @@ class SimUnit extends RefCounted:
 	var atk_range: float
 	var move_speed: float
 	var ability: Dictionary
+	var relic_opening_attacks := 0
+	var relic_opening_atk_mult := 0.0
+	var relic_armor_pierce_add := 0.0
+	var relic_low_hp_atk_mult := 0.0
+	var relic_early_atk_mult := 0.0
+	var relic_damage_taken_mult := 1.0
+	var relic_core_damage_mult := 1.0
+	var relic_shielded := false
+	var relic_early_announced := false
+	var relic_low_hp_announced := false
 
 	var cd: float = 0.0
 	var target_uid: int = -1
@@ -75,6 +85,7 @@ var _by_uid := {}
 var _queue: Array = [[], []]   ## 팀별 미출격 유닛(출격 순서대로)
 var _next_uid := 0
 var _trait_regen := [0.0, 0.0]
+var _relic_regen := [0.0, 0.0]
 var _regen := [Defs.COST_REGEN, Defs.COST_REGEN]
 var _encounter_pattern := ""
 var _pattern_pulse := 0
@@ -105,10 +116,12 @@ func _build_team(team: int, placements: Array) -> void:
 	var tr := Traits.evaluate(sorted)
 	traits_by_team[team] = tr
 	_trait_regen[team] = tr.team_regen
+	_relic_regen[team] = 0.0
 	for i in sorted.size():
 		if team == 1 and str(sorted[i].get("encounter_pattern", "")) != "":
 			_encounter_pattern = str(sorted[i].get("encounter_pattern", ""))
 		var u := _make_unit(team, sorted[i], i, tr)
+		_relic_regen[team] = maxf(_relic_regen[team], float(sorted[i].get("relic_team_regen", 0.0)))
 		units.append(u)
 		_by_uid[u.uid] = u
 		_queue[team].append(u)
@@ -218,11 +231,22 @@ func _make_unit(team: int, p: Dictionary, order: int, tr: Traits) -> SimUnit:
 	u.max_hp = float(d["hp"]) * sm * float(mods["hp_mult"]) * float(p.get("relic_hp_mult", 1.0)) * float(p.get("tactic_hp_mult", 1.0))
 	u.hp = u.max_hp
 	u.atk = float(d["atk"]) * sm * float(mods["atk_mult"]) * float(p.get("relic_atk_mult", 1.0)) * float(p.get("tactic_atk_mult", 1.0))
-	u.armor = float(d["armor"]) + float(mods["armor_add"])
+	u.armor = float(d["armor"]) + float(mods["armor_add"]) + float(p.get("relic_armor_add", 0.0))
 	u.atk_speed = float(d["atk_speed"]) * float(mods["as_mult"]) * float(p.get("relic_as_mult", 1.0)) * float(p.get("tactic_as_mult", 1.0))
-	u.atk_range = float(d["atk_range"])
-	u.move_speed = float(d["move_speed"])
+	u.atk_range = float(d["atk_range"]) + float(p.get("relic_range_add", 0.0))
+	u.move_speed = float(d["move_speed"]) * float(p.get("relic_move_mult", 1.0))
 	u.ability = d["ability"].duplicate(true)
+	u.relic_opening_atk_mult = float(p.get("relic_opening_atk_mult", 0.0))
+	u.relic_opening_attacks = 1 if u.relic_opening_atk_mult > 0.0 else 0
+	u.relic_armor_pierce_add = float(p.get("relic_armor_pierce_add", 0.0))
+	u.relic_low_hp_atk_mult = float(p.get("relic_low_hp_atk_mult", 0.0))
+	u.relic_early_atk_mult = float(p.get("relic_early_atk_mult", 0.0))
+	u.relic_damage_taken_mult = float(p.get("relic_damage_taken_mult", 1.0))
+	u.relic_core_damage_mult = float(p.get("relic_core_damage_mult", 1.0))
+	var relic_shield_ratio := float(p.get("relic_shield_ratio", 0.0))
+	if relic_shield_ratio > 0.0:
+		u.shield = u.max_hp * relic_shield_ratio
+		u.relic_shielded = true
 	u.pos = Defs.SPAWN_OFFSET
 	return u
 
@@ -322,6 +346,8 @@ func _deploy_unit(team: int, u: SimUnit) -> void:
 	if shield_ratio > 0.0:
 		u.shield = u.max_hp * shield_ratio
 		_emit_ability(u)
+	if u.relic_shielded:
+		_events.append({"t": "relic", "uid": u.uid, "name": "닻의 파편", "time": time})
 	var refund := float(u.ability.get("deploy_cost_refund", 0.0))
 	if refund > 0.0:
 		cost[team] = minf(Defs.MAX_COST, cost[team] + refund)
@@ -340,7 +366,7 @@ func _apply_regen(dt: float) -> void:
 					float(provider.ability.get("active_team_regen", 0.0)))
 		# 원소 시너지와 고유 능력은 서로 다른 편성 보상이므로 합산하되,
 		# 같은 고유 능력을 여러 장 넣은 값은 위에서 가장 높은 하나만 쓴다.
-		var rate: float = _trait_regen[team] + ability_rate
+		var rate: float = _trait_regen[team] + _relic_regen[team] + ability_rate
 		if rate <= 0.0:
 			continue
 		for u in units:
@@ -420,9 +446,24 @@ func _try_attack(u: SimUnit, target: SimUnit) -> void:
 	u.cd = 1.0 / maxf(u.atk_speed, 0.05)
 	u.attack_count += 1
 
-	var effective_armor := target.armor * (1.0 - float(u.ability.get("armor_pierce", 0.0)))
+	var armor_pierce := clampf(float(u.ability.get("armor_pierce", 0.0)) + u.relic_armor_pierce_add, 0.0, 0.95)
+	var effective_armor := target.armor * (1.0 - armor_pierce)
 	var dmg: float = u.atk * (1.0 + float(u.kill_stacks) \
 		* float(u.ability.get("kill_atk_mult", 0.0)))
+	if u.relic_opening_attacks > 0:
+		dmg *= 1.0 + u.relic_opening_atk_mult
+		u.relic_opening_attacks -= 1
+		_events.append({"t": "relic", "uid": u.uid, "name": "중계 비콘", "time": time})
+	if u.relic_early_atk_mult > 0.0 and time - u.deployed_at <= 10.0:
+		dmg *= 1.0 + u.relic_early_atk_mult
+		if not u.relic_early_announced:
+			u.relic_early_announced = true
+			_events.append({"t": "relic", "uid": u.uid, "name": "과부하 심지", "time": time})
+	if u.relic_low_hp_atk_mult > 0.0 and u.hp / maxf(u.max_hp, 1.0) <= 0.35:
+		dmg *= 1.0 + u.relic_low_hp_atk_mult
+		if not u.relic_low_hp_announced:
+			u.relic_low_hp_announced = true
+			_events.append({"t": "relic", "uid": u.uid, "name": "마지막 등불", "time": time})
 	dmg *= Defs.counter_mult(u.role, target.role) * Defs.armor_mult(effective_armor)
 	dmg *= damage_rampup()
 
@@ -484,6 +525,7 @@ func _defend_hit(target: SimUnit, raw_damage: float) -> float:
 		return 0.0
 
 	var dmg := raw_damage
+	dmg *= target.relic_damage_taken_mult
 	var cap_ratio := float(target.ability.get("damage_cap_ratio", 0.0))
 	if cap_ratio > 0.0:
 		dmg = minf(dmg, target.max_hp * cap_ratio)
@@ -501,6 +543,7 @@ func _try_hit_core(u: SimUnit) -> void:
 	var enemy := 1 - u.team
 	var dmg: float = u.atk * (1.0 + float(u.kill_stacks) \
 		* float(u.ability.get("kill_atk_mult", 0.0))) * damage_rampup()
+	dmg *= u.relic_core_damage_mult
 	dmg *= 1.0 - _active_core_reduction(enemy)
 	core_hp[enemy] = maxf(0.0, core_hp[enemy] - dmg)
 	_events.append({"t": "core", "from": u.uid, "team": enemy, "dmg": dmg, "time": time})

@@ -23,7 +23,12 @@ func _initialize() -> void:
 	assert(flow.game.seats[1].name == flow.corridor.route[0].get("name", ""), "조우 이름이 적 전투에 반영되지 않음")
 	assert(flow.game.seats[1].player.roster.size() >= 2, "조우별 적 편성이 생성되지 않음")
 	flow.corridor.route_index = 1
-	assert(flow.corridor.choose_option(2), "엘리트 분기 선택 실패")
+	var options: Array = flow.corridor.available_options()
+	var elite_option := -1
+	for i in options.size():
+		if options[i].get("kind", "") == "엘리트":
+			elite_option = i
+	assert(elite_option >= 0 and flow.corridor.choose_option(elite_option), "엘리트 분기 선택 실패")
 	flow._configure_corridor_encounter()
 	assert(flow.game.seats[1].player.level > 3, "위협 배율이 적 레벨에 반영되지 않음")
 	assert(int(flow.game.seats[1].player.roster[0].get("star", 1)) == 2, "엘리트 적 별 등급이 반영되지 않음")

@@ -1,6 +1,8 @@
 class_name CorridorSession
 extends RefCounted
 
+const RELIC_DB = preload("res://core/relics.gd")
+
 ## 회랑 런 전용 세션.
 ## 다인 매치의 대전표/상점/순위 시스템과 분리된 단일 원정대 세션이다.
 
@@ -81,12 +83,7 @@ func human_placement() -> int:
 	return 2 if is_over() else 1
 
 func _apply_relic_modifiers(placement: Dictionary, relics: Array[String]) -> void:
-	if relics.has("ember_cache"):
-		placement["relic_hp_mult"] = 1.10
-	if relics.has("signal_lens"):
-		placement["relic_as_mult"] = 1.12
-	if relics.has("hollow_crown"):
-		placement["relic_atk_mult"] = 1.15
+	RELIC_DB.apply_to_placement(placement, relics)
 
 func _apply_tactic_modifiers(placement: Dictionary, tactic: String) -> void:
 	if tactic == "압박":

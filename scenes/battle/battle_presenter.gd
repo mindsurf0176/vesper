@@ -244,6 +244,15 @@ func _consume_events() -> void:
 						"def_id": caster.def_id,
 						"until": Time.get_ticks_msec() / 1000.0 + 0.9 / maxf(playback_speed, 1.0),
 					})
+			"relic":
+				var bearer := _active_actor(int(event["uid"]))
+				if bearer != null:
+					_stage.relic_fx(bearer.position, Color("f3c777"))
+					_ability_calls.append({
+						"name": String(event.get("name", "유물 발동")),
+						"def_id": bearer.def_id,
+						"until": Time.get_ticks_msec() / 1000.0 + 1.15 / maxf(playback_speed, 1.0),
+					})
 			"death":
 				var uid := int(event["uid"])
 				var was_active := _actors.has(uid)

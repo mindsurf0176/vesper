@@ -3,6 +3,7 @@ extends Control
 const VesperUITheme = preload("res://scenes/ui/vesper_ui.gd")
 const VesperBackdropScene = preload("res://scenes/ui/vesper_backdrop.gd")
 const SquadPrepViewScene = preload("res://scenes/prep/squad_prep_view.gd")
+const RELIC_DB = preload("res://core/relics.gd")
 
 ## VESPER의 준비 → 전투 → 결과 → 게임오버 흐름.
 ## VESPER gameplay core와 passive presentation을 연결한다.
@@ -282,7 +283,7 @@ func _begin_round() -> void:
 	_prep_expired = false
 	_prep.bind_match(game)
 	_prep.set_time_left(_prep_left)
-	_prep.set_message("리븐, 비질, 워든, 다우스가 원정대를 이룹니다. 출격 순서를 확인하세요.")
+	_prep.set_message("리븐, 비질, 워든, 다우스가 원정대를 이룹니다. 회랑을 얼마나 멀리 가는지가 목표입니다.")
 	if _squad_locked:
 		_prep.visible = false
 		_start_battle()
@@ -320,7 +321,13 @@ func _configure_corridor_encounter() -> void:
 	var threat_level := maxi(0, roundi((threat - 1.0) * 3.0))
 	foe.level = clampi(3 + ids.size() + threat_level, UnitDB.MIN_LEVEL, UnitDB.MAX_LEVEL)
 	for i in ids.size():
-		foe.roster.append({"def_id": ids[i], "star": 2 if kind == "보스" or kind == "엘리트" else 1, "order": i, "encounter_pattern": kind if kind == "보스" or kind == "엘리트" else ""})
+		var escalation := maxf(0.0, threat - 1.0)
+		foe.roster.append({"def_id": ids[i],
+			"star": 2 if kind == "보스" or kind == "엘리트" else 1,
+			"order": i,
+			"tactic_hp_mult": 1.0 + escalation * 0.05,
+			"tactic_atk_mult": 1.0 + escalation * 0.035,
+			"encounter_pattern": kind if kind == "보스" or kind == "엘리트" else ""})
 
 
 func _process(delta: float) -> void:
@@ -508,10 +515,10 @@ func _resolve_and_show(precomputed: Dictionary) -> void:
 	var interest := int(settle.get("interest", 0))
 	var streak_bonus := int(settle.get("streak_bonus", 0))
 	_result_title.text = verdict
-	_result_body.text = "%d번째 원정 전투 · %s vs %s\n\n체력 -%d   ·   수입 +%d   ·   이자 +%d   ·   연속 보너스 +%d\n현재 원정 체력 %d   ·   골드 %d\n\n다음 층으로 이동할 수 있습니다." % [
+	_result_body.text = "%d번째 구간 · %s vs %s\n\n체력 -%d   ·   수입 +%d   ·   이자 +%d   ·   연속 보너스 +%d\n현재 원정 체력 %d   ·   골드 %d\n\n회랑 거리 %d  ·  다음 구간으로 계속할 수 있습니다." % [
 		this_round, game.seats[human].name,
 		game.seats[foe_seat].name if foe_seat >= 0 else "고요한 밤", lost, income, interest,
-		streak_bonus, player.hp, player.gold]
+		streak_bonus, player.hp, player.gold, corridor.distance]
 	_result_layer.visible = true
 	_battle_layer.visible = true
 	_prep.visible = false
@@ -601,14 +608,11 @@ func _show_corridor() -> void:
 	var path := HBoxContainer.new()
 	path.alignment = BoxContainer.ALIGNMENT_CENTER
 	path.add_theme_constant_override("separation", 8)
-	for floor in range(1, 6):
-		var node_mark := _label("●\n%d" % floor, 13, "72d7d0" if floor < int(current.get("floor", 1)) else "f2b95f" if floor == int(current.get("floor", 1)) else "60788a")
-		node_mark.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		path.add_child(node_mark)
-		if floor < 5:
-			path.add_child(_label("—", 13, "38566b"))
+	var distance_label := _label("DISTANCE  %03d   ·   BEST  %03d\n━━━━━━━━━━━━━━━━━━━━   ∞" % [corridor.distance, corridor.best_distance], 15, "72d7d0")
+	distance_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	path.add_child(distance_label)
 	_corridor_box.add_child(path)
-	var info := _label("SEED %d   ·   FLOOR %d/5\n%s  ·  위협 배율 %.1f" % [corridor.seed, int(current.get("floor", 1)), current.get("name", ""), float(current.get("threat", 1.0))], 15, "b9cfca")
+	var info := _label("SEED %d   ·   구간 %d\n%s  ·  위협 배율 %.1f" % [corridor.seed, int(current.get("floor", 1)), current.get("name", ""), float(current.get("threat", 1.0))], 15, "b9cfca")
 	info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_corridor_box.add_child(info)
 	var note := _label("전투 노드에서는 하단 사도 카드를 눌러 실시간으로 출격합니다.\n보급·이벤트·휴식처에서 다음 전투를 준비할 수 있습니다.", 14, "e8efeb")
@@ -620,7 +624,7 @@ func _show_corridor() -> void:
 		_corridor_box.add_child(relics)
 	var options := corridor.available_options()
 	if not options.is_empty():
-		_corridor_box.add_child(_label("%d층 경로를 선택하세요" % int(current.get("floor", 1)), 15, "f3c777"))
+		_corridor_box.add_child(_label("다음 구간 경로를 선택하세요", 15, "f3c777"))
 		for i in options.size():
 			var option: Dictionary = options[i]
 			var option_button := _button("%s  ·  위협 %.1f" % [option.get("name", "회랑"), float(option.get("threat", 1.0))], _choose_corridor.bind(i))
@@ -653,7 +657,7 @@ func _show_expedition_intro() -> void:
 	rule.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_corridor_box.add_child(rule)
 	_corridor_box.add_child(HSeparator.new())
-	var mission := _label("이번 원정의 목표\n5개 층을 통과하고 베스퍼 매듭을 파괴하세요.\n전투에서 출격 타이밍을 잡고, 쓰러지기 전에 회복할 장소를 찾으세요.", 14, "b9cfca")
+	var mission := _label("이번 원정의 목표\n회랑이 끝나는 곳은 없습니다. 전멸하기 전까지 얼마나 멀리 가는지 기록하세요.\n전투에서 출격 타이밍을 잡고, 쓰러지기 전에 회복할 장소를 찾으세요.", 14, "b9cfca")
 	mission.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	mission.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_corridor_box.add_child(mission)
@@ -710,9 +714,9 @@ func _show_corridor_result() -> void:
 	_result_layer.visible = true
 	_battle_layer.visible = false
 	_prep.visible = false
-	_result_title.text = "회랑 돌파 완료"
-	_result_body.text = "베스퍼 매듭을 통과했습니다.\n\n새로운 시드로 다시 회랑에 도전할 수 있습니다."
-	_result_count.text = "RUN CLEAR"
+	_result_title.text = "회랑 기록"
+	_result_body.text = "원정이 종료되었습니다.\n\n이번 기록: %d 구간\n최고 기록: %d 구간" % [corridor.distance, corridor.best_distance]
+	_result_count.text = "NEW RUN"
 
 
 func _show_rest_choice() -> void:
@@ -804,11 +808,11 @@ func _relic_names(relics: Array[String]) -> Array[String]:
 
 
 func _relic_name(relic: String) -> String:
-	return {"ember_cache":"잔불 보관함", "signal_lens":"신호 렌즈", "hollow_crown":"공허 왕관"}.get(relic, relic)
+	return RELIC_DB.name(relic)
 
 
 func _relic_description(relic: String) -> String:
-	return {"ember_cache":"아군 최대 HP +10%", "signal_lens":"아군 공격 속도 +12%", "hollow_crown":"아군 공격력 +15%"}.get(relic, "알 수 없는 효과")
+	return RELIC_DB.description(relic)
 
 
 func _on_speed() -> void:

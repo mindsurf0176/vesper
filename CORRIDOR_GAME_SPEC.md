@@ -3,7 +3,7 @@
 ## One-line contract
 
 플레이어는 리븐·비질·워든·다우스로 구성된 4인 원정대의 출격 카드를 실시간으로 눌러 단일 전선을 돌파하고,
-5개 층의 분기·휴식·유물 선택으로 다음 전투의 해법을 만든다.
+끝없이 이어지는 회랑에서 전멸하기 전까지의 거리 기록을 갱신한다.
 
 ## Player loop
 
@@ -12,7 +12,8 @@
 3. 전투 중 코스트가 차는 순간 출격 카드를 눌러 사도를 배치한다.
 4. 전선, 병종 상성, 적 출격, 보스 패턴을 읽으며 승리한다.
 5. 보상·휴식·유물 중 하나를 선택해 원정대를 강화한다.
-6. 5층 보스까지 돌파하거나 전멸하면 런이 끝난다.
+6. 전투가 끝날 때마다 거리를 1 올리고, 다음 구간의 분기·유물·위협을 생성한다.
+7. 원정대가 전멸하면 런이 끝나며, 가장 멀리 간 거리가 기록이다.
 
 ## Rules contract
 
@@ -24,8 +25,9 @@
 - Enemy deployment: automatic queue for encounter pressure.
 - Role contrast: 리븐과 워든은 높은 체력·방어로 전선을 지킨다. 비질과 다우스는 42/36의 긴 사거리에서 높은 피해를 주지만, 낮은 체력·방어로 전선이 무너지면 빠르게 쓰러진다.
 - Resources: battle cost starts at `0` and is visible as a continuously updating gauge; no AP or turn confirmation.
-- Win: enemy core reaches zero. Lose: player core reaches zero or timeout at `75s`.
-- Run: five floors, branch nodes on floors 2–4, boss on floor 5.
+- Win: enemy core reaches zero for the current segment. Lose: player core reaches zero or timeout at `75s`.
+- Run: endless segments. Every segment offers safe/supply, normal combat, and elite routes; every 7th segment can offer a boss route.
+- Threat: segment threat rises with distance, and encounter HP/attack scale gradually up to the engine's level cap.
 
 ## Decisions that create mastery
 
@@ -50,14 +52,15 @@
 - Elite: stronger roster and a six-second `검은 파동` warning/damage pulse.
 - Boss: stronger roster and a five-second `매듭 재생` warning/heal pulse.
 - Rest: choose `체력 +20` or `선봉 교대`.
-- Reward: choose one unique relic. Unit cards come from the fixed squad; relics are run growth.
+- Reward: choose one unique relic whenever the reward pool has an unused choice. Normal, supply, event, elite, and boss rewards expose different relic families.
+- Relics: 15 unique effects, including shields, opening burst, low-HP comeback, armor pierce, movement, regeneration, and core damage.
 
 ## Explicit non-goals for this submission
 
 - No eight-player match, shop, reroll, AI prep, rank, or hidden economy loop in active play.
 - No separate AP/turn tactical command system.
 - No new art production; reuse current character assets and code-native UI.
-- No multiplayer or persistence beyond the current run.
+- No multiplayer or persistence beyond the current run; the current run's distance is the score.
 
 ## QA gates
 

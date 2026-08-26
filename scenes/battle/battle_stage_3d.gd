@@ -114,6 +114,28 @@ func ability_fx(position: Vector3, color: Color) -> void:
 		tween.tween_callback(ring.queue_free)
 
 
+func relic_fx(position: Vector3, color: Color) -> void:
+	## 유물 발동은 일반 피격보다 오래 남는 이중 파동으로 읽힌다.
+	for i in 2:
+		var ring := MeshInstance3D.new()
+		var mesh := TorusMesh.new()
+		mesh.inner_radius = 0.28 + float(i) * 0.18
+		mesh.outer_radius = mesh.inner_radius + 0.065
+		ring.mesh = mesh
+		ring.position = position + Vector3(0, 0.06 + float(i) * 0.12, 0)
+		ring.rotation_degrees.x = 90.0
+		var material := _fx_material(color.lightened(0.18), 3.8)
+		ring.material_override = material
+		add_child(ring)
+		var tween := create_tween()
+		tween.set_speed_scale(playback_speed)
+		tween.tween_interval(float(i) * 0.08)
+		tween.tween_property(ring, "scale", Vector3(1.8, 1.8, 1.8), 0.42)
+		tween.parallel().tween_property(material, "albedo_color:a", 0.0, 0.42)
+		tween.tween_callback(ring.queue_free)
+	shake(0.12)
+
+
 func death_fx(position: Vector3, color: Color) -> void:
 	for i in 4:
 		var offset := Vector3(float(i - 2) * 0.11, 0.12 + float(i % 2) * 0.16, 0.03)

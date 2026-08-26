@@ -1,6 +1,8 @@
 class_name Match
 extends RefCounted
 
+const RELIC_DB = preload("res://core/relics.gd")
+
 ## 8인 매치. 오토체스의 경제·저축 전략은 다인전을 전제한다 —
 ## 나처럼 약한 상대를 만날 수 있어야 "이번 라운드를 버리고 굴린다"가 성립한다.
 ## 봇 1대1 구조에서는 상대가 라운드에만 비례해 강해지므로 그 선택지가 원리적으로 없다.
@@ -127,12 +129,7 @@ func build_sim(a: int, b: int) -> CombatSim:
 
 
 func _apply_relic_modifiers(placement: Dictionary, relics: Array[String]) -> void:
-	if relics.has("ember_cache"):
-		placement["relic_hp_mult"] = 1.10
-	if relics.has("signal_lens"):
-		placement["relic_as_mult"] = 1.12
-	if relics.has("hollow_crown"):
-		placement["relic_atk_mult"] = 1.15
+	RELIC_DB.apply_to_placement(placement, relics)
 
 
 func _apply_tactic_modifiers(placement: Dictionary, tactic: String) -> void:
