@@ -43,6 +43,7 @@ var _result_count: Label
 var _help_layer: Control
 var _corridor_layer: Control
 var _corridor_box: VBoxContainer
+var _pending_relic_choices: Array[String] = []
 
 
 func _ready() -> void:
@@ -401,7 +402,7 @@ func _resolve_and_show(precomputed: Dictionary) -> void:
 		_result_count.text = "새로운 밤을 시작할 수 있습니다."
 	else:
 		corridor.complete_current()
-		_grant_latest_relic()
+		_queue_latest_relic_choice()
 		phase = Phase.RESULT
 		_result_left = RESULT_TIME
 
@@ -421,7 +422,9 @@ func _other_results(human: int) -> String:
 
 func _on_result_continue() -> void:
 	if phase == Phase.RESULT:
-		if corridor.is_finished():
+		if not _pending_relic_choices.is_empty():
+			_show_relic_choice()
+		elif corridor.is_finished():
 			_show_corridor_result()
 		else:
 			_show_corridor()
@@ -497,8 +500,8 @@ func _choose_corridor(option_index: int = -1) -> void:
 		p.gold += 6 if kind == "보급" else 3
 		p.hp = mini(Econ.START_HP, p.hp + (12 if kind == "보급" else 0))
 		corridor.complete_current()
-		_grant_latest_relic()
-		_show_corridor()
+		_queue_latest_relic_choice()
+		_show_relic_choice() if not _pending_relic_choices.is_empty() else _show_corridor()
 		return
 	game.seats[1].name = str(node.get("name", "회랑의 적"))
 	_begin_round()
@@ -515,22 +518,58 @@ func _show_corridor_result() -> void:
 	_result_count.text = "RUN CLEAR"
 
 
-func _grant_latest_relic() -> void:
+func _queue_latest_relic_choice() -> void:
+	_pending_relic_choices.clear()
 	if corridor.rewards.is_empty():
 		return
 	var reward: Dictionary = corridor.rewards.back()
-	var relic := str(reward.get("relic", ""))
-	if relic.is_empty() or player.relics.has(relic):
+	for relic in reward.get("relic_choices", []):
+		if not player.relics.has(str(relic)):
+			_pending_relic_choices.append(str(relic))
+
+
+func _show_relic_choice() -> void:
+	phase = Phase.MAP
+	_prep.visible = false
+	_battle_layer.visible = false
+	_result_layer.visible = false
+	_help_layer.visible = false
+	_corridor_layer.visible = true
+	for child in _corridor_box.get_children():
+		child.queue_free()
+	var title := _label("회랑 보상  //  유물 하나를 선택하세요", 25, "f3c777")
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_corridor_box.add_child(title)
+	var body := _label("선택한 유물은 이번 런이 끝날 때까지 모든 라인 전투에 적용됩니다.", 14, "e8efeb")
+	body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_corridor_box.add_child(body)
+	for relic in _pending_relic_choices:
+		var button := _button("%s\n%s" % [_relic_name(relic), _relic_description(relic)], _choose_relic.bind(relic))
+		button.custom_minimum_size.y = 58
+		_corridor_box.add_child(button)
+
+
+func _choose_relic(relic: String) -> void:
+	if not _pending_relic_choices.has(relic):
 		return
 	player.relics.append(relic)
+	_pending_relic_choices.clear()
+	_show_corridor()
 
 
 func _relic_names(relics: Array[String]) -> Array[String]:
-	var names := {"ember_cache":"잔불 보관함", "signal_lens":"신호 렌즈", "hollow_crown":"공허 왕관"}
 	var out: Array[String] = []
 	for relic in relics:
-		out.append(str(names.get(relic, relic)))
+		out.append(_relic_name(relic))
 	return out
+
+
+func _relic_name(relic: String) -> String:
+	return {"ember_cache":"잔불 보관함", "signal_lens":"신호 렌즈", "hollow_crown":"공허 왕관"}.get(relic, relic)
+
+
+func _relic_description(relic: String) -> String:
+	return {"ember_cache":"아군 최대 HP +10%", "signal_lens":"아군 공격 속도 +12%", "hollow_crown":"아군 공격력 +15%"}.get(relic, "알 수 없는 효과")
 
 
 func _on_buy(slot: int) -> void:
