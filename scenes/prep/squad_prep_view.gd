@@ -42,8 +42,8 @@ func refresh_all() -> void:
 		return
 	var p := game.human_seat().player
 	_status.text = "NIGHT %02d   ·   HP %d   ·   보유 유물 %d개" % [game.round_no, p.hp, p.relics.size()]
-	_message.text = message if not message.is_empty() else "이번 원정에 데려갈 5명을 선택하고 전투 시작을 누르세요."
-	_ready_btn.disabled = p.queued_units().size() != 5
+	_message.text = message if not message.is_empty() else "이번 원정에 데려갈 4명을 선택하고 전투 시작을 누르세요."
+	_ready_btn.disabled = p.queued_units().size() != 4
 	_rebuild_squad(p)
 	_rebuild_pool(p)
 
@@ -72,13 +72,13 @@ func _build_ui() -> void:
 	top_row.add_child(_timer)
 	var help := _button("도움말", func(): help_requested.emit())
 	top_row.add_child(help)
-	var squad_panel := _section("이번 런에 데려갈 5명", 190)
+	var squad_panel := _section("이번 런에 데려갈 4명", 190)
 	root.add_child(squad_panel)
 	_squad_box = HBoxContainer.new()
 	_squad_box.alignment = BoxContainer.ALIGNMENT_CENTER
 	_squad_box.add_theme_constant_override("separation", 12)
 	squad_panel.get_child(0).add_child(_squad_box)
-	var pool_panel := _section("사도 선택 · 6명 중 5명 · 카드를 눌러 교대", 270)
+	var pool_panel := _section("사도 선택 · 6명 중 4명 · 카드를 눌러 교대", 270)
 	pool_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(pool_panel)
 	_pool_box = GridContainer.new()
@@ -99,7 +99,7 @@ func _rebuild_squad(p: Econ.Player) -> void:
 	for unit in p.queued_units():
 		var card := _card(unit, true)
 		_squad_box.add_child(card)
-	for i in range(5 - p.queued_units().size()):
+	for i in range(4 - p.queued_units().size()):
 		var empty := PanelContainer.new()
 		empty.custom_minimum_size = Vector2(128, 112)
 		empty.add_theme_stylebox_override("panel", VesperUITheme.panel(Color("0c1621"), VesperUITheme.LINE, 8))
@@ -143,8 +143,8 @@ func _toggle_unit(id: String) -> void:
 	if found >= 0:
 		p.roster[found]["order"] = -1
 	else:
-		if p.queued_units().size() >= 5:
-			set_message("5명만 데려갈 수 있습니다. 먼저 한 명을 교대하세요.")
+		if p.queued_units().size() >= 4:
+			set_message("4명만 데려갈 수 있습니다. 먼저 한 명을 교대하세요.")
 			return
 		p.roster.append({"def_id": id, "star": 1, "order": p.queued_units().size()})
 	refresh_all()

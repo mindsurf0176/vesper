@@ -2,12 +2,12 @@
 
 ## One-line contract
 
-플레이어는 고정된 5인 원정대의 출격 카드를 실시간으로 눌러 단일 전선을 돌파하고,
+플레이어는 6명 중 고른 4인 원정대의 출격 카드를 실시간으로 눌러 단일 전선을 돌파하고,
 5개 층의 분기·휴식·유물 선택으로 다음 전투의 해법을 만든다.
 
 ## Player loop
 
-1. 원정 브리핑에서 5명의 사도를 선택한다.
+1. 원정 브리핑에서 6명 중 4명의 사도를 선택한다.
 2. 회랑 지도에서 다음 노드를 선택한다.
 3. 전투 중 코스트가 차는 순간 출격 카드를 눌러 사도를 배치한다.
 4. 전선, 병종 상성, 적 출격, 보스 패턴을 읽으며 승리한다.
@@ -37,7 +37,7 @@
 
 - Top: compact floor, core HP, cost gauge, encounter warning.
 - Center: battlefield only; no tactical planning toolbar.
-- Bottom: five unit cards. Each card shows portrait, role, cost, alive/deployed state,
+- Bottom: four unit cards. Each card shows portrait, role, cost, alive/deployed state,
   and a clear disabled charging state.
 - Card click is the primary verb. No hidden auto-deployment for the player.
 - Intro and map explain only the next decision; avoid economy terminology from the old match mode.

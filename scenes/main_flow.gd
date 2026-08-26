@@ -142,7 +142,7 @@ func _build_battle() -> void:
 	card_bar.add_theme_constant_override("separation", 10)
 	card_bar.alignment = BoxContainer.ALIGNMENT_CENTER
 	card_panel.add_child(card_bar)
-	for i in 5:
+	for i in 4:
 		var plan_button := _button("", _on_deploy_card.bind(i))
 		plan_button.custom_minimum_size = Vector2(128, 96)
 		plan_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -211,7 +211,7 @@ func _build_help() -> void:
 	var title := _label("STARLINE — 회랑을 돌파하는 법", 22, "f3c777")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
-	box.add_child(_help_step("① 원정 시작 전에 5명을 고른다", "한 번 고른 원정대는 이번 런 내내 함께합니다. 휴식처에서는 선봉 순서를 바꿀 수 있습니다."))
+	box.add_child(_help_step("① 원정 시작 전에 4명을 고른다", "6명 중 2명을 포기해야 합니다. 한 번 고른 원정대는 이번 런 내내 함께하며, 휴식처에서는 선봉 순서를 바꿀 수 있습니다."))
 	box.add_child(_help_step("② 전투 중 하단 카드를 눌러 사도를 출격한다", "코스트는 시간이 지나면 차오릅니다. 누구를 먼저 내보낼지, 언제 아껴둘지가 핵심입니다."))
 	box.add_child(_help_step("③ 지도를 고르고 유물을 쌓는다", "엘리트는 강하지만 보상이 좋습니다. 보스 전에는 회복과 유물 조합을 준비하세요."))
 	var rule := _label("코스트가 차면 하단 사도 카드를 눌러 출격  ·  전투는 실시간 진행", 14, "8bd9c6")
@@ -254,7 +254,7 @@ func _begin_round() -> void:
 	_prep_left = FIRST_PREP_TIME if round_no == 1 else PREP_TIME
 	_prep.bind_match(game)
 	_prep.set_time_left(_prep_left)
-	_prep.set_message("원정대 5명을 고르고 전투 시작을 누르세요.")
+	_prep.set_message("6명 중 원정대 4명을 고르고 전투 시작을 누르세요.")
 	if _squad_locked:
 		_prep.visible = false
 		_start_battle()
@@ -512,8 +512,7 @@ func _seed_starter_squad() -> void:
 		{"def_id":"aries", "star":1, "order":0},
 		{"def_id":"sagittarius", "star":1, "order":1},
 		{"def_id":"taurus", "star":1, "order":2},
-		{"def_id":"scorpio", "star":1, "order":3},
-		{"def_id":"virgo", "star":1, "order":4},
+		{"def_id":"virgo", "star":1, "order":3},
 	]
 
 
