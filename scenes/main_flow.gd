@@ -57,6 +57,7 @@ var _corridor_layer: Control
 var _corridor_box: VBoxContainer
 var _pending_relic_choices: Array[String] = []
 var _pending_card_choices: Array[String] = []
+var _intro_pending := true
 
 
 func _ready() -> void:
@@ -570,6 +571,7 @@ func _restart() -> void:
 	game = Match.create(rng.randi(), true)
 	_seed_starter_squad()
 	corridor = CorridorRun.new(rng.randi())
+	_intro_pending = true
 	speed = 1.0
 	_speed_btn.text = "배속 x1"
 	_show_corridor()
@@ -588,6 +590,9 @@ func _seed_starter_squad() -> void:
 func _show_corridor() -> void:
 	if corridor == null or corridor.is_finished():
 		_show_corridor_result()
+		return
+	if _intro_pending:
+		_show_expedition_intro()
 		return
 	phase = Phase.MAP
 	_prep.visible = false
@@ -635,6 +640,50 @@ func _show_corridor() -> void:
 		_corridor_box.add_child(enter)
 	var restart := _button("새 회랑 생성", _restart)
 	_corridor_box.add_child(restart)
+
+
+func _show_expedition_intro() -> void:
+	phase = Phase.MAP
+	_prep.visible = false
+	_battle_layer.visible = false
+	_result_layer.visible = false
+	_help_layer.visible = false
+	_corridor_layer.visible = true
+	for child in _corridor_box.get_children():
+		child.queue_free()
+	var kicker := _label("VESPER // 원정 기록 01", 12, "8bd9c6")
+	kicker.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_corridor_box.add_child(kicker)
+	var title := _label("회랑으로 내려간다", 30, "f3c777")
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_corridor_box.add_child(title)
+	var rule := _label("빛이 끊긴 뒤에는, 선택만이 길을 만든다.", 15, "e8efeb")
+	rule.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_corridor_box.add_child(rule)
+	_corridor_box.add_child(HSeparator.new())
+	var mission := _label("이번 원정의 목표\n5개 층을 통과하고 베스퍼 매듭을 파괴하세요.\n전투마다 전술 카드를 고르고, 쓰러지기 전에 회복할 장소를 찾으세요.", 14, "b9cfca")
+	mission.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	mission.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_corridor_box.add_child(mission)
+	var squad_names: PackedStringArray = []
+	for unit in player.queued_units():
+		var def := UnitDB.get_def(str(unit.get("def_id", "")))
+		squad_names.append(str(def.get("name", "미확인")))
+	var squad := _label("원정대  ·  " + "  /  ".join(squad_names) + "\n덱  ·  전술 카드 %d장  ·  유물 %d개" % [player.command_deck.size(), player.relics.size()], 14, "f2b95f")
+	squad.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_corridor_box.add_child(squad)
+	var warning := _label("경고  ·  회랑에서는 쓰러진 사도를 되살릴 수 없습니다.", 12, "d28d7d")
+	warning.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_corridor_box.add_child(warning)
+	var start := _button("원정 시작", _start_expedition)
+	VesperUITheme.apply_button(start, true)
+	start.custom_minimum_size.y = 54
+	_corridor_box.add_child(start)
+
+
+func _start_expedition() -> void:
+	_intro_pending = false
+	_show_corridor()
 
 
 func _choose_corridor(option_index: int = -1) -> void:
