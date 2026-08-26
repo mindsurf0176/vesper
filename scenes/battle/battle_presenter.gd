@@ -308,7 +308,7 @@ func _draw_battle_hud() -> void:
 		draw_rect(Rect2(x, y, bar_width * ratio, 16), BattleStage3D.TEAM_COLOR[team] * Color(1, 1, 1, 0.75))
 		draw_rect(Rect2(x, y, bar_width, 16), Color("71868c"), false, 1.0)
 		var name := label_left if team == 0 else label_right
-		_text(Vector2(x, y - 7), "%s  항성 기운 %.1f" % [name, sim.cost[team]], Color("e8efeb"), 12)
+		_text(Vector2(x, y - 7), "%s  출격 에너지 %.1f" % [name, sim.cost[team]], Color("e8efeb"), 12)
 	var panel := Rect2(width * 0.5 - 90, 14, 180, 28)
 	draw_rect(panel, Color(0.02, 0.04, 0.05, 0.80))
 	draw_rect(panel, Color("597177"), false, 1.0)

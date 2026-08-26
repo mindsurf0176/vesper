@@ -1,7 +1,7 @@
 class_name CharacterVisuals
 extends RefCounted
 
-## STARLINE gameplay key와 migration 자산을 연결하는 presentation manifest.
+## VESPER gameplay key와 migration 자산을 연결하는 presentation manifest.
 ## visible_bounds와 target_height로 canvas 여백과 원본 해상도에 무관한 체격을 보장한다.
 
 const REQUIRED_BATTLE_ANIMATIONS := ["idle", "walk", "aim", "attack", "hit", "death"]

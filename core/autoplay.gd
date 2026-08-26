@@ -125,7 +125,7 @@ static func _rebuild_queue(econ: Econ, p: Econ.Player) -> void:
 		return UnitDB.deploy_cost(a["def_id"]) < UnitDB.deploy_cost(b["def_id"]))
 
 	# 기운 반환 능력은 첫 방어 별 직후에 불러야 후속 강림을 앞당기면서도
-	# 전열이 비지 않는다. 별자리 ID가 아니라 효과 키로 판단한다.
+	# 전열이 비지 않는다. 내부 ID가 아니라 효과 키로 판단한다.
 	var refund_unit: Dictionary = {}
 	for u in chosen:
 		if float(UnitDB.ability(u["def_id"]).get("deploy_cost_refund", 0.0)) > 0.0:

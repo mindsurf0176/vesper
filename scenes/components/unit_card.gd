@@ -128,7 +128,7 @@ func setup(unit: Dictionary, index: int, from: String, tooltip: String = "",
 		_art.texture = null
 		_art.visible = false
 		_gradient.visible = false
-		tooltip_text += "\n\n[신규 STARLINE 비주얼 제작 대기 — gameplay 사용 가능]"
+		tooltip_text += "\n\n[신규 VESPER 비주얼 제작 대기 — gameplay 사용 가능]"
 	_apply_style()
 
 

@@ -408,7 +408,7 @@ func _unit_tooltip(def_id: String, star: int) -> String:
 	var d := UnitDB.get_def(def_id)
 	var m := UnitDB.star_mult(star)
 	var e: int = d["element"]
-	return "%s  %s\n%s\n\n고유 능력: %s\n%s · %s\n체력 %d  공격 %d  방어 %d\n항성 기운 %d" % [
+	return "%s  %s\n%s\n\n고유 능력: %s\n%s · %s\n체력 %d  공격 %d  방어 %d\n출격 에너지 %d" % [
 		d["name"], "★".repeat(star), d["flavor"], UnitDB.ability_text(def_id),
 		Defs.ELEMENT_NAMES[e], Defs.ROLE_NAMES[d["role"]], int(float(d["hp"]) * m),
 		int(float(d["atk"]) * m), int(d["armor"]), UnitDB.deploy_cost(def_id)]

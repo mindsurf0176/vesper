@@ -1,7 +1,7 @@
 class_name StarVisuals
 extends RefCounted
 
-## 준비 화면과 전투 화면이 공유하는 성좌·원소·역할 비주얼 레지스트리.
+## 준비 화면과 전투 화면이 공유하는 계통·역할 비주얼 레지스트리.
 
 const STAR_LINE := {
 	"aries": preload("res://assets/stars/aries_line.png"),

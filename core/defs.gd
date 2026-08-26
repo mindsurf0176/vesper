@@ -3,11 +3,11 @@ extends RefCounted
 
 ## 전역 열거형과 상수. 다른 모든 코어 스크립트가 참조한다.
 
-## 역할은 상성만 담당한다. 시너지는 원소가 맡는다 — 둘이 같은 일을 하면 규칙만 늘고
+## 역할은 상성만 담당한다. 분대 계통은 연계를 맡는다 — 둘이 같은 일을 하면 규칙만 늘고
 ## 플레이어가 기억할 것이 두 배가 된다.
 enum Role { STRIKER, RANGER, DEFENDER, SUPPORT }
 
-## 4원소. 관측체 12종이 원소마다 정확히 셋씩 나뉜다.
+## 4개 전술 계통. 계약자는 계통마다 정확히 셋씩 배치된다.
 enum Element { FIRE, EARTH, AIR, WATER }
 
 const ROLE_NAMES := {
@@ -18,18 +18,18 @@ const ROLE_NAMES := {
 }
 
 const ELEMENT_NAMES := {
-	Element.FIRE: "불",
-	Element.EARTH: "흙",
-	Element.AIR: "바람",
-	Element.WATER: "물",
+	Element.FIRE: "돌입",
+	Element.EARTH: "방벽",
+	Element.AIR: "기동",
+	Element.WATER: "정비",
 }
 
-## 원소가 무엇을 해 주는지 한 줄로. 툴팁에 그대로 쓴다.
+## 계통이 해 주는 일을 한 줄로. 툴팁에 그대로 쓴다.
 const ELEMENT_HINTS := {
-	Element.FIRE: "타오른다 — 공격력",
-	Element.EARTH: "단단하다 — 체력과 방어",
-	Element.AIR: "빠르다 — 공격 속도",
-	Element.WATER: "흐른다 — 회복",
+	Element.FIRE: "돌파 전술 — 공격력",
+	Element.EARTH: "방벽 전술 — 체력과 방어",
+	Element.AIR: "기동 전술 — 공격 속도",
+	Element.WATER: "정비 전술 — 회복",
 }
 
 # 전장 좌표계 --------------------------------------------------------------

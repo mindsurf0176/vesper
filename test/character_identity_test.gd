@@ -1,14 +1,14 @@
 extends SceneTree
 
-## internal gameplay key와 화면에 보이는 STARLINE 캐릭터 정체성의 분리를 검증한다.
+## internal gameplay key와 화면에 보이는 VESPER 계약자 정체성의 분리를 검증한다.
 ##   godot --headless --path . --script res://test/character_identity_test.gd
 
 var passed := 0
 var failed := 0
 
 const FORBIDDEN_DISPLAY_NAMES := [
-	"양", "사수", "사자", "처녀", "황소", "염소",
-	"쌍둥이", "천칭", "물병", "게", "물고기", "전갈",
+	"양자리", "사수자리", "사자자리", "처녀자리", "황소자리", "염소자리",
+	"쌍둥이자리", "천칭자리", "물병자리", "게자리", "물고기자리", "전갈자리",
 ]
 
 
@@ -30,7 +30,7 @@ func ok(condition: bool, label: String, detail: String = "") -> void:
 
 
 func _test_cast_contract() -> void:
-	print("[STARLINE cast]")
+	print("[VESPER contractors]")
 	var table := UnitDB.table()
 	var required := [
 		"name", "epithet", "true_name", "gender", "motif", "faction",
@@ -71,11 +71,12 @@ func _test_identity_uniqueness() -> void:
 func _test_internal_keys_stay_internal() -> void:
 	print("[display identity boundary]")
 	var forbidden := false
-	var motifs_present := true
+	var constellation_free := true
 	for id in UnitDB.table():
 		var d := UnitDB.get_def(id)
-		for old_name in FORBIDDEN_DISPLAY_NAMES:
-			forbidden = forbidden or String(d["name"]) == old_name
-		motifs_present = motifs_present and not String(d["motif"]).is_empty()
-	ok(not forbidden, "별자리 원명은 캐릭터 표시명으로 노출되지 않는다")
-	ok(motifs_present, "별자리 원형은 제작 metadata인 motif에만 보존된다")
+		for forbidden_word in FORBIDDEN_DISPLAY_NAMES:
+			for field in ["name", "true_name", "epithet", "motif", "faction", "flavor"]:
+				constellation_free = constellation_free and not String(d[field]).contains(forbidden_word)
+		forbidden = forbidden or String(d["name"]).is_empty()
+	ok(not forbidden, "계약자 표시명이 비어 있지 않다")
+	ok(constellation_free, "계약자 서사에서 별자리 용어를 제거했다")

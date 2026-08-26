@@ -32,7 +32,7 @@ func _test_manifest_shape() -> void:
 	var all_present := true
 	for id in ids:
 		all_present = all_present and CharacterVisuals.has_character(id)
-	ok(ids.size() == 12 and all_present, "열두 별자리에 visual entry가 있다")
+	ok(ids.size() == 12 and all_present, "열두 계약자에 visual entry가 있다")
 
 	var source_names := {}
 	for id in ids:

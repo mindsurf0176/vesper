@@ -1,7 +1,7 @@
 class_name VesperUI
 extends RefCounted
 
-## STARLINE 전용 UI 재질. 월드의 픽셀 아트와 분리되는 전술 콘솔 계층.
+## VESPER 전용 UI 재질. 월드의 픽셀 아트와 분리되는 전술 콘솔 계층.
 
 const INK := Color("070d16")
 const SURFACE := Color("101b29")

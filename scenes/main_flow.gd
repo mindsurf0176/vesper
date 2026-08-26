@@ -4,8 +4,8 @@ const VesperUITheme = preload("res://scenes/ui/vesper_ui.gd")
 const VesperBackdropScene = preload("res://scenes/ui/vesper_backdrop.gd")
 const SquadPrepViewScene = preload("res://scenes/prep/squad_prep_view.gd")
 
-## STARLINE의 준비 → 전투 → 결과 → 게임오버 흐름.
-## STARLINE gameplay core와 Vesper passive presentation을 연결한다.
+## VESPER의 준비 → 전투 → 결과 → 게임오버 흐름.
+## VESPER gameplay core와 passive presentation을 연결한다.
 
 enum Phase { MAP, PREP, BATTLE, RESULT, GAMEOVER }
 
@@ -218,7 +218,7 @@ func _build_help() -> void:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 12)
 	panel.add_child(box)
-	var title := _label("STARLINE — 회랑을 돌파하는 법", 22, "f3c777")
+	var title := _label("VESPER — 회랑을 돌파하는 법", 22, "f3c777")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
 	box.add_child(_help_step("① 후보 3명 중 1명씩 4명을 고른다", "매번 다른 후보가 제시됩니다. 드래프트한 원정대는 이번 런 내내 함께하며, 휴식처에서는 선봉 순서를 바꿀 수 있습니다."))
