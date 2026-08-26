@@ -1,6 +1,9 @@
 class_name PrepView
 extends Control
 
+const VesperUITheme = preload("res://scenes/ui/vesper_ui.gd")
+const VesperBackdropScene = preload("res://scenes/ui/vesper_backdrop.gd")
+
 ## 오토배틀러식 준비 화면. 편성판의 왼쪽 슬롯부터 차례대로 강림한다.
 
 signal buy_requested(slot: int)
@@ -88,11 +91,8 @@ func refresh_all() -> void:
 
 func _build_ui() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var bg := ColorRect.new()
-	bg.color = Color("071214")
-	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var bg := VesperBackdropScene.new()
 	add_child(bg)
-	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 	var root := VBoxContainer.new()
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -423,20 +423,11 @@ func _section(title: String, min_w: float) -> PanelContainer:
 
 
 func _panel(hex: String, margin: int) -> StyleBoxFlat:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(hex)
+	var sb := VesperUITheme.panel(Color(hex), VesperUITheme.LINE, 8)
 	sb.content_margin_left = margin
 	sb.content_margin_right = margin
 	sb.content_margin_top = margin
 	sb.content_margin_bottom = margin
-	sb.border_color = Color("28474b")
-	sb.set_border_width_all(1)
-	sb.shadow_color = Color(0.0, 0.0, 0.0, 0.22)
-	sb.shadow_size = 5
-	sb.corner_radius_top_left = 5
-	sb.corner_radius_top_right = 5
-	sb.corner_radius_bottom_left = 5
-	sb.corner_radius_bottom_right = 5
 	return sb
 
 
@@ -451,34 +442,10 @@ func _label(text: String, size: int, hex: String) -> Label:
 func _button(text: String, cb: Callable) -> Button:
 	var b := Button.new()
 	b.text = text
-	b.add_theme_font_size_override("font_size", 13)
-	b.add_theme_color_override("font_color", Color("dce9e3"))
-	b.add_theme_color_override("font_hover_color", Color("fff0c2"))
-	b.add_theme_color_override("font_pressed_color", Color("f3c777"))
-	b.add_theme_color_override("font_disabled_color", Color("6f8481"))
-	b.add_theme_stylebox_override("normal", _button_style("193134", "31585a"))
-	b.add_theme_stylebox_override("hover", _button_style("254447", "f3c777"))
-	b.add_theme_stylebox_override("pressed", _button_style("102124", "f3c777"))
-	b.add_theme_stylebox_override("disabled", _button_style("101c1e", "263b3d"))
+	VesperUITheme.apply_button(b)
 	b.custom_minimum_size.y = 36
 	b.pressed.connect(cb)
 	return b
-
-
-func _button_style(bg_hex: String, border_hex: String) -> StyleBoxFlat:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(bg_hex)
-	sb.border_color = Color(border_hex)
-	sb.set_border_width_all(1)
-	sb.corner_radius_top_left = 5
-	sb.corner_radius_top_right = 5
-	sb.corner_radius_bottom_left = 5
-	sb.corner_radius_bottom_right = 5
-	sb.content_margin_left = 10
-	sb.content_margin_right = 10
-	sb.content_margin_top = 7
-	sb.content_margin_bottom = 7
-	return sb
 
 
 func _clear(node: Node) -> void:

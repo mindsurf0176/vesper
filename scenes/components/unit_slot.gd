@@ -1,6 +1,8 @@
 class_name UnitSlot
 extends PanelContainer
 
+const VesperUITheme = preload("res://scenes/ui/vesper_ui.gd")
+
 ## 강림판과 벤치의 drop target. 클릭 이동도 같은 signal로 전달한다.
 
 signal pressed(slot: UnitSlot)
@@ -93,16 +95,8 @@ func _apply_style() -> void:
 		border = Color("1c3033")
 	elif selected:
 		border = Color("efc86d")
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = bg
-	sb.border_color = border
+	var sb := VesperUITheme.panel(bg, border, 8)
 	sb.set_border_width_all(2 if selected else 1)
-	sb.shadow_color = Color(0.0, 0.0, 0.0, 0.20)
-	sb.shadow_size = 3
-	sb.corner_radius_top_left = 6
-	sb.corner_radius_top_right = 6
-	sb.corner_radius_bottom_left = 6
-	sb.corner_radius_bottom_right = 6
 	sb.content_margin_left = 3
 	sb.content_margin_right = 3
 	sb.content_margin_top = 3

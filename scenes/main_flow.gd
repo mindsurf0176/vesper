@@ -1,5 +1,8 @@
 extends Control
 
+const VesperUITheme = preload("res://scenes/ui/vesper_ui.gd")
+const VesperBackdropScene = preload("res://scenes/ui/vesper_backdrop.gd")
+
 ## STARLINE의 준비 → 전투 → 결과 → 게임오버 흐름.
 ## STARLINE gameplay core와 Vesper passive presentation을 연결한다.
 
@@ -49,7 +52,7 @@ var _pending_relic_choices: Array[String] = []
 func _ready() -> void:
 	rng.randomize()
 	game = Match.create(rng.randi(), true)
-	_font = load("res://assets/Galmuri11.ttf")
+	_font = ThemeDB.fallback_font
 	var project_theme := Theme.new()
 	project_theme.default_font = _font
 	project_theme.default_font_size = 13
@@ -61,6 +64,8 @@ func _ready() -> void:
 
 func _build_ui() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var backdrop := VesperBackdropScene.new()
+	add_child(backdrop)
 	_prep = PrepView.new()
 	add_child(_prep)
 	_prep.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -85,7 +90,7 @@ func _build_corridor() -> void:
 	add_child(_corridor_layer)
 	_corridor_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var shade := ColorRect.new()
-	shade.color = Color("071116")
+	shade.color = Color(0.02, 0.05, 0.09, 0.92)
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_corridor_layer.add_child(shade)
 	var center := CenterContainer.new()
@@ -620,21 +625,7 @@ func _on_speed() -> void:
 
 
 func _panel_style(color_hex: String) -> StyleBoxFlat:
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(color_hex)
-	style.content_margin_left = 12
-	style.content_margin_right = 12
-	style.content_margin_top = 10
-	style.content_margin_bottom = 10
-	style.border_color = Color("385c5e")
-	style.set_border_width_all(1)
-	style.corner_radius_top_left = 6
-	style.corner_radius_top_right = 6
-	style.corner_radius_bottom_left = 6
-	style.corner_radius_bottom_right = 6
-	style.shadow_color = Color(0.0, 0.0, 0.0, 0.28)
-	style.shadow_size = 8
-	return style
+	return VesperUITheme.panel(Color(color_hex), VesperUITheme.LINE, 8)
 
 
 func _label(text: String, font_size: int, color_hex: String) -> Label:
@@ -648,33 +639,7 @@ func _label(text: String, font_size: int, color_hex: String) -> Label:
 func _button(text: String, callback: Callable) -> Button:
 	var button := Button.new()
 	button.text = text
-	button.add_theme_font_size_override("font_size", 14)
-	button.add_theme_color_override("font_color", Color("dce9e3"))
-	button.add_theme_color_override("font_hover_color", Color("fff0c2"))
-	button.add_theme_color_override("font_pressed_color", Color("f3c777"))
-	button.add_theme_color_override("font_disabled_color", Color("6f8481"))
-	button.add_theme_stylebox_override("normal", _button_style("193134", "31585a"))
-	button.add_theme_stylebox_override("hover", _button_style("254447", "f3c777"))
-	button.add_theme_stylebox_override("pressed", _button_style("102124", "f3c777"))
-	button.add_theme_stylebox_override("disabled", _button_style("101c1e", "263b3d"))
-	button.add_theme_stylebox_override("focus", _button_style("254447", "f3c777"))
-	button.focus_mode = Control.FOCUS_ALL
+	VesperUITheme.apply_button(button)
 	button.clip_text = true
 	button.pressed.connect(callback)
 	return button
-
-
-func _button_style(bg_hex: String, border_hex: String) -> StyleBoxFlat:
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(bg_hex)
-	style.border_color = Color(border_hex)
-	style.set_border_width_all(1)
-	style.corner_radius_top_left = 5
-	style.corner_radius_top_right = 5
-	style.corner_radius_bottom_left = 5
-	style.corner_radius_bottom_right = 5
-	style.content_margin_left = 14
-	style.content_margin_right = 14
-	style.content_margin_top = 8
-	style.content_margin_bottom = 8
-	return style

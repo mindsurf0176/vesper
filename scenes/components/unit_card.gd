@@ -1,6 +1,8 @@
 class_name UnitCard
 extends PanelContainer
 
+const VesperUITheme = preload("res://scenes/ui/vesper_ui.gd")
+
 ## 상점·대기석·강림판에서 인물과 호출 비용을 우선해 보여 주는 사도 카드.
 
 signal activated(card: UnitCard)
@@ -168,18 +170,10 @@ func _apply_style() -> void:
 
 
 static func _style(bg: Color, border: Color, width: int) -> StyleBoxFlat:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = bg
-	sb.border_color = border
+	var sb := VesperUITheme.panel(bg, border, 8)
 	sb.set_border_width_all(width)
-	sb.shadow_color = Color(0.0, 0.0, 0.0, 0.25)
-	sb.shadow_size = 4
-	sb.corner_radius_top_left = 5
-	sb.corner_radius_top_right = 5
-	sb.corner_radius_bottom_left = 5
-	sb.corner_radius_bottom_right = 5
-	sb.content_margin_left = 4
-	sb.content_margin_right = 4
-	sb.content_margin_top = 2
-	sb.content_margin_bottom = 3
+	sb.content_margin_left = 5
+	sb.content_margin_right = 5
+	sb.content_margin_top = 4
+	sb.content_margin_bottom = 5
 	return sb
