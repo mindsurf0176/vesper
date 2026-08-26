@@ -46,7 +46,7 @@ func refresh_all() -> void:
 	if game == null or not is_node_ready():
 		return
 	var p := game.human_seat().player
-	_status.text = "NIGHT %02d   ·   HP %d   ·   보유 유물 %d개" % [game.round_no, p.hp, p.relics.size()]
+	_status.text = "NIGHT %02d   ·   편성 %d/4   ·   HP %d   ·   유물 %d개" % [game.round_no, p.queued_units().size(), p.hp, p.relics.size()]
 	_message.text = message if not message.is_empty() else "후보 3명 중 1명을 선택하세요. 4명을 고르면 전투를 시작할 수 있습니다."
 	_ready_btn.disabled = p.queued_units().size() != 4
 	_rebuild_squad(p)
@@ -66,7 +66,7 @@ func _build_ui() -> void:
 	var top_row := HBoxContainer.new()
 	top_row.add_theme_constant_override("separation", 14)
 	top.add_child(top_row)
-	var step := VesperUITheme.title_label("STEP 1 / 2\nSQUAD", 13)
+	var step := VesperUITheme.title_label("STEP 1 / 2\n드래프트", 13)
 	step.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	top_row.add_child(step)
 	_status = VesperUITheme.title_label("", 15)
@@ -103,6 +103,8 @@ func _rebuild_squad(p: Econ.Player) -> void:
 	_clear(_squad_box)
 	for unit in p.queued_units():
 		var card := _card(unit, true)
+		card.disabled = true
+		card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_squad_box.add_child(card)
 	for i in range(4 - p.queued_units().size()):
 		var empty := PanelContainer.new()
@@ -131,11 +133,13 @@ func _card(unit: Dictionary, selected: bool) -> Button:
 	card.tooltip_text = UnitDB.ability_text(str(unit["def_id"]))
 	card.add_theme_font_size_override("font_size", 15)
 	card.add_theme_color_override("font_color", VesperUITheme.TEXT)
+	card.add_theme_color_override("font_disabled_color", VesperUITheme.TEXT)
 	card.add_theme_color_override("font_hover_color", Color("ffffff"))
 	card.add_theme_stylebox_override("normal", VesperUITheme.button(Color("183147") if selected else Color("101b29"), VesperUITheme.AMBER if selected else VesperUITheme.LINE, 8))
 	card.add_theme_stylebox_override("hover", VesperUITheme.button(Color("24465d"), VesperUITheme.CYAN, 8))
 	card.add_theme_stylebox_override("pressed", VesperUITheme.button(Color("0c1723"), VesperUITheme.AMBER, 8))
 	card.add_theme_stylebox_override("focus", VesperUITheme.button(Color("24465d"), VesperUITheme.AMBER, 8))
+	card.add_theme_stylebox_override("disabled", VesperUITheme.button(Color("183147") if selected else Color("101b29"), VesperUITheme.AMBER if selected else VesperUITheme.LINE, 8))
 	card.focus_mode = Control.FOCUS_ALL
 	return card
 

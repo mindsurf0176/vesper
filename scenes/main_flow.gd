@@ -145,7 +145,13 @@ func _build_battle() -> void:
 	var card_bar := HBoxContainer.new()
 	card_bar.add_theme_constant_override("separation", 10)
 	card_bar.alignment = BoxContainer.ALIGNMENT_CENTER
-	card_panel.add_child(card_bar)
+	var card_box := VBoxContainer.new()
+	card_box.add_theme_constant_override("separation", 5)
+	card_panel.add_child(card_box)
+	var card_hint := _label("출격 카드  ·  코스트가 차면 눌러서 내보내기", 12, "8bd9c6")
+	card_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	card_box.add_child(card_hint)
+	card_box.add_child(card_bar)
 	for i in 4:
 		var plan_button := _button("", _on_deploy_card.bind(i))
 		plan_button.custom_minimum_size = Vector2(128, 96)
@@ -411,7 +417,8 @@ func _refresh_battle_hud() -> void:
 	if not player.relics.is_empty():
 		_battle_top.text += "   ·   유물: " + ", ".join(_relic_names(player.relics))
 	_command_btn.disabled = phase != Phase.BATTLE or _command_left > 0.0 or sim.finished or not _has_active_enemy()
-	_command_btn.text = "지휘기 %.1f" % _command_left if _command_left > 0.0 else "지휘기"
+	_command_btn.text = "지휘기 %.1f" % _command_left if _command_left > 0.0 else "지휘기 대기" if not _has_active_enemy() else "지휘기"
+	_command_btn.tooltip_text = "적 사도가 전장에 들어오면 사용할 수 있습니다."
 	var available: Array = []
 	for unit in sim.units:
 		if unit.team == 0 and not unit.deployed and unit.alive:
