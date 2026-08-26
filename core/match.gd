@@ -121,7 +121,8 @@ func build_sim(a: int, b: int) -> CombatSim:
 		ua.append(placement)
 	var ub: Array = []
 	for u in pb.queued_units():
-		ub.append(u.duplicate())
+		var placement: Dictionary = u.duplicate()
+		ub.append(placement)
 	return CombatSim.create(ua, ub, pa.level, pb.level)
 
 

@@ -68,6 +68,8 @@ var _queue: Array = [[], []]   ## 팀별 미출격 유닛(출격 순서대로)
 var _next_uid := 0
 var _trait_regen := [0.0, 0.0]
 var _regen := [Defs.COST_REGEN, Defs.COST_REGEN]
+var _encounter_pattern := ""
+var _pattern_pulse := 0
 ## 틱 내 피해는 모았다가 끝에 한 번에 적용한다. 그래야 배열 순서가 승패를 가르지 않고
 ## 상호 확살이 동시 사망으로 처리된다.
 var _pending: Dictionary = {}
@@ -94,6 +96,8 @@ func _build_team(team: int, placements: Array) -> void:
 	traits_by_team[team] = tr
 	_trait_regen[team] = tr.team_regen
 	for i in sorted.size():
+		if team == 1 and str(sorted[i].get("encounter_pattern", "")) != "":
+			_encounter_pattern = str(sorted[i].get("encounter_pattern", ""))
 		var u := _make_unit(team, sorted[i], i, tr)
 		units.append(u)
 		_by_uid[u.uid] = u
@@ -192,6 +196,7 @@ func step(dt: float) -> void:
 	if finished:
 		return
 	time += dt
+	_apply_encounter_pattern()
 	_tick_cost(dt)
 	_tick_deploy()
 	_apply_regen(dt)
@@ -209,6 +214,37 @@ func step(dt: float) -> void:
 		(_by_uid[uid] as SimUnit).pos = moves[uid]
 	_resolve_damage()
 	_check_end()
+
+
+func _apply_encounter_pattern() -> void:
+	var interval := 6.0 if _encounter_pattern == "엘리트" else 5.0 if _encounter_pattern == "보스" else 0.0
+	if interval <= 0.0:
+		return
+	var pulse := int(floor(time / interval))
+	if pulse <= _pattern_pulse:
+		return
+	_pattern_pulse = pulse
+	if _encounter_pattern == "엘리트":
+		var target: SimUnit = null
+		for unit in units:
+			if unit.team == 0 and unit.is_active() and (target == null or unit.hp < target.hp):
+				target = unit
+		if target == null:
+			return
+		target.hp = maxf(0.0, target.hp - 18.0)
+		_events.append({"t": "pattern", "name": "검은 파동", "to": target.uid, "dmg": 18.0})
+		if target.hp <= 0.0:
+			target.alive = false
+			_events.append({"t": "death", "uid": target.uid})
+	else:
+		var healed := false
+		for unit in units:
+			if unit.team == 1 and unit.is_active():
+				unit.hp = minf(unit.max_hp, unit.hp + 12.0)
+				healed = true
+		core_hp[1] = minf(Defs.CORE_HP, core_hp[1] + 8.0)
+		if healed:
+			_events.append({"t": "pattern", "name": "매듭 재생", "heal": 12.0})
 
 
 func _tick_cost(dt: float) -> void:

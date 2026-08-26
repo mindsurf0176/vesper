@@ -31,5 +31,22 @@ func _init() -> void:
 	var before_hp: float = target.hp
 	assert(heavy.apply_tactical_order("집중", 2), "강화 집중 명령을 적용하지 못함")
 	assert(is_equal_approx(before_hp - target.hp, 72.0), "강화 집중 카드 피해량이 잘못됨")
+	var elite := Sim.create([
+		{"def_id":"taurus", "order":0, "star":1},
+		{"def_id":"capricorn", "order":1, "star":1},
+		{"def_id":"cancer", "order":2, "star":1}], [
+		{"def_id":"taurus", "order":0, "star":1, "encounter_pattern":"엘리트"},
+		{"def_id":"capricorn", "order":1, "star":1, "encounter_pattern":"엘리트"},
+		{"def_id":"cancer", "order":2, "star":1, "encounter_pattern":"엘리트"}], 3, 3)
+	assert(elite._encounter_pattern == "엘리트", "엘리트 패턴이 시뮬레이터에 전달되지 않음")
+	for unit in elite.units:
+		unit.deployed = true
+	elite.time = 6.0
+	elite._apply_encounter_pattern()
+	var pattern_seen := false
+	for event in elite.consume_events():
+		if String(event.get("t", "")) == "pattern":
+			pattern_seen = true
+	assert(pattern_seen, "엘리트 패턴 이벤트가 발생하지 않음")
 	print("PASS combat command")
 	quit(0)
