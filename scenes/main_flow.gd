@@ -56,6 +56,7 @@ var _help_layer: Control
 var _corridor_layer: Control
 var _corridor_box: VBoxContainer
 var _pending_relic_choices: Array[String] = []
+var _pending_card_choices: Array[String] = []
 
 
 func _ready() -> void:
@@ -359,10 +360,24 @@ func _card_catalog() -> Array[Dictionary]:
 
 func _draw_hand() -> void:
 	_command_hand.clear()
-	var deck := _card_catalog()
+	var deck: Array[Dictionary] = []
+	for card_id in player.command_deck:
+		var card := _card_by_id(card_id)
+		if not card.is_empty():
+			deck.append(card)
+	if deck.is_empty():
+		for card_id in ["charge", "guard", "focus"]:
+			deck.append(_card_by_id(card_id))
 	deck.shuffle()
 	for i in mini(3, deck.size()):
 		_command_hand.append(deck[i])
+
+
+func _card_by_id(card_id: String) -> Dictionary:
+	for card in _card_catalog():
+		if str(card["id"]) == card_id:
+			return card.duplicate(true)
+	return {}
 
 
 func _on_card_pressed(hand_index: int) -> void:
@@ -515,10 +530,10 @@ func _resolve_and_show(precomputed: Dictionary) -> void:
 		_result_count.text = "새로운 밤을 시작할 수 있습니다."
 	else:
 		corridor.complete_current()
-		_queue_latest_relic_choice()
+		_queue_latest_reward_choices()
 		phase = Phase.RESULT
 		_result_left = RESULT_TIME
-		_result_count.text = "계속을 눌러 유물을 선택하세요" if not _pending_relic_choices.is_empty() else "%.1f초 뒤 다음 회랑" % _result_left
+		_result_count.text = "계속을 눌러 보상을 선택하세요" if not _pending_relic_choices.is_empty() or not _pending_card_choices.is_empty() else "%.1f초 뒤 다음 회랑" % _result_left
 
 
 func _other_results(human: int) -> String:
@@ -536,7 +551,7 @@ func _other_results(human: int) -> String:
 
 func _on_result_continue() -> void:
 	if phase == Phase.RESULT:
-		if not _pending_relic_choices.is_empty():
+		if not _pending_relic_choices.is_empty() or not _pending_card_choices.is_empty():
 			_show_relic_choice()
 		elif corridor.is_finished():
 			_show_corridor_result()
@@ -567,6 +582,7 @@ func _seed_starter_squad() -> void:
 		{"def_id":"sagittarius", "star":1, "order":1},
 		{"def_id":"taurus", "star":1, "order":2},
 	]
+	p.command_deck = ["charge", "guard", "focus", "charge", "guard", "focus"]
 
 
 func _show_corridor() -> void:
@@ -634,8 +650,8 @@ func _choose_corridor(option_index: int = -1) -> void:
 		p.gold += 6 if kind == "보급" else 3
 		p.hp = mini(Econ.START_HP, p.hp + (12 if kind == "보급" else 0))
 		corridor.complete_current()
-		_queue_latest_relic_choice()
-		_show_relic_choice() if not _pending_relic_choices.is_empty() else _show_corridor()
+		_queue_latest_reward_choices()
+		_show_relic_choice() if not _pending_relic_choices.is_empty() or not _pending_card_choices.is_empty() else _show_corridor()
 		return
 	game.seats[1].name = str(node.get("name", "회랑의 적"))
 	_begin_round()
@@ -652,14 +668,18 @@ func _show_corridor_result() -> void:
 	_result_count.text = "RUN CLEAR"
 
 
-func _queue_latest_relic_choice() -> void:
+func _queue_latest_reward_choices() -> void:
 	_pending_relic_choices.clear()
+	_pending_card_choices.clear()
 	if corridor.rewards.is_empty():
 		return
 	var reward: Dictionary = corridor.rewards.back()
 	for relic in reward.get("relic_choices", []):
 		if not player.relics.has(str(relic)):
 			_pending_relic_choices.append(str(relic))
+	for card_id in reward.get("card_choices", []):
+		if not player.command_deck.has(str(card_id)):
+			_pending_card_choices.append(str(card_id))
 
 
 func _show_relic_choice() -> void:
@@ -671,12 +691,17 @@ func _show_relic_choice() -> void:
 	_corridor_layer.visible = true
 	for child in _corridor_box.get_children():
 		child.queue_free()
-	var title := _label("회랑 보상  //  유물 하나를 선택하세요", 25, "f3c777")
+	var title := _label("회랑 보상  //  카드 또는 유물 하나", 25, "f3c777")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_corridor_box.add_child(title)
-	var body := _label("선택한 유물은 이번 런이 끝날 때까지 모든 라인 전투에 적용됩니다.", 14, "e8efeb")
+	var body := _label("카드는 다음 전투 손패에 추가되고, 유물은 이번 런 동안 유지됩니다.", 14, "e8efeb")
 	body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_corridor_box.add_child(body)
+	for card_id in _pending_card_choices:
+		var card := _card_by_id(card_id)
+		var card_button := _button("카드  ·  %s\n%d AP  ·  %s" % [card["name"], card["cost"], card["hint"]], _choose_card.bind(card_id))
+		card_button.custom_minimum_size.y = 58
+		_corridor_box.add_child(card_button)
 	for relic in _pending_relic_choices:
 		var button := _button("%s\n%s" % [_relic_name(relic), _relic_description(relic)], _choose_relic.bind(relic))
 		button.custom_minimum_size.y = 58
@@ -687,6 +712,16 @@ func _choose_relic(relic: String) -> void:
 	if not _pending_relic_choices.has(relic):
 		return
 	player.relics.append(relic)
+	_pending_relic_choices.clear()
+	_pending_card_choices.clear()
+	_show_corridor()
+
+
+func _choose_card(card_id: String) -> void:
+	if not _pending_card_choices.has(card_id):
+		return
+	player.command_deck.append(card_id)
+	_pending_card_choices.clear()
 	_pending_relic_choices.clear()
 	_show_corridor()
 
