@@ -11,7 +11,8 @@
 ```
 godot --path .
 ```
-- **메인 씬 = `battle3d.tscn` (HD-2D 3D 전투)** — 픽셀 빌보드 유닛 + 디오라마 회랑 + 블룸/볼류메트릭 안개/피사계심도/실시간 그림자.
+- **메인 씬 = `scenes/main_flow.tscn`** — 타이틀·브리핑에서 `legacy/vesper/battle3d.tscn` HD-2D 전투로 진입한다.
+- 전투 씬은 픽셀 빌보드 유닛 + 디오라마 회랑 + 블룸/볼류메트릭 안개/피사계심도/실시간 그림자를 사용한다.
 - 렌더러: **Forward+**(네이티브, 풀 HD-2D). **웹빌드는 Compatibility로 자동 다운그레이드**(블룸·그림자·안개는 나오고 피사계심도/볼류메트릭만 생략 = HD-2D 라이트).
 - 2D 원형(MVP1)은 `main.tscn`(`main.gd`/`unit.gd`)에 **레퍼런스로 보존**. HD-2D 룩 테스트 씬은 `hdtest.tscn`.
 - 처음 한 번은 임포트: `godot --headless --path . --import`
@@ -43,19 +44,20 @@ godot --path .
 
 ## 검증
 ```bash
-godot --headless --path . res://combat_rules_test.tscn
-godot --headless --path . res://imprint_rules_test.tscn
-godot --headless --path . res://campaign_flow_test.tscn
-godot --headless --path . res://meta_systems_test.tscn
-godot --headless --path . res://ops_systems_test.tscn
-godot --headless --path . res://system_shell_test.tscn
-godot --headless --path . res://presentation_system_test.tscn
-godot --headless --path . res://combat_audio_test.tscn
-godot --headless --path . res://battlefield_visual_test.tscn
-godot --headless --path . res://character_identity_test.tscn
-godot --headless --path . res://scene_smoke_test.tscn
+godot --headless --path . res://legacy/vesper/combat_rules_test.tscn
+godot --headless --path . res://legacy/vesper/imprint_rules_test.tscn
+godot --headless --path . res://legacy/vesper/campaign_flow_test.tscn
+godot --headless --path . res://legacy/vesper/meta_systems_test.tscn
+godot --headless --path . res://legacy/vesper/ops_systems_test.tscn
+godot --headless --path . res://legacy/vesper/system_shell_test.tscn
+godot --headless --path . res://legacy/vesper/presentation_system_test.tscn
+godot --headless --path . res://legacy/vesper/combat_audio_test.tscn
+godot --headless --path . res://legacy/vesper/battlefield_visual_test.tscn
+godot --headless --path . res://legacy/vesper/character_identity_test.tscn
+godot --headless --path . res://legacy/vesper/scene_smoke_test.tscn
+godot --headless --path . --script res://test/vesper_vertical_slice_test.gd
 for stage in 0 1 2 3 4; do
-  godot --headless --fixed-fps 240 --path . res://balance_sim.tscn -- --stage "$stage"
+  godot --headless --fixed-fps 240 --path . res://legacy/vesper/balance_sim.tscn -- --stage "$stage"
 done
 ```
 

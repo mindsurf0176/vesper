@@ -164,10 +164,14 @@ func ally_count() -> int:
 func damage_core(by_team: int, amount: float) -> void:
 	if by_team == ALLY:
 		enemy_hp = max(0.0, enemy_hp - amount)
+		if line_core != null:
+			line_core.enemy_core_hp = enemy_hp
 	else:
 		if core_invuln > 0.0:
 			return
 		ally_hp = max(0.0, ally_hp - amount)
+		if line_core != null:
+			line_core.ally_core_hp = ally_hp
 		var threshold: float = float(last_stand_contract.get("threshold", 0.25))
 		if _tutorial_enabled("last_stand") and not last_stand_armed and not last_stand_used and ally_hp <= ally_hp_max * threshold:
 			last_stand_armed = true
@@ -206,8 +210,9 @@ func _spawn(def: Dictionary, team: int, spawn_x := SPAWN_X_AUTO, register_core :
 
 func _spawn_ally(def: Dictionary, spawn_x := SPAWN_X_AUTO, register_core := true):
 	var x: float = spawn_x if spawn_x != SPAWN_X_AUTO else ALLY_X + 1.4
-	return _spawn(def, ALLY, x, register_core)
+	var visual = _spawn(def, ALLY, x, register_core)
 	float_world(def["name"], Vector3(x, 1.9, 0), AMBER)
+	return visual
 
 func _with_unit_visual(def: Dictionary, team: int) -> Dictionary:
 	var out := def.duplicate(true)
@@ -351,7 +356,12 @@ func _deploy_card_slot(slot: int, world_x := SPAWN_X_AUTO) -> bool:
 	var spawn_x := clamp_deploy_x(world_x if world_x != SPAWN_X_AUTO else deployment_max_x())
 	var core_uid := -1
 	if line_core_mode:
-		core_uid = line_core.deploy(def, _core_x_from_world(spawn_x))
+		# LineBattle은 순수 코어라 화면의 리더 계약을 알 수 없다.
+		# 배치 직전에 유효 비용을 주입해 UI·코어·실제 차감을 일치시킨다.
+		line_core.cost = cost
+		var core_def := def.duplicate(true)
+		core_def["cost"] = _card_cost(def)
+		core_uid = line_core.deploy(core_def, _core_x_from_world(spawn_x))
 		if core_uid < 0:
 			_set_deploy_feedback("라인 코어가 소환을 거부했습니다")
 			return false
@@ -479,12 +489,26 @@ func _resolve_orb_selection() -> bool:
 		_refresh_orb_buttons()
 		return false
 	if line_core_mode:
-		if not line_core.cast_orb(role, count):
+		line_core.cost = cost
+		line_core.ally_core_hp = ally_hp
+		line_core.enemy_core_hp = enemy_hp
+		var enhanced := _selected_enhanced_count()
+		var corrupted := _selected_corrupted_count()
+		if not line_core.cast_orb(role, count, 1.0 + enhanced * 0.35):
 			_set_deploy_feedback("오브 명령을 실행할 전장 유닛이 없습니다")
 			selected_orbs.clear()
 			_refresh_orb_buttons()
 			return false
-		_sync_core_visuals(line_core.snapshot())
+		if corrupted > 0:
+			# 오염 반동은 Vesper의 코어 위기/최후 신호 계약을 거쳐야 한다.
+			damage_core(LineBattle.ENEMY, 18.0 * corrupted)
+			line_core.ally_core_hp = ally_hp
+		var orb_snapshot: Dictionary = line_core.snapshot()
+		cost = float(orb_snapshot["cost"])
+		ally_hp = float(orb_snapshot["ally_core_hp"])
+		enemy_hp = float(orb_snapshot["enemy_core_hp"])
+		_sync_core_visuals(orb_snapshot)
+		_consume_line_core_events()
 		_consume_selected_orbs()
 		_set_deploy_feedback("%s %d오브 발동" % [_orb_label(role), count], 1.4)
 		return true
@@ -673,6 +697,8 @@ func _on_soshin() -> void:
 		return
 	if not running or soshin_cd > 0.0: return
 	if line_core_mode:
+		line_core.cost = cost
+		line_core.ally_core_hp = ally_hp
 		if not line_core.use_soshin():
 			_set_deploy_feedback("등불이 더는 태울 수 없습니다")
 			return
@@ -727,11 +753,19 @@ func _on_skill() -> void:
 		return
 	if not running: return
 	if line_core_mode:
+		line_core.ally_core_hp = ally_hp
+		line_core.enemy_core_hp = enemy_hp
 		if ally_hp / ally_hp_max <= 0.25 and line_core.cast_last_stand():
+			last_stand_ready = false
+			last_stand_used = true
 			core_invuln = 4.0
-			_sync_core_visuals(line_core.snapshot())
+			var last_snapshot: Dictionary = line_core.snapshot()
+			ally_hp = float(last_snapshot["ally_core_hp"])
+			enemy_hp = float(last_snapshot["enemy_core_hp"])
+			_sync_core_visuals(last_snapshot)
 			_set_deploy_feedback("최후 신호  ·  전선 후퇴  ·  방벽 4초", 3.0)
 			return
+		line_core.cost = cost
 		if skill_cd > 0.0 or not line_core.cast_command(float(command_skill.get("damage", 48.0)), float(command_skill.get("push", 0.0))):
 			return
 		skill_cd = float(command_skill.get("cooldown", 18.0))
@@ -833,6 +867,7 @@ func _process_line_core(delta: float) -> void:
 		wave_idx += 1
 	line_core.step(delta)
 	var snapshot: Dictionary = line_core.snapshot()
+	_consume_line_core_events()
 	cost = float(snapshot["cost"])
 	ally_hp = float(snapshot["ally_core_hp"])
 	enemy_hp = float(snapshot["enemy_core_hp"])
@@ -840,6 +875,30 @@ func _process_line_core(delta: float) -> void:
 	_update_buttons()
 	if line_core.ended:
 		_end(line_core.winner == LineBattle.ALLY)
+
+func _consume_line_core_events() -> void:
+	# LineBattle이 판정한 이벤트만 화면 유닛에 전달한다. 화면 유닛은
+	# 타겟·피해량을 다시 계산하지 않고, 이미 확정된 결과를 연출한다.
+	for event in line_core.consume_events():
+		var kind := str(event.get("type", ""))
+		if kind == "hit":
+			var attacker = core_visuals.get(int(event.get("attacker", -1)))
+			var target = core_visuals.get(int(event.get("target", -1)))
+			if is_instance_valid(attacker):
+				attacker.in_combat = true
+				attacker.atk_anim = 0.55
+			if is_instance_valid(target):
+				target.in_combat = true
+				if target.use_sprite and target.asp != null and target.asp.sprite_frames.has_animation("hit"):
+					target._begin_hit_animation()
+		elif kind == "death":
+			var dying = core_visuals.get(int(event.get("uid", -1)))
+			if is_instance_valid(dying) and not dying.dead:
+				dying.die()
+		elif kind == "core_hit":
+			var team := int(event.get("team", LineBattle.ENEMY))
+			var core_x := ENEMY_X if team == LineBattle.ENEMY else ALLY_X
+			float_world("-%d" % int(round(float(event.get("amount", 0.0)))), Vector3(core_x, 2.2, 0), Color("ffd27a"))
 
 func _sync_core_visuals(snapshot: Dictionary) -> void:
 	for uid in core_visuals.keys():
@@ -853,12 +912,14 @@ func _sync_core_visuals(snapshot: Dictionary) -> void:
 				break
 		if found.is_empty():
 			continue
-		visual.position.x = lerpf(ALLY_X, ENEMY_X, float(found["x"]) / LineBattle.FIELD_LENGTH)
+		var next_x := lerpf(ALLY_X, ENEMY_X, float(found["x"]) / LineBattle.FIELD_LENGTH)
+		visual.moving = absf(next_x - visual.position.x) > 0.01
+		visual.in_combat = false
+		visual.position.x = next_x
 		visual.hp = float(found["hp"])
 		visual.max_hp = float(found["max_hp"])
 		if not bool(found["alive"]) and not visual.dead:
-			visual.dead = true
-			visual.visible = false
+			visual.die()
 
 func _update_buttons() -> void:
 	if soshin_btn == null or skill_btn == null:

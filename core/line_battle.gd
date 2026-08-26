@@ -140,14 +140,17 @@ func use_soshin() -> bool:
 	events.append({"type": "soshin", "cost": cost, "core_hp": ally_core_hp})
 	return true
 
-func cast_orb(role: int, count: int) -> bool:
+func cast_orb(role: int, count: int, power_multiplier: float = 1.0, backlash: float = 0.0) -> bool:
 	if ended or not [1, 2, 4].has(count):
 		return false
 	var caster = _front_alive(ALLY, role)
 	if caster == null:
 		return false
 	var target = _front_alive(ENEMY, -1)
-	var amount := float(count) * 12.0
+	var amount := float(count) * 12.0 * maxf(power_multiplier, 0.0)
+	if backlash > 0.0:
+		_damage_core(ENEMY, backlash)
+		events.append({"type": "orb_backlash", "amount": backlash})
 	if target != null and role != SUPPORT:
 		target["hp"] = maxf(0.0, float(target["hp"]) - amount)
 		events.append({"type": "ability", "uid": caster["uid"], "target": target["uid"], "role": role, "count": count, "amount": amount})
