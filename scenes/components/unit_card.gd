@@ -29,7 +29,7 @@ var _blocked_badge: Label
 
 
 func _init() -> void:
-	custom_minimum_size = Vector2(98, 116)
+	custom_minimum_size = Vector2(86, 110)
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	_build()
 
@@ -40,7 +40,7 @@ func _build() -> void:
 	add_child(box)
 
 	var portrait_frame := Control.new()
-	portrait_frame.custom_minimum_size = Vector2(82, 74)
+	portrait_frame.custom_minimum_size = Vector2(72, 70)
 	portrait_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	portrait_frame.clip_contents = true
 	box.add_child(portrait_frame)

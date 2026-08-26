@@ -52,7 +52,7 @@ var _pending_relic_choices: Array[String] = []
 func _ready() -> void:
 	rng.randomize()
 	game = Match.create(rng.randi(), true)
-	_font = ThemeDB.fallback_font
+	_font = load("res://assets/IBMPlexSansKR-Regular.otf")
 	var project_theme := Theme.new()
 	project_theme.default_font = _font
 	project_theme.default_font_size = 13

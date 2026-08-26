@@ -247,7 +247,7 @@ func _rebuild_foe(foe: int) -> void:
 		return
 	for u in game.seats[foe].player.queued_units().slice(0, 7):
 		var card := _make_card(u, -1, "foe", "")
-		card.custom_minimum_size = Vector2(86, 94)
+		card.custom_minimum_size = Vector2(80, 88)
 		card.selectable = false
 		card.draggable = false
 		_foe_box.add_child(card)
@@ -266,7 +266,7 @@ func _rebuild_board(p: Econ.Player) -> void:
 			if float(item["wait"]) >= 0.1:
 				hint += "  대기 %.1f" % float(item["wait"])
 		var slot := UnitSlot.new()
-		slot.custom_minimum_size = Vector2(104, 136)
+		slot.custom_minimum_size = Vector2(92, 130)
 		slot.setup("board", i, "%d" % (i + 1), locked, hint)
 		slot.pressed.connect(_on_slot_pressed)
 		slot.unit_dropped.connect(_on_unit_dropped)
@@ -283,7 +283,7 @@ func _rebuild_bench(p: Econ.Player) -> void:
 	var bench := p.bench_units()
 	for i in Econ.BENCH_SIZE:
 		var slot := UnitSlot.new()
-		slot.custom_minimum_size = Vector2(104, 116)
+		slot.custom_minimum_size = Vector2(92, 112)
 		slot.setup("bench", i, "", false, "")
 		slot.pressed.connect(_on_slot_pressed)
 		slot.unit_dropped.connect(_on_unit_dropped)
