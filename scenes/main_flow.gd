@@ -13,7 +13,7 @@ const FIRST_PREP_TIME := 45.0
 const PREP_TIME := 30.0
 const RESULT_TIME := 4.0
 
-var game: Match
+var game: CorridorSession
 var corridor: CorridorRun
 var sim: CombatSim = null
 var phase := Phase.PREP
@@ -66,7 +66,7 @@ var _encounter_kind := "전투"
 
 func _ready() -> void:
 	rng.randomize()
-	game = Match.create(rng.randi(), true)
+	game = CorridorSession.create(rng.randi())
 	_seed_starter_squad()
 	_font = load("res://assets/IBMPlexSansKR-Regular.otf")
 	if _font == null or not _font.has_char("가".unicode_at(0)):
@@ -532,11 +532,10 @@ func _resolve_and_show(precomputed: Dictionary) -> void:
 	var interest := int(settle.get("interest", 0))
 	var streak_bonus := int(settle.get("streak_bonus", 0))
 	_result_title.text = verdict
-	_result_body.text = "%d번째 밤 · %s vs %s\n\n체력 -%d   ·   수입 +%d   ·   이자 +%d   ·   연속 보너스 +%d\n현재 체력 %d   ·   골드 %d   ·   생존 관측자 %d/%d\n\n%s" % [
+	_result_body.text = "%d번째 원정 전투 · %s vs %s\n\n체력 -%d   ·   수입 +%d   ·   이자 +%d   ·   연속 보너스 +%d\n현재 원정 체력 %d   ·   골드 %d\n\n다음 층으로 이동할 수 있습니다." % [
 		this_round, game.seats[human].name,
 		game.seats[foe_seat].name if foe_seat >= 0 else "고요한 밤", lost, income, interest,
-		streak_bonus, player.hp, player.gold, game.living_seats().size(), Match.SEATS,
-		_other_results(human)]
+		streak_bonus, player.hp, player.gold]
 	_result_layer.visible = true
 	_battle_layer.visible = true
 	_prep.visible = false
@@ -544,8 +543,8 @@ func _resolve_and_show(precomputed: Dictionary) -> void:
 		_view.show_victory(sim.winner)
 	if not player.is_alive() or game.is_over():
 		phase = Phase.GAMEOVER
-		_result_title.text = "오늘의 밤이 끝났다 — 최종 %d등" % game.human_placement()
-		_result_count.text = "새로운 밤을 시작할 수 있습니다."
+		_result_title.text = "원정 실패"
+		_result_count.text = "새로운 원정을 시작할 수 있습니다."
 	else:
 		corridor.complete_current()
 		_queue_latest_reward_choices()
@@ -585,7 +584,7 @@ func _next_round() -> void:
 
 func _restart() -> void:
 	rng.randomize()
-	game = Match.create(rng.randi(), true)
+	game = CorridorSession.create(rng.randi())
 	_seed_starter_squad()
 	corridor = CorridorRun.new(rng.randi())
 	_intro_pending = true

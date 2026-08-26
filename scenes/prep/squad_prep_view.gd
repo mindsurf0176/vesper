@@ -10,7 +10,7 @@ const VesperUITheme = preload("res://scenes/ui/vesper_ui.gd")
 const VesperBackdropScene = preload("res://scenes/ui/vesper_backdrop.gd")
 const UnitCardScene = preload("res://scenes/components/unit_card.gd")
 
-var game: Match
+var game: CorridorSession
 var message := ""
 var prep_time := 0.0
 var _status: Label
@@ -23,7 +23,7 @@ var _ready_btn: Button
 func _ready() -> void:
 	_build_ui()
 
-func bind_match(value: Match) -> void:
+func bind_match(value: CorridorSession) -> void:
 	game = value
 	refresh_all()
 
