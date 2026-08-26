@@ -107,7 +107,7 @@ func _build_ui() -> void:
 	scroll.add_child(root)
 
 	var top := PanelContainer.new()
-	top.custom_minimum_size.y = 76
+	top.custom_minimum_size.y = 64
 	top.add_theme_stylebox_override("panel", _panel("102226", 9))
 	root.add_child(top)
 	var top_row := HBoxContainer.new()
@@ -150,7 +150,7 @@ func _build_ui() -> void:
 	center.add_theme_constant_override("separation", 5)
 	middle.add_child(center)
 	var foe_panel := _section("상대 미리보기", 0)
-	foe_panel.custom_minimum_size.y = 78
+	foe_panel.custom_minimum_size.y = 64
 	center.add_child(foe_panel)
 	_foe_box = HBoxContainer.new()
 	_foe_box.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -168,12 +168,12 @@ func _build_ui() -> void:
 
 
 	var lower := VBoxContainer.new()
-	lower.custom_minimum_size.y = 276
+	lower.custom_minimum_size.y = 238
 	lower.add_theme_constant_override("separation", 4)
 	root.add_child(lower)
 
 	var bench_panel := _section("보유 사도 · 선택 후 출격 슬롯을 누르세요", 0)
-	bench_panel.custom_minimum_size.y = 118
+	bench_panel.custom_minimum_size.y = 100
 	lower.add_child(bench_panel)
 	_bench_box = HBoxContainer.new()
 	_bench_box.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -255,7 +255,7 @@ func _rebuild_foe(foe: int) -> void:
 		return
 	for u in game.seats[foe].player.queued_units().slice(0, 7):
 		var card := _make_card(u, -1, "foe", "")
-		card.custom_minimum_size = Vector2(80, 88)
+		card.custom_minimum_size = Vector2(76, 82)
 		card.selectable = false
 		card.draggable = false
 		_foe_box.add_child(card)
@@ -274,7 +274,7 @@ func _rebuild_board(p: Econ.Player) -> void:
 			if float(item["wait"]) >= 0.1:
 				hint += "  대기 %.1f" % float(item["wait"])
 		var slot := UnitSlot.new()
-		slot.custom_minimum_size = Vector2(92, 130)
+		slot.custom_minimum_size = Vector2(88, 112)
 		slot.setup("board", i, "%d" % (i + 1), locked, hint)
 		slot.pressed.connect(_on_slot_pressed)
 		slot.unit_dropped.connect(_on_unit_dropped)
@@ -291,7 +291,7 @@ func _rebuild_bench(p: Econ.Player) -> void:
 	var bench := p.bench_units()
 	for i in Econ.BENCH_SIZE:
 		var slot := UnitSlot.new()
-		slot.custom_minimum_size = Vector2(92, 112)
+		slot.custom_minimum_size = Vector2(88, 100)
 		slot.setup("bench", i, "", false, "")
 		slot.pressed.connect(_on_slot_pressed)
 		slot.unit_dropped.connect(_on_unit_dropped)
@@ -309,13 +309,13 @@ func _rebuild_shop(p: Econ.Player) -> void:
 		var id: String = p.shop[i] if i < p.shop.size() else ""
 		if id == "":
 			var empty := PanelContainer.new()
-			empty.custom_minimum_size = Vector2(126, 126)
+			empty.custom_minimum_size = Vector2(116, 108)
 			empty.add_child(_label("관측 신호 없음", 11, "526c6a"))
 			_shop_box.add_child(empty)
 			continue
 		var d := UnitDB.get_def(id)
 		var card := _make_card({"def_id": id, "star": 1, "order": -1}, -1, "shop", "")
-		card.custom_minimum_size = Vector2(126, 126)
+		card.custom_minimum_size = Vector2(116, 108)
 		card.draggable = false
 		card.selectable = p.gold >= int(d["tier"])
 		var shop_slot := i
