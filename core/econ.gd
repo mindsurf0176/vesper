@@ -119,6 +119,7 @@ class Player extends RefCounted:
 	var xp := 0
 	var streak := 0                ## 양수=연승, 음수=연패
 	var relics: Array[String] = [] ## 회랑 런 동안 유지되는 유물
+	var tactic := "압박"             ## 준비 단계에서 고르는 이번 전투 전술
 	var shop: Array[String] = []
 	var shop_locked := false
 	## roster 항목: {def_id, star, order} — order<0 이면 벤치(출격 큐 밖).

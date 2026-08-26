@@ -15,6 +15,7 @@ signal xp_requested
 signal lock_requested
 signal ready_requested
 signal help_requested
+signal tactic_requested(tactic: String)
 
 var game: Match
 var message := ""
@@ -36,6 +37,7 @@ var _xp_btn: Button
 var _lock_btn: Button
 var _sell_btn: Button
 var _ready_btn: Button
+var _tactic_btn: OptionButton
 
 
 func _ready() -> void:
@@ -75,6 +77,8 @@ func refresh_all() -> void:
 		p.queue_count(), p.level, p.xp,
 		str(UnitDB.XP_TO_NEXT.get(p.level, "MAX")),
 		game.seats[foe].name if foe >= 0 else "없음"]
+	if _tactic_btn != null:
+		_tactic_btn.select(["압박", "요새", "순환"].find(p.tactic))
 	_message.text = message
 	_rebuild_synergy(p)
 	_rebuild_foe(foe)
@@ -106,7 +110,8 @@ func _build_ui() -> void:
 	var top_row := HBoxContainer.new()
 	top_row.add_theme_constant_override("separation", 10)
 	top.add_child(top_row)
-	var mode := _label("OBSERVATORY / PREP", 12, "70aaa4")
+	var mode := _label("STEP 1  /  3\n준비", 12, "70aaa4")
+	mode.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	mode.custom_minimum_size.x = 154
 	top_row.add_child(mode)
 	_hud = _label("", 14, "eef4f1")
@@ -114,6 +119,16 @@ func _build_ui() -> void:
 	_hud.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_hud.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top_row.add_child(_hud)
+	_tactic_btn = OptionButton.new()
+	_tactic_btn.add_theme_font_size_override("font_size", 13)
+	_tactic_btn.add_theme_color_override("font_color", Color("edf4f2"))
+	_tactic_btn.add_theme_stylebox_override("normal", VesperUITheme.button(Color("17283a"), VesperUITheme.CYAN))
+	_tactic_btn.add_item("전술 · 압박")
+	_tactic_btn.add_item("전술 · 요새")
+	_tactic_btn.add_item("전술 · 순환")
+	_tactic_btn.item_selected.connect(func(index): tactic_requested.emit(["압박", "요새", "순환"][index]))
+	_tactic_btn.custom_minimum_size.x = 122
+	top_row.add_child(_tactic_btn)
 	_timer = _label("준비 45", 20, "efc86d")
 	_timer.custom_minimum_size.x = 94
 	_timer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -208,6 +223,7 @@ func _build_ui() -> void:
 	_sell_btn.disabled = true
 	manage_row.add_child(_sell_btn)
 	_ready_btn = _button("강림 순서 확정", func(): ready_requested.emit())
+	_ready_btn.tooltip_text = "편성된 순서대로 전투를 시작합니다"
 	_ready_btn.custom_minimum_size.y = 42
 	controls.add_child(_ready_btn)
 

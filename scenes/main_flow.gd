@@ -80,6 +80,7 @@ func _build_ui() -> void:
 	_prep.lock_requested.connect(_on_lock)
 	_prep.ready_requested.connect(_start_battle)
 	_prep.help_requested.connect(_show_help)
+	_prep.tactic_requested.connect(_on_tactic)
 	_build_battle()
 	_build_result()
 	_build_help()
@@ -371,6 +372,18 @@ func _on_command() -> void:
 	if sim.cast_command_strike(48.0):
 		_command_left = 12.0
 		_refresh_battle_hud()
+
+
+func _on_tactic(tactic: String) -> void:
+	if phase != Phase.PREP:
+		return
+	player.tactic = tactic
+	_prep.set_message("전술 변경: %s — %s" % [tactic, _tactic_description(tactic)])
+	_prep.refresh_all()
+
+
+func _tactic_description(tactic: String) -> String:
+	return {"압박":"공격력 +12%", "요새":"최대 HP +15%, 공격 속도 -8%", "순환":"공격 속도 +14%, 최대 HP -8%"}.get(tactic, "")
 
 
 func _resolve_and_show(precomputed: Dictionary) -> void:
