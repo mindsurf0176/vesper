@@ -227,6 +227,7 @@ func _begin_round() -> void:
 	_battle_layer.visible = false
 	_prep.visible = true
 	game.run_ai_prep()
+	_configure_corridor_encounter()
 	pairs = game.pair_up()
 	_normalize_human_pair()
 	_prep_left = FIRST_PREP_TIME if round_no == 1 else PREP_TIME
@@ -248,6 +249,23 @@ func _normalize_human_pair() -> void:
 			foe_seat = int(pair[0])
 			break
 	game.current_pairs = pairs.duplicate(true)
+
+
+func _configure_corridor_encounter() -> void:
+	if corridor == null:
+		return
+	var node := corridor.current()
+	var kind := str(node.get("kind", "전투"))
+	var ids: Array[String] = ["aries", "sagittarius"]
+	if kind == "엘리트":
+		ids = ["taurus", "aries", "sagittarius", "scorpio"]
+	elif kind == "보스":
+		ids = ["capricorn", "sagittarius", "virgo", "scorpio", "aries"]
+	var foe := game.seats[1].player
+	foe.roster.clear()
+	foe.level = clampi(3 + ids.size(), UnitDB.MIN_LEVEL, UnitDB.MAX_LEVEL)
+	for i in ids.size():
+		foe.roster.append({"def_id": ids[i], "star": 2 if kind == "보스" else 1, "order": i})
 
 
 func _process(delta: float) -> void:
