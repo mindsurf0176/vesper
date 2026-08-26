@@ -21,6 +21,8 @@ func _run() -> void:
 	await process_frame
 	_test_event_mapping()
 	await process_frame
+	_test_retreat_and_redeploy_presentation()
+	await process_frame
 	_test_actor_state_machine()
 	await process_frame
 	_test_death_lifecycle()
@@ -71,6 +73,27 @@ func _test_event_mapping() -> void:
 	sim._events.append({"t": "ability", "uid": ally.uid, "name": "선봉"})
 	presenter._process(Defs.TICK)
 	ok(ally_actor._action_lock == "attack", "ability event가 actor action을 재생한다")
+
+
+func _test_retreat_and_redeploy_presentation() -> void:
+	print("[retreat presentation]")
+	var sim := CombatSim.create(_lineup(["aries"]), _lineup(["capricorn"]))
+	sim.cost[0] = 20.0
+	sim.cost[1] = 20.0
+	sim.step(Defs.TICK)
+	presenter.bind_sim(sim)
+	presenter._process(Defs.TICK)
+	var ally := _find_sim_unit(sim, "aries", 0)
+	ok(presenter.actor_for_test(ally.uid) != null, "후퇴 전 actor가 전장에 존재한다")
+	assert(sim.manual_retreat(0, ally.uid), "프레젠테이션 검증용 후퇴 실패")
+	presenter._process(Defs.TICK)
+	ok(presenter.actor_for_test(ally.uid) == null, "후퇴 event가 전장 actor를 제거한다")
+	for _i in 5:
+		sim.step(1.0)
+	sim.cost[0] = ally.deploy_cost
+	assert(sim.manual_deploy(0, ally.uid), "프레젠테이션 검증용 재출격 실패")
+	presenter._process(Defs.TICK)
+	ok(presenter.actor_for_test(ally.uid) != null, "재출격 snapshot이 actor를 다시 생성한다")
 
 
 func _test_actor_state_machine() -> void:

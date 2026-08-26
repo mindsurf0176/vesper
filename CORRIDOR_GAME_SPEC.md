@@ -2,7 +2,7 @@
 
 ## One-line contract
 
-플레이어는 Riven·Vigil·Warden·Douse로 구성된 4인 원정대의 출격 카드를 실시간으로 눌러 단일 전선을 돌파하고,
+플레이어는 리븐·비질·워든·다우스로 구성된 4인 원정대의 출격 카드를 실시간으로 눌러 단일 전선을 돌파하고,
 5개 층의 분기·휴식·유물 선택으로 다음 전투의 해법을 만든다.
 
 ## Player loop
@@ -17,10 +17,12 @@
 ## Rules contract
 
 - Active engine: `CorridorSession` only. `Match` is legacy and must not be imported by active scenes.
-- Team: player uses the fixed four-person roster: Riven, Vigil, Warden, and Douse. Rest can rotate their order, not replace them.
+- Team: player uses the fixed four-person roster: 리븐, 비질, 워든, 다우스. Rest can rotate their order, not replace them.
 - Battle: one logical line, `FIELD_LEN=280`, spawn offset `20`; the 3D camera shows a window and moves when the cursor rests near the left/right edge.
 - Player deployment: manual only. `CombatSim.manual_deploy(team, uid)` spends current cost.
+- Retreat/redeploy: click an active player card to retreat that unit. It heals at base for 5 seconds, then can be redeployed at its normal cost with full HP.
 - Enemy deployment: automatic queue for encounter pressure.
+- Role contrast: 리븐과 워든은 높은 체력·방어로 전선을 지킨다. 비질과 다우스는 42/36의 긴 사거리에서 높은 피해를 주지만, 낮은 체력·방어로 전선이 무너지면 빠르게 쓰러진다.
 - Resources: battle cost starts at `0` and is visible as a continuously updating gauge; no AP or turn confirmation.
 - Win: enemy core reaches zero. Lose: player core reaches zero or timeout at `75s`.
 - Run: five floors, branch nodes on floors 2–4, boss on floor 5.

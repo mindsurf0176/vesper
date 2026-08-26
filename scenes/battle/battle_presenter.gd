@@ -250,6 +250,8 @@ func _consume_events() -> void:
 				var dying := _begin_retirement(uid)
 				if dying != null and was_active:
 					_stage.death_fx(dying.hit_socket_global(), _element_color(dying.element))
+			"retreat":
+				_remove_active_actor(int(event["uid"]))
 			"core":
 				_stage.core_impact(int(event["team"]))
 
@@ -261,6 +263,14 @@ func _cleanup_retiring() -> void:
 			if actor != null:
 				actor.queue_free()
 			_retiring.erase(uid)
+
+
+func _remove_active_actor(uid: int) -> void:
+	var actor := _actors.get(uid) as BattleActor3D
+	if actor == null:
+		return
+	_actors.erase(uid)
+	actor.queue_free()
 
 
 func _active_actor(uid: int) -> BattleActor3D:

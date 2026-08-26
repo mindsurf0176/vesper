@@ -95,14 +95,19 @@ func _test_normalized_scale_contract() -> void:
 		var bounds := spec.get("visible_bounds", Rect2i()) as Rect2i
 		foot_alignment_ok = foot_alignment_ok and bounds.size.x > 0 and bounds.size.y > 0 \
 			and absf(float(spec.get("ground_offset", 99.0))) <= 0.05
-		if CharacterVisuals.battle_ready(id):
+		if CharacterVisuals.battle_ready(id) and id != "pisces":
 			var height := float(spec["target_height"])
 			ready_height_in_range = ready_height_in_range and height >= 2.20 and height <= 2.55
 	ok(specs_complete, "12개 visual spec이 bounds·height·foot·provenance 계약을 가진다")
-	ok(ready_height_in_range, "battle-ready 인물 높이가 의도한 2.20~2.55m 범위다")
+	ok(ready_height_in_range, "Douse 외 battle-ready 인물 높이가 의도한 2.20~2.55m 범위다")
+	var douse_height := float(CharacterVisuals.spec("pisces")["target_height"])
+	var vigil_height := float(CharacterVisuals.spec("sagittarius")["target_height"])
+	ok(douse_height <= 1.90 and douse_height < vigil_height * 0.85,
+		"Douse는 Vigil보다 작게 표시해 장총 실루엣 과대를 막는다", "%0.2f / %0.2f" % [douse_height, vigil_height])
 	ok(foot_alignment_ok, "모든 visual bounds가 유효하고 공통 발 기준선 오차가 작다")
 
 	var actor_heights := []
+	var standard_actor_heights := []
 	var runtime_foot_alignment_ok := true
 	for id in UnitDB.table():
 		if not CharacterVisuals.battle_ready(id):
@@ -116,6 +121,8 @@ func _test_normalized_scale_contract() -> void:
 		root.add_child(actor)
 		actor.setup(state, Vector3.ZERO)
 		actor_heights.append(actor.visual_height)
+		if id != "pisces":
+			standard_actor_heights.append(actor.visual_height)
 		var spec := CharacterVisuals.spec(id)
 		var bounds := spec["visible_bounds"] as Rect2i
 		var first := actor._sprite.sprite_frames.get_frame_texture("idle", 0)
@@ -125,9 +132,9 @@ func _test_normalized_scale_contract() -> void:
 			- visible_bottom_from_center * actor._sprite.pixel_size
 		runtime_foot_alignment_ok = runtime_foot_alignment_ok and absf(runtime_foot_y) <= 0.01
 		actor.queue_free()
-	var min_height: float = actor_heights.min()
-	var max_height: float = actor_heights.max()
-	ok(max_height / min_height <= 1.16, "runtime actor가 crop 차이 대신 설계된 체격 차이만 유지한다",
+	var min_height: float = standard_actor_heights.min()
+	var max_height: float = standard_actor_heights.max()
+	ok(max_height / min_height <= 1.16, "Douse 외 runtime actor가 crop 차이 대신 설계된 체격 차이만 유지한다",
 		str(actor_heights))
 	ok(runtime_foot_alignment_ok, "runtime sprite의 불투명 하단이 공통 지면에 정렬된다")
 

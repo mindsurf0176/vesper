@@ -54,6 +54,9 @@ const START_COST := 0.0
 const COST_REGEN := 0.9      ## LEVEL_BASE 레벨 기준 초당 충전량
 const MAX_COST := 14.0       ## 모아뒀다 한 번에 쏟아내기를 제한한다
 
+## 후퇴는 즉시 전선에서 빠지지만, 본진 회복이 끝난 뒤에만 같은 코스트로 재출격할 수 있다.
+const RETREAT_RECOVERY_TIME := 5.0
+
 ## 레벨이 오르면 큐 정원만 늘고 충전 속도가 그대로면, 뒤쪽 유닛이 전투 시간 안에
 ## 아예 못 나온다. 정원과 충전을 함께 올려야 레벨업이 끝까지 의미를 갖는다.
 const LEVEL_BASE := 3

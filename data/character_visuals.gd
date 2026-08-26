@@ -108,7 +108,8 @@ const _SPECS := {
 		"sprite": "res://assets/sprites/sodeungsa_pl",
 		"portrait": "res://assets/art/face_sodeungsa.png",
 		"card_art": "res://assets/art/card_sodeungsa.png",
-		"target_height": 2.26,
+		# 장총의 가로 실루엣이 크게 읽히므로 Vigil보다 작게 잡아 전열과 비율을 맞춘다.
+		"target_height": 1.85,
 		"visible_bounds": Rect2i(0, 46, 256, 184),
 		"ground_offset": 0.0,
 		"face_scale": 1.0,

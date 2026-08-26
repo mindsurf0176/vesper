@@ -34,6 +34,8 @@ class SimUnit extends RefCounted:
 	var deployed: bool = false
 	var alive: bool = true        ## 출격 전에도 true. 살아있는 필드 유닛은 is_active().
 	var deployed_at := 0.0
+	var recovery_left := 0.0
+	var retreat_count := 0
 	var shield := 0.0
 	var attack_count := 0
 	var hit_count := 0
@@ -41,6 +43,9 @@ class SimUnit extends RefCounted:
 
 	func is_active() -> bool:
 		return deployed and alive
+
+	func is_recovering() -> bool:
+		return alive and not deployed and recovery_left > 0.0
 
 	## 화면 좌표. 팀0은 왼쪽에서 오른쪽으로, 팀1은 그 반대로 전진한다.
 	func screen_x() -> float:
@@ -51,6 +56,8 @@ class SimUnit extends RefCounted:
 			"uid": uid, "def_id": def_id, "name": display_name, "team": team,
 			"order": order, "pos": pos, "x": screen_x(), "hp": hp, "max_hp": max_hp,
 			"shield": shield, "deployed": deployed, "alive": alive, "star": star,
+			"recovering": is_recovering(), "recovery_left": recovery_left,
+			"retreat_count": retreat_count,
 			"role": role, "ability_name": ability.get("name", ""), "target_uid": target_uid,
 		}
 
@@ -162,13 +169,31 @@ func manual_deploy(team: int, uid: int) -> bool:
 	if finished or team < 0 or team > 1 or cost[team] < 0.0:
 		return false
 	var unit := _by_uid.get(uid) as SimUnit
-	if unit == null or unit.team != team or unit.deployed or not unit.alive:
+	if unit == null or unit.team != team or unit.deployed or not unit.alive or unit.is_recovering():
 		return false
 	if cost[team] < unit.deploy_cost:
 		return false
 	cost[team] -= unit.deploy_cost
 	_queue[team].erase(unit)
 	_deploy_unit(team, unit)
+	return true
+
+
+func manual_retreat(team: int, uid: int) -> bool:
+	## 전선의 아군을 본진으로 회수한다. 회복이 끝날 때까지 재출격할 수 없다.
+	if finished or team < 0 or team > 1:
+		return false
+	var unit := _by_uid.get(uid) as SimUnit
+	if unit == null or unit.team != team or not unit.is_active():
+		return false
+	unit.deployed = false
+	unit.target_uid = -1
+	unit.pos = 0.0
+	unit.cd = 0.0
+	unit.shield = 0.0
+	unit.recovery_left = Defs.RETREAT_RECOVERY_TIME
+	unit.retreat_count += 1
+	_events.append({"t": "retreat", "uid": unit.uid, "team": team, "time": time})
 	return true
 
 
@@ -217,6 +242,7 @@ func step(dt: float) -> void:
 	_apply_encounter_pattern()
 	_tick_cost(dt)
 	_tick_deploy()
+	_apply_retreat_recovery(dt)
 	_apply_regen(dt)
 	# 모든 유닛이 "같은 시점의 전장"을 보고 판단해야 한다. 타겟을 먼저 다 정하고,
 	# 그다음에 이동과 피해를 일괄 적용한다. 이 분리가 없으면 먼저 처리되는 팀이
@@ -320,6 +346,18 @@ func _apply_regen(dt: float) -> void:
 		for u in units:
 			if u.is_active() and u.team == team and u.hp < u.max_hp:
 				u.hp = minf(u.max_hp, u.hp + u.max_hp * rate * dt)
+
+
+func _apply_retreat_recovery(dt: float) -> void:
+	for u in units:
+		if not u.is_recovering():
+			continue
+		var recovering_for := minf(dt, u.recovery_left)
+		u.hp = minf(u.max_hp, u.hp + u.max_hp * recovering_for / Defs.RETREAT_RECOVERY_TIME)
+		u.recovery_left = maxf(0.0, u.recovery_left - dt)
+		if is_zero_approx(u.recovery_left):
+			u.hp = u.max_hp
+			_events.append({"t": "recovery_ready", "uid": u.uid, "team": u.team, "time": time})
 
 
 func _emit_ability(u: SimUnit) -> void:

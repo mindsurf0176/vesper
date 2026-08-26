@@ -148,7 +148,7 @@ func _build_battle() -> void:
 	var card_box := VBoxContainer.new()
 	card_box.add_theme_constant_override("separation", 5)
 	card_panel.add_child(card_box)
-	var card_hint := _label("출격 카드  ·  코스트가 차면 눌러서 내보내기", 12, "8bd9c6")
+	var card_hint := _label("출격 카드  ·  전선에서는 후퇴, 본진 회복 뒤 재출격", 12, "8bd9c6")
 	card_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	card_box.add_child(card_hint)
 	card_box.add_child(card_bar)
@@ -221,7 +221,7 @@ func _build_help() -> void:
 	var title := _label("VESPER — 회랑을 돌파하는 법", 22, "f3c777")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
-	box.add_child(_help_step("① 후보 3명 중 1명씩 4명을 고른다", "매번 다른 후보가 제시됩니다. 드래프트한 원정대는 이번 런 내내 함께하며, 휴식처에서는 선봉 순서를 바꿀 수 있습니다."))
+	box.add_child(_help_step("① 4명의 계약자로 원정을 시작한다", "리븐, 비질, 워든, 다우스가 이번 런을 함께합니다. 휴식처에서는 선봉 순서를 바꿀 수 있습니다."))
 	box.add_child(_help_step("② 전투 중 하단 카드를 눌러 사도를 출격한다", "코스트는 시간이 지나면 차오릅니다. 누구를 먼저 내보낼지, 언제 아껴둘지가 핵심입니다."))
 	box.add_child(_help_step("③ 지도를 고르고 유물을 쌓는다", "엘리트는 강하지만 보상이 좋습니다. 보스 전에는 회복과 유물 조합을 준비하세요."))
 	var rule := _label("코스트가 차면 하단 사도 카드를 눌러 출격  ·  전투는 실시간 진행", 14, "8bd9c6")
@@ -282,7 +282,7 @@ func _begin_round() -> void:
 	_prep_expired = false
 	_prep.bind_match(game)
 	_prep.set_time_left(_prep_left)
-	_prep.set_message("Riven, Vigil, Warden, Douse가 원정대를 이룹니다. 출격 순서를 확인하세요.")
+	_prep.set_message("리븐, 비질, 워든, 다우스가 원정대를 이룹니다. 출격 순서를 확인하세요.")
 	if _squad_locked:
 		_prep.visible = false
 		_start_battle()
@@ -429,32 +429,44 @@ func _refresh_battle_hud() -> void:
 	_command_btn.disabled = phase != Phase.BATTLE or _command_left > 0.0 or sim.finished or not _has_active_enemy()
 	_command_btn.text = "지휘기 %.1f" % _command_left if _command_left > 0.0 else "지휘기 대기" if not _has_active_enemy() else "지휘기"
 	_command_btn.tooltip_text = "적 사도가 전장에 들어오면 사용할 수 있습니다."
-	var available: Array = []
-	for unit in sim.units:
-		if unit.team == 0 and not unit.deployed and unit.alive:
-			available.append(unit)
 	for i in _plan_buttons.size():
 		var plan_button := _plan_buttons[i]
-		if phase == Phase.BATTLE and i < available.size():
-			var unit: CombatSim.SimUnit = available[i]
-			var can_deploy := float(sim.cost[0]) >= unit.deploy_cost
-			plan_button.text = "%s\n%d 코스트 · %s" % [unit.display_name, int(unit.deploy_cost), "출격 가능" if can_deploy else "충전 중"]
-			plan_button.tooltip_text = "%s 출격 · 현재 코스트 %.1f" % [unit.display_name, float(sim.cost[0])]
-			plan_button.disabled = sim.finished or not can_deploy
+		var unit: CombatSim.SimUnit = null
+		for candidate in sim.units:
+			if candidate.team == 0 and candidate.order == i:
+				unit = candidate
+				break
+		if phase == Phase.BATTLE and unit != null and unit.alive:
+			if unit.is_active():
+				plan_button.text = "%s\n전선 투입 · 후퇴" % unit.display_name
+				plan_button.tooltip_text = "본진으로 후퇴해 5초 동안 체력을 회복합니다."
+				plan_button.disabled = sim.finished
+			elif unit.is_recovering():
+				plan_button.text = "%s\n본진 회복 %.1fs" % [unit.display_name, unit.recovery_left]
+				plan_button.tooltip_text = "회복이 끝나면 같은 코스트로 재출격할 수 있습니다."
+				plan_button.disabled = true
+			else:
+				var can_deploy := float(sim.cost[0]) >= unit.deploy_cost
+				var verb := "재출격 가능" if unit.retreat_count > 0 else "출격 가능"
+				plan_button.text = "%s\n%d 코스트 · %s" % [unit.display_name, int(unit.deploy_cost), verb if can_deploy else "충전 중"]
+				plan_button.tooltip_text = "%s · 현재 코스트 %.1f" % [verb, float(sim.cost[0])]
+				plan_button.disabled = sim.finished or not can_deploy
 		else:
-			plan_button.text = "출격 완료"
+			plan_button.text = "전투 불능"
 			plan_button.disabled = true
 func _on_deploy_card(hand_index: int) -> void:
 	if phase != Phase.BATTLE or sim == null or sim.finished:
 		return
-	var available: Array = []
-	for unit in sim.units:
-		if unit.team == 0 and not unit.deployed and unit.alive:
-			available.append(unit)
-	if hand_index < 0 or hand_index >= available.size():
+	var unit: CombatSim.SimUnit = null
+	for candidate in sim.units:
+		if candidate.team == 0 and candidate.order == hand_index:
+			unit = candidate
+			break
+	if unit == null:
 		return
-	var unit: CombatSim.SimUnit = available[hand_index]
-	if sim.manual_deploy(0, unit.uid):
+	if unit.is_active():
+		sim.manual_retreat(0, unit.uid)
+	elif sim.manual_deploy(0, unit.uid):
 		_refresh_battle_hud()
 
 
