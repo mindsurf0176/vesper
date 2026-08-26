@@ -2,6 +2,7 @@ extends Control
 
 const VesperUITheme = preload("res://scenes/ui/vesper_ui.gd")
 const VesperBackdropScene = preload("res://scenes/ui/vesper_backdrop.gd")
+const SquadPrepViewScene = preload("res://scenes/prep/squad_prep_view.gd")
 
 ## STARLINE의 준비 → 전투 → 결과 → 게임오버 흐름.
 ## STARLINE gameplay core와 Vesper passive presentation을 연결한다.
@@ -32,7 +33,7 @@ var _accum := 0.0
 var _prep_left := FIRST_PREP_TIME
 var _result_left := RESULT_TIME
 var _font: Font
-var _prep: PrepView
+var _prep
 var _battle_layer: Control
 var _view: BattlePresenter
 var _battle_top: Label
@@ -69,19 +70,11 @@ func _build_ui() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var backdrop := VesperBackdropScene.new()
 	add_child(backdrop)
-	_prep = PrepView.new()
+	_prep = SquadPrepViewScene.new()
 	add_child(_prep)
 	_prep.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_prep.buy_requested.connect(_on_buy)
-	_prep.sell_requested.connect(_on_sell)
-	_prep.place_requested.connect(_on_place)
-	_prep.bench_requested.connect(_on_to_bench)
-	_prep.reroll_requested.connect(_on_reroll)
-	_prep.xp_requested.connect(_on_buy_xp)
-	_prep.lock_requested.connect(_on_lock)
 	_prep.ready_requested.connect(_start_battle)
 	_prep.help_requested.connect(_show_help)
-	_prep.tactic_requested.connect(_on_tactic)
 	_build_battle()
 	_build_result()
 	_build_help()
@@ -238,7 +231,6 @@ func _begin_round() -> void:
 	_result_layer.visible = false
 	_battle_layer.visible = false
 	_prep.visible = true
-	game.run_ai_prep()
 	_configure_corridor_encounter()
 	pairs = game.pair_up()
 	_normalize_human_pair()
@@ -473,7 +465,8 @@ func _seed_starter_squad() -> void:
 	var p := game.human_seat().player
 	p.roster = [
 		{"def_id":"aries", "star":1, "order":0},
-		{"def_id":"sagittarius", "star":1, "order":-1},
+		{"def_id":"sagittarius", "star":1, "order":1},
+		{"def_id":"taurus", "star":1, "order":2},
 	]
 
 
