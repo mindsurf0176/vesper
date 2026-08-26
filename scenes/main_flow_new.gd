@@ -405,13 +405,13 @@ func _show_result(win: bool) -> void:
 	if win:
 		_result_title.text = "DUEL WON  //  VICTORY"
 		_result_title.add_theme_color_override("font_color", Color(1.0, 0.74, 0.36))
-		_result_body.text = "%s가 승리했습니다.\n\n대전 시간 %.0f초" % [str(_selected_player.get("name", "PLAYER")),
-			_battle_node.elapsed]
+		_result_body.text = "%s가 승리했습니다.\n\n라운드 %d - %d\n대전 시간 %.0f초" % [str(_selected_player.get("name", "PLAYER")),
+			_battle_node.player_round_wins, _battle_node.enemy_round_wins, _battle_node.elapsed]
 	else:
 		_result_title.text = "DUEL LOST  //  DEFEAT"
 		_result_title.add_theme_color_override("font_color", Color(0.92, 0.47, 0.42))
-		_result_body.text = "%s에게 패배했습니다.\n\n대전 시간 %.0f초" % [str(_selected_enemy.get("name", "RIVAL")),
-			_battle_node.elapsed]
+		_result_body.text = "%s에게 패배했습니다.\n\n라운드 %d - %d\n대전 시간 %.0f초" % [str(_selected_enemy.get("name", "RIVAL")),
+			_battle_node.player_round_wins, _battle_node.enemy_round_wins, _battle_node.elapsed]
 
 
 func _unhandled_input(event: InputEvent) -> void:

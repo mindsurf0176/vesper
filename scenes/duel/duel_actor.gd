@@ -11,6 +11,8 @@ var action := "idle"
 var action_timer := 0.0
 var hit_timer := 0.0
 var flash_timer := 0.0
+var guarding := false
+var stagger_timer := 0.0
 var sprite: AnimatedSprite2D
 var sprite_scale := 0.72
 var visual_height := 170.0
@@ -67,16 +69,32 @@ func set_action(next_action: String, duration := 0.0) -> void:
 	queue_redraw()
 
 func receive_hit() -> void:
+	guarding = false
 	hit_timer = 0.18
 	flash_timer = 0.14
 	set_action("hit", 0.24)
+	queue_redraw()
+
+func set_guarding(active: bool) -> void:
+	guarding = active
+	if active:
+		set_action("guard", 0.0)
+	elif action == "guard":
+		set_action("idle")
+	queue_redraw()
+
+func stagger(duration := 0.34) -> void:
+	guarding = false
+	stagger_timer = duration
+	set_action("hit", duration)
 	queue_redraw()
 
 func _process(delta: float) -> void:
 	action_timer = maxf(0.0, action_timer - delta)
 	hit_timer = maxf(0.0, hit_timer - delta)
 	flash_timer = maxf(0.0, flash_timer - delta)
-	if action_timer <= 0.0 and action != "idle" and action != "walk":
+	stagger_timer = maxf(0.0, stagger_timer - delta)
+	if action_timer <= 0.0 and action != "idle" and action != "walk" and action != "guard":
 		set_action("idle")
 	if sprite != null and flash_timer <= 0.0:
 		sprite.modulate = Color.WHITE
@@ -100,6 +118,11 @@ func _draw() -> void:
 		draw_rect(Rect2(Vector2(-12, -102), Vector2(24, 10)), accent)
 	# 픽셀식 상태 마커와 공격 예고선.
 	draw_circle(Vector2(-facing * 42.0, -visual_height - 12.0), 5.0, accent)
+	if guarding:
+		var shield_center := Vector2(facing * 34.0, -92.0)
+		draw_arc(shield_center, 43.0, -1.15 if facing > 0 else PI - 2.0, 1.15 if facing > 0 else PI + 2.0, 16, Color("8ce9e0"), 6.0)
+		draw_line(shield_center + Vector2(facing * 5.0, -34.0), shield_center + Vector2(facing * 5.0, 34.0), Color(0.55, 0.91, 0.88, 0.7), 3.0)
+		draw_string(load("res://assets/Galmuri11.ttf"), Vector2(-38, -visual_height - 28.0), "GUARD", HORIZONTAL_ALIGNMENT_CENTER, 76, 12, Color("8ce9e0"))
 	if action == "attack":
 		var start := Vector2(facing * 24.0, -92.0)
 		var end := Vector2(facing * 94.0, -108.0)
