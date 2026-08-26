@@ -275,9 +275,24 @@ func _step_battle(delta: float) -> void:
 func _refresh_battle_hud() -> void:
 	if sim == null:
 		return
+	var ally_front := 0.0
+	var enemy_front := 100.0
+	for unit in sim.units:
+		if not unit.is_active():
+			continue
+		if unit.team == 0:
+			ally_front = maxf(ally_front, unit.screen_x())
+		else:
+			enemy_front = minf(enemy_front, unit.screen_x())
+	var line_state := "전선 균형"
+	if ally_front - enemy_front > 8.0:
+		line_state = "아군 전선 우세"
+	elif enemy_front - ally_front > 8.0:
+		line_state = "전선 밀림"
 	_battle_top.text = "%s  코어 %d   ◀  %.1fs / %ds  ▶   코어 %d  %s" % [
 		game.human_seat().name, int(sim.core_hp[0]), sim.time, int(Defs.MAX_BATTLE_TIME),
 		int(sim.core_hp[1]), game.seats[foe_seat].name]
+	_battle_top.text += "   ·   " + line_state
 
 
 func _resolve_and_show(precomputed: Dictionary) -> void:

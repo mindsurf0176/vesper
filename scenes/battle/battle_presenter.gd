@@ -248,6 +248,17 @@ func _draw_battle_hud() -> void:
 	draw_rect(panel, Color(0.02, 0.04, 0.05, 0.80))
 	draw_rect(panel, Color("597177"), false, 1.0)
 	_text(panel.position + Vector2(22, 20), "%.1fs / %ds" % [sim.time, int(Defs.MAX_BATTLE_TIME)], Color("e8efeb"), 13)
+	var danger := 1.0 - clampf(float(sim.core_hp[0]) / float(Defs.CORE_HP), 0.0, 1.0)
+	if danger >= 0.70:
+		var danger_panel := Rect2(width * 0.5 - 118, height - 78, 236, 28)
+		draw_rect(danger_panel, Color(0.38, 0.08, 0.10, 0.92))
+		draw_rect(danger_panel, Color("ef8354"), false, 2.0)
+		_text(danger_panel.position + Vector2(42, 19), "등불함 위험 — 소신을 고려하세요", Color("fff2d2"), 12)
+	elif sim.core_hp[1] <= Defs.CORE_HP * 0.25:
+		var finish_panel := Rect2(width * 0.5 - 104, height - 78, 208, 28)
+		draw_rect(finish_panel, Color(0.10, 0.28, 0.26, 0.92))
+		draw_rect(finish_panel, Color("7cc5cf"), false, 2.0)
+		_text(finish_panel.position + Vector2(35, 19), "적 매듭이 무너지고 있습니다", Color("d9fff1"), 12)
 
 
 func _draw_ability_banner() -> void:
