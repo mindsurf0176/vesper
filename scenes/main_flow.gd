@@ -53,9 +53,11 @@ func _ready() -> void:
 	rng.randomize()
 	game = Match.create(rng.randi(), true)
 	_font = load("res://assets/IBMPlexSansKR-Regular.otf")
+	if _font == null or not _font.has_char("가".unicode_at(0)):
+		_font = load("res://assets/Galmuri11.ttf")
 	var project_theme := Theme.new()
 	project_theme.default_font = _font
-	project_theme.default_font_size = 13
+	project_theme.default_font_size = 15
 	theme = project_theme
 	_build_ui()
 	corridor = CorridorRun.new(rng.randi())

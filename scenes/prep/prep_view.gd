@@ -106,10 +106,10 @@ func _build_ui() -> void:
 	var top_row := HBoxContainer.new()
 	top_row.add_theme_constant_override("separation", 10)
 	top.add_child(top_row)
-	var mode := _label("OBSERVATORY / PREP", 11, "70aaa4")
+	var mode := _label("OBSERVATORY / PREP", 12, "70aaa4")
 	mode.custom_minimum_size.x = 154
 	top_row.add_child(mode)
-	_hud = _label("", 13, "eef4f1")
+	_hud = _label("", 14, "eef4f1")
 	_hud.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_hud.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_hud.size_flags_horizontal = Control.SIZE_EXPAND_FILL
