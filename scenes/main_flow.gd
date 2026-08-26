@@ -282,7 +282,7 @@ func _begin_round() -> void:
 	_prep_expired = false
 	_prep.bind_match(game)
 	_prep.set_time_left(_prep_left)
-	_prep.set_message("후보 3명 중 1명씩 선택해 원정대 4명을 완성하세요.")
+	_prep.set_message("Riven, Vigil, Warden, Douse가 원정대를 이룹니다. 출격 순서를 확인하세요.")
 	if _squad_locked:
 		_prep.visible = false
 		_start_battle()
@@ -311,9 +311,9 @@ func _configure_corridor_encounter() -> void:
 	_encounter_kind = kind
 	var ids: Array[String] = ["aries", "sagittarius"]
 	if kind == "엘리트":
-		ids = ["taurus", "aries", "sagittarius", "scorpio"]
+		ids = ["capricorn", "aries", "sagittarius", "pisces"]
 	elif kind == "보스":
-		ids = ["capricorn", "sagittarius", "virgo", "scorpio", "aries"]
+		ids = CharacterVisuals.playable_roster()
 	var foe := game.seats[1].player
 	foe.roster.clear()
 	var threat := float(node.get("threat", 1.0))
@@ -562,6 +562,9 @@ func _restart() -> void:
 func _seed_starter_squad() -> void:
 	var p := game.human_seat().player
 	p.roster = []
+	var roster := CharacterVisuals.playable_roster()
+	for i in roster.size():
+		p.roster.append({"def_id": roster[i], "star": 1, "order": i})
 
 
 func _show_corridor() -> void:

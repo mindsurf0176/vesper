@@ -2,12 +2,12 @@
 
 ## One-line contract
 
-플레이어는 매번 제시되는 3명의 후보 중 1명을 골라 만든 4인 원정대의 출격 카드를 실시간으로 눌러 단일 전선을 돌파하고,
+플레이어는 Riven·Vigil·Warden·Douse로 구성된 4인 원정대의 출격 카드를 실시간으로 눌러 단일 전선을 돌파하고,
 5개 층의 분기·휴식·유물 선택으로 다음 전투의 해법을 만든다.
 
 ## Player loop
 
-1. 원정 브리핑에서 3명 후보 중 1명을 네 번 선택해 원정대를 만든다.
+1. 원정 브리핑에서 고정 원정대와 출격 순서를 확인한다.
 2. 회랑 지도에서 다음 노드를 선택한다.
 3. 전투 중 코스트가 차는 순간 출격 카드를 눌러 사도를 배치한다.
 4. 전선, 병종 상성, 적 출격, 보스 패턴을 읽으며 승리한다.
@@ -17,7 +17,7 @@
 ## Rules contract
 
 - Active engine: `CorridorSession` only. `Match` is legacy and must not be imported by active scenes.
-- Team: player drafts exactly 4 units from six available units, seeing three random candidates per pick. Rest can rotate their order, not replace them.
+- Team: player uses the fixed four-person roster: Riven, Vigil, Warden, and Douse. Rest can rotate their order, not replace them.
 - Battle: one logical line, `FIELD_LEN=280`, spawn offset `20`; the 3D camera shows a window and moves when the cursor rests near the left/right edge.
 - Player deployment: manual only. `CombatSim.manual_deploy(team, uid)` spends current cost.
 - Enemy deployment: automatic queue for encounter pressure.

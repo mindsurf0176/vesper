@@ -5,7 +5,6 @@ signal ready_requested
 signal help_requested
 signal pressed
 
-const SQUAD_POOL := ["aries", "sagittarius", "taurus", "scorpio", "virgo", "capricorn"]
 const VesperUITheme = preload("res://scenes/ui/vesper_ui.gd")
 const VesperBackdropScene = preload("res://scenes/ui/vesper_backdrop.gd")
 const UnitCardScene = preload("res://scenes/components/unit_card.gd")
@@ -17,6 +16,7 @@ var _status: Label
 var _timer: Label
 var _squad_box: HBoxContainer
 var _pool_box: GridContainer
+var _pool_panel: PanelContainer
 var _message: Label
 var _ready_btn: Button
 var _draft_pool: Array[String] = []
@@ -28,8 +28,6 @@ func _ready() -> void:
 
 func bind_match(value: CorridorSession) -> void:
 	game = value
-	if game.human_seat().player.roster.is_empty():
-		_begin_draft()
 	refresh_all()
 
 func set_time_left(value: float) -> void:
@@ -47,7 +45,7 @@ func refresh_all() -> void:
 		return
 	var p := game.human_seat().player
 	_status.text = "NIGHT %02d   ·   편성 %d/4   ·   HP %d   ·   유물 %d개" % [game.round_no, p.queued_units().size(), p.hp, p.relics.size()]
-	_message.text = message if not message.is_empty() else "후보 3명 중 1명을 선택하세요. 4명을 고르면 전투를 시작할 수 있습니다."
+	_message.text = message if not message.is_empty() else "Riven, Vigil, Warden, Douse가 준비되었습니다. 전투를 시작하세요."
 	_ready_btn.disabled = p.queued_units().size() != 4
 	_rebuild_squad(p)
 	_rebuild_pool(p)
@@ -66,7 +64,7 @@ func _build_ui() -> void:
 	var top_row := HBoxContainer.new()
 	top_row.add_theme_constant_override("separation", 14)
 	top.add_child(top_row)
-	var step := VesperUITheme.title_label("STEP 1 / 2\n드래프트", 13)
+	var step := VesperUITheme.title_label("STEP 1 / 2\n원정대 확인", 13)
 	step.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	top_row.add_child(step)
 	_status = VesperUITheme.title_label("", 15)
@@ -77,19 +75,19 @@ func _build_ui() -> void:
 	top_row.add_child(_timer)
 	var help := _button("도움말", func(): help_requested.emit())
 	top_row.add_child(help)
-	var squad_panel := _section("이번 런에 데려갈 4명", 190)
+	var squad_panel := _section("이번 런의 고정 원정대", 190)
 	root.add_child(squad_panel)
 	_squad_box = HBoxContainer.new()
 	_squad_box.alignment = BoxContainer.ALIGNMENT_CENTER
 	_squad_box.add_theme_constant_override("separation", 12)
 	squad_panel.get_child(0).add_child(_squad_box)
-	var pool_panel := _section("사도 드래프트 · 후보 3명 중 1명 선택", 270)
-	pool_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root.add_child(pool_panel)
+	_pool_panel = _section("사도 드래프트 · 후보 3명 중 1명 선택", 270)
+	_pool_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root.add_child(_pool_panel)
 	_pool_box = GridContainer.new()
 	_pool_box.columns = 3
 	_pool_box.add_theme_constant_override("separation", 8)
-	pool_panel.get_child(0).add_child(_pool_box)
+	_pool_panel.get_child(0).add_child(_pool_box)
 	var bottom := HBoxContainer.new()
 	root.add_child(bottom)
 	_message = VesperUITheme.title_label("", 13)
@@ -114,8 +112,11 @@ func _rebuild_squad(p: Econ.Player) -> void:
 		_squad_box.add_child(empty)
 
 func _rebuild_pool(p: Econ.Player) -> void:
+	_pool_panel.visible = _draft_active
+	if not _draft_active:
+		return
 	_clear(_pool_box)
-	for id in _draft_offers if _draft_active else SQUAD_POOL:
+	for id in _draft_offers:
 		var selected := false
 		for unit in p.queued_units():
 			if str(unit.get("def_id", "")) == id:
@@ -178,7 +179,7 @@ func _toggle_unit(id: String) -> void:
 
 func _begin_draft() -> void:
 	_draft_pool.clear()
-	for id in SQUAD_POOL:
+	for id in CharacterVisuals.playable_roster():
 		_draft_pool.append(id)
 	_draft_pool.shuffle()
 	_draft_offers.clear()

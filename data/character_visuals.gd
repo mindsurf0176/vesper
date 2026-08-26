@@ -6,6 +6,9 @@ extends RefCounted
 
 const REQUIRED_BATTLE_ANIMATIONS := ["idle", "walk", "aim", "attack", "hit", "death"]
 
+## 현재 제출 빌드에서 카드·초상화·6종 전투 모션까지 모두 갖춘 계약자만 노출한다.
+const PLAYABLE_ROSTER := ["aries", "sagittarius", "capricorn", "pisces"]
+
 const _SPECS := {
 	"aries": {
 		"source_character": "",
@@ -164,6 +167,13 @@ static func spec(def_id: String) -> Dictionary:
 
 static func battle_ready(def_id: String) -> bool:
 	return bool(spec(def_id).get("battle_ready", false))
+
+
+static func playable_roster() -> Array[String]:
+	var roster: Array[String] = []
+	for def_id in PLAYABLE_ROSTER:
+		roster.append(def_id)
+	return roster
 
 
 static func asset_blocked(def_id: String) -> bool:
