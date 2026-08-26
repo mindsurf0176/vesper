@@ -405,6 +405,16 @@ func _refresh_battle_hud() -> void:
 		line_state = "아군 전선 우세"
 	elif enemy_front - ally_front > 8.0:
 		line_state = "전선 밀림"
+	var ally_guard := "없음"
+	var enemy_guard := "없음"
+	for unit in sim.units:
+		if not unit.is_active() or not sim._is_frontline(unit):
+			continue
+		if unit.team == 0:
+			ally_guard = unit.display_name
+		else:
+			enemy_guard = unit.display_name
+	line_state += "  ·  최전방 %s ↔ %s" % [ally_guard, enemy_guard]
 	var turn_state := "실시간 출격 · 코스트 %.1f/14" % float(sim.cost[0])
 	var pattern_state := ""
 	var interval := 6.0 if _encounter_kind == "엘리트" else 5.0 if _encounter_kind == "보스" else 0.0
