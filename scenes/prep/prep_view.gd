@@ -80,12 +80,10 @@ func refresh_all() -> void:
 	if _tactic_btn != null:
 		_tactic_btn.select(["압박", "요새", "순환"].find(p.tactic))
 	_message.text = message
-	_rebuild_synergy(p)
 	_rebuild_foe(foe)
 	_rebuild_board(p)
 	_rebuild_bench(p)
 	_rebuild_shop(p)
-	_rebuild_rank(foe)
 	_reroll_btn.disabled = p.gold < Econ.REROLL_COST
 	_xp_btn.disabled = p.gold < Econ.XP_COST or p.level >= UnitDB.MAX_LEVEL
 	_lock_btn.text = "호출 잠금 ✓" if p.shop_locked else "호출 잠금"
@@ -137,30 +135,24 @@ func _build_ui() -> void:
 	help.custom_minimum_size = Vector2(72, 36)
 	top_row.add_child(help)
 
-	var middle := HBoxContainer.new()
+	var middle := VBoxContainer.new()
 	middle.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	middle.add_theme_constant_override("separation", 5)
 	root.add_child(middle)
-
-	var left := _section("원소 흐름", 142)
-	middle.add_child(left)
-	_synergy_box = VBoxContainer.new()
-	_synergy_box.add_theme_constant_override("separation", 6)
-	left.get_child(0).add_child(_synergy_box)
 
 	var center := VBoxContainer.new()
 	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	center.add_theme_constant_override("separation", 5)
 	middle.add_child(center)
-	var foe_panel := _section("상대 관측 · 예상 강림 순서", 0)
-	foe_panel.custom_minimum_size.y = 92
+	var foe_panel := _section("상대 미리보기", 0)
+	foe_panel.custom_minimum_size.y = 78
 	center.add_child(foe_panel)
 	_foe_box = HBoxContainer.new()
 	_foe_box.alignment = BoxContainer.ALIGNMENT_CENTER
 	_foe_box.add_theme_constant_override("separation", 4)
 	foe_panel.get_child(0).add_child(_foe_box)
 
-	var board_panel := _section("강림 편성 · 왼쪽 사도부터 회랑에 고정", 0)
+	var board_panel := _section("출격 순서 · 왼쪽부터 먼저 전투", 0)
 	board_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	center.add_child(board_panel)
 	_board_box = HBoxContainer.new()
@@ -169,18 +161,13 @@ func _build_ui() -> void:
 	_board_box.add_theme_constant_override("separation", 5)
 	board_panel.get_child(0).add_child(_board_box)
 
-	var right := _section("관측 순위", 144)
-	middle.add_child(right)
-	_rank_box = VBoxContainer.new()
-	_rank_box.add_theme_constant_override("separation", 4)
-	right.get_child(0).add_child(_rank_box)
 
 	var lower := VBoxContainer.new()
 	lower.custom_minimum_size.y = 276
 	lower.add_theme_constant_override("separation", 4)
 	root.add_child(lower)
 
-	var bench_panel := _section("대기석 · 선택 후 강림 슬롯을 누르면 배치", 0)
+	var bench_panel := _section("보유 사도 · 선택 후 출격 슬롯을 누르세요", 0)
 	bench_panel.custom_minimum_size.y = 118
 	lower.add_child(bench_panel)
 	_bench_box = HBoxContainer.new()
@@ -188,7 +175,7 @@ func _build_ui() -> void:
 	_bench_box.add_theme_constant_override("separation", 4)
 	bench_panel.get_child(0).add_child(_bench_box)
 
-	var shop_panel := _section("사도 호출 · 항성 기억을 선택하세요", 0)
+	var shop_panel := _section("사도 모집 · 필요한 카드를 고르세요", 0)
 	shop_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	lower.add_child(shop_panel)
 	var shop_row := HBoxContainer.new()
