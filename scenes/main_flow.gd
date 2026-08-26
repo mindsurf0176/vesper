@@ -92,7 +92,7 @@ func _build_corridor() -> void:
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_corridor_layer.add_child(center)
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(760, 410)
+	panel.custom_minimum_size = Vector2(minf(760.0, maxf(320.0, get_viewport_rect().size.x - 32.0)), 410)
 	panel.add_theme_stylebox_override("panel", _panel_style("122326"))
 	center.add_child(panel)
 	_corridor_box = VBoxContainer.new()
@@ -405,6 +405,7 @@ func _resolve_and_show(precomputed: Dictionary) -> void:
 		_queue_latest_relic_choice()
 		phase = Phase.RESULT
 		_result_left = RESULT_TIME
+		_result_count.text = "계속을 눌러 유물을 선택하세요" if not _pending_relic_choices.is_empty() else "%.1f초 뒤 다음 회랑" % _result_left
 
 
 func _other_results(human: int) -> String:

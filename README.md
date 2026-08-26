@@ -4,17 +4,16 @@
 
 - 기획: [DESIGN.md](DESIGN.md) · 세계관: [WORLD.md](WORLD.md) · 캐릭터 바이블: [CHARACTER-BIBLE.md](CHARACTER-BIBLE.md) · 에셋 큐: [ASSET-PIPELINE-QUEUE.md](ASSET-PIPELINE-QUEUE.md) · 출시 후보 기준: [RELEASE-CANDIDATE.md](RELEASE-CANDIDATE.md) · 모바일 메타: [MOBILE-META-SPEC.md](MOBILE-META-SPEC.md) · 피드백 연출: [PRESENTATION-SPEC.md](PRESENTATION-SPEC.md) · 전장 비주얼: [BATTLEFIELD-VISUAL-SPEC.md](BATTLEFIELD-VISUAL-SPEC.md)
 - 현재 시스템 전환 계약: [LINE-BATTLER-SPEC.md](docs/LINE-BATTLER-SPEC.md) · 오토배틀러 메타보다 실시간 소환·전선·오브 판단을 우선한다.
-- 현재 빌드: **타이틀 → 메인화면 → 회랑 맵 → 8인 편성·각인 → 전투 → 결과/보상/엔딩 → 변종 도전**과 **모집/상점/채팅/미션/우편/성장/패스/설정/공지/가이드/크레딧**까지 연결.
+- 현재 빌드: **회랑 맵 → 노드 분기 → 8인 편성 → 자동 라인 전투 → 결과 → 유물 선택 → 다음 노드/클리어**가 실제 실행된다. 이전 메타 화면과 3D 실험 씬은 보존용으로 비활성화되어 있다.
 - 시그니처 메커닉 **소신(燒身)** = 등불함 HP(=망자의 영혼)를 태워 코스트를 즉시 충전하는 도박.
 
 ## 실행
 ```
 godot --path .
 ```
-- **메인 씬 = `scenes/main_flow.tscn`** — 타이틀·브리핑에서 `legacy/vesper/battle3d.tscn` HD-2D 전투로 진입한다.
-- 전투 씬은 픽셀 빌보드 유닛 + 디오라마 회랑 + 블룸/볼류메트릭 안개/피사계심도/실시간 그림자를 사용한다.
-- 렌더러: **Forward+**(네이티브, 풀 HD-2D). **웹빌드는 Compatibility로 자동 다운그레이드**(블룸·그림자·안개는 나오고 피사계심도/볼류메트릭만 생략 = HD-2D 라이트).
-- 2D 원형(MVP1)은 `main.tscn`(`main.gd`/`unit.gd`)에 **레퍼런스로 보존**. HD-2D 룩 테스트 씬은 `hdtest.tscn`.
+- **메인 씬 = `scenes/main_flow.tscn`** — 회랑 지도와 기존 라인배틀러 준비/전투가 한 런으로 연결된다.
+- 전투는 Godot `CombatSim`이 결정론적으로 처리하고, `BattlePresenter`가 이동·공격·피격·사망을 표현한다.
+- 렌더러는 **Compatibility**를 사용해 웹에서 가볍게 실행되며, 픽셀 아트/절차적 전장 표현을 유지한다.
 - 처음 한 번은 임포트: `godot --headless --path . --import`
 
 ## 현재 구현
@@ -37,10 +36,10 @@ godot --path .
 - **승/패 + 사인(死因) 진단**: 끝나면 한 줄로 패인 진단(코스트 미사용/디펜더 부재/과한 소신 등).
 
 ## 조작
-- 하단 **덱 버튼** 클릭 → ST4 이후에는 전장 왼쪽 빛 영역을 클릭해 배치 위치 지정.
-- **오브** → 같은 색 인접 칸을 1/2/4개 선택 후 발동.
-- **소신** → 등불함 HP를 태워 코스트 확보(불리할 때 역전 카드).
-- **등불함 포격** → 적 광역 포격(쿨 18초). 위기 시 같은 버튼이 1회성 **최후 신호**로 전환.
+- 회랑 지도에서 노드 또는 분기 버튼을 선택한다.
+- 준비 화면에서 유닛을 구매하고 왼쪽부터 출격 순서를 만든 뒤 `전투 시작`을 누른다.
+- 전투 중 `지휘기`로 적 전선을 공격할 수 있다. 배속 버튼으로 관전 속도를 바꾼다.
+- 전투 결과 후 유물 하나를 선택하면 다음 전투부터 공격력·HP·공격 속도에 적용된다.
 
 ## 검증
 ```bash
