@@ -16,6 +16,7 @@ var seed: int
 var rng := RandomNumberGenerator.new()
 var route: Array[Dictionary] = []
 var branch_options: Array[Dictionary] = []
+var map_layers: Array[Array] = []
 var branch_chosen := false
 var route_index := 0
 var cleared := false
@@ -41,14 +42,16 @@ func complete_current() -> void:
 		return
 	rewards.append(_reward_for(node))
 	route_index += 1
+	branch_chosen = false
 
 func available_options() -> Array[Dictionary]:
-	if route_index == 1 and not branch_chosen:
+	if route_index > 0 and route_index < map_layers.size() and not branch_chosen:
+		branch_options = map_layers[route_index].duplicate(true)
 		return branch_options.duplicate(true)
 	return []
 
 func choose_option(option_index: int) -> bool:
-	if route_index != 1 or branch_chosen or option_index < 0 or option_index >= branch_options.size():
+	if route_index <= 0 or route_index >= map_layers.size() or branch_chosen or option_index < 0 or option_index >= branch_options.size():
 		return false
 	route[route_index] = branch_options[option_index].duplicate(true)
 	branch_chosen = true
@@ -63,24 +66,29 @@ func is_finished() -> bool:
 func _build_route() -> void:
 	route.clear()
 	branch_options.clear()
+	map_layers.clear()
 	branch_chosen = false
 	var first := ENCOUNTERS[0].duplicate(true)
 	first["floor"] = 1
 	first["enemy_seed"] = rng.randi()
 	route.append(first)
+	map_layers.append([first.duplicate(true)])
 	var middle := [ENCOUNTERS[1], ENCOUNTERS[2], ENCOUNTERS[3]]
-	for encounter in middle:
-		var option: Dictionary = encounter.duplicate(true)
-		option["floor"] = 2
-		option["enemy_seed"] = rng.randi()
-		branch_options.append(option)
+	for floor in range(1, 4):
+		var layer: Array[Dictionary] = []
+		var count := 3 if floor == 1 else 2
+		for i in count:
+			var option: Dictionary = middle[(i + floor - 1) % middle.size()].duplicate(true)
+			option["floor"] = floor + 1
+			option["enemy_seed"] = rng.randi()
+			layer.append(option)
+		map_layers.append(layer)
+	branch_options = map_layers[1].duplicate(true)
 	route.append(branch_options[0].duplicate(true))
-	var second := ENCOUNTERS[0].duplicate(true)
-	second["floor"] = 3
-	second["enemy_seed"] = rng.randi()
-	route.append(second)
+	for floor in range(2, 4):
+		route.append(map_layers[floor][0].duplicate(true))
 	var boss := ENCOUNTERS[4].duplicate(true)
-	boss["floor"] = 4
+	boss["floor"] = 5
 	boss["enemy_seed"] = rng.randi()
 	route.append(boss)
 

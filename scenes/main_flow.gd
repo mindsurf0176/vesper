@@ -536,7 +536,17 @@ func _show_corridor() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_corridor_box.add_child(title)
 	var current := corridor.current()
-	var info := _label("SEED %d   ·   FLOOR %d/4\n%s  ·  위협 배율 %.1f" % [corridor.seed, int(current.get("floor", 1)), current.get("name", ""), float(current.get("threat", 1.0))], 15, "b9cfca")
+	var path := HBoxContainer.new()
+	path.alignment = BoxContainer.ALIGNMENT_CENTER
+	path.add_theme_constant_override("separation", 8)
+	for floor in range(1, 6):
+		var node_mark := _label("●\n%d" % floor, 13, "72d7d0" if floor < int(current.get("floor", 1)) else "f2b95f" if floor == int(current.get("floor", 1)) else "60788a")
+		node_mark.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		path.add_child(node_mark)
+		if floor < 5:
+			path.add_child(_label("—", 13, "38566b"))
+	_corridor_box.add_child(path)
+	var info := _label("SEED %d   ·   FLOOR %d/5\n%s  ·  위협 배율 %.1f" % [corridor.seed, int(current.get("floor", 1)), current.get("name", ""), float(current.get("threat", 1.0))], 15, "b9cfca")
 	info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_corridor_box.add_child(info)
 	var note := _label("전투 노드에서는 기존 라인배틀러 준비와 전투가 이어집니다.\n보급과 이벤트를 선택하면 다음 전투를 유리하게 만들 수 있습니다.", 14, "e8efeb")
