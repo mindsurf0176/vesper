@@ -102,6 +102,10 @@ func _test_normalized_scale_contract() -> void:
 	ok(ready_height_in_range, "Douse 외 battle-ready 인물 높이가 의도한 2.20~2.55m 범위다")
 	var douse_height := float(CharacterVisuals.spec("pisces")["target_height"])
 	var vigil_height := float(CharacterVisuals.spec("sagittarius")["target_height"])
+	var vigil_visual_scale := float(CharacterVisuals.spec("sagittarius").get("visual_scale", 1.0))
+	ok(is_equal_approx(vigil_height, 2.28) and is_equal_approx(vigil_visual_scale, 1.05),
+		"Vigil은 표시 높이를 유지하고 전체 스케일만 정확히 5% 커진다",
+		"height=%0.3f scale=%0.2f" % [vigil_height, vigil_visual_scale])
 	ok(douse_height <= 1.90 and douse_height < vigil_height * 0.85,
 		"Douse는 Vigil보다 작게 표시해 장총 실루엣 과대를 막는다", "%0.2f / %0.2f" % [douse_height, vigil_height])
 	ok(foot_alignment_ok, "모든 visual bounds가 유효하고 공통 발 기준선 오차가 작다")
@@ -121,6 +125,9 @@ func _test_normalized_scale_contract() -> void:
 		root.add_child(actor)
 		actor.setup(state, Vector3.ZERO)
 		actor_heights.append(actor.visual_height)
+		if id == "sagittarius":
+			runtime_foot_alignment_ok = runtime_foot_alignment_ok \
+				and actor._visual_root.scale.is_equal_approx(Vector3.ONE * 1.05)
 		if id != "pisces":
 			standard_actor_heights.append(actor.visual_height)
 		var spec := CharacterVisuals.spec(id)

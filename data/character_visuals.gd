@@ -29,7 +29,9 @@ const _SPECS := {
 		"sprite": "res://assets/sprites/ungoo_rifle_pl",
 		"portrait": "res://assets/art/ungoo_rifle_hero_v01.png",
 		"card_art": "res://assets/art/ungoo_rifle_hero_v01.png",
+		# target_height는 유지하고, 캐릭터 전체 실루엣만 균일하게 5% 키운다.
 		"target_height": 2.28,
+		"visual_scale": 1.05,
 		"visible_bounds": Rect2i(38, 21, 218, 224),
 		"ground_offset": 0.0,
 		"face_scale": 1.0,

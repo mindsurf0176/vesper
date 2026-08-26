@@ -296,7 +296,7 @@ func _build_visual() -> void:
 	# Sprite3D의 texture Y축은 world Y와 반대이므로, 불투명 하단을 지면까지 올린다.
 	_sprite.position.y = visible_bottom_from_center * _sprite.pixel_size \
 		+ float(spec.get("ground_offset", 0.0))
-	_base_scale = 1.0 + 0.08 * float(star - 1)
+	_base_scale = (1.0 + 0.08 * float(star - 1)) * float(spec.get("visual_scale", 1.0))
 
 	_visual_root = Node3D.new()
 	_visual_root.name = "Visual"
