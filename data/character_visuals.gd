@@ -200,6 +200,36 @@ static func texture(def_id: String, key: String) -> Texture2D:
 	return _cache[path] as Texture2D
 
 
+static func animation_frame_texture(def_id: String, animation: String, frame: int = 0) -> Texture2D:
+	var folder := sprite_folder(def_id)
+	if folder.is_empty():
+		return null
+	var source_animation := animation_source(def_id, animation)
+	var path := "%s/%s_%d.png" % [folder, source_animation, frame]
+	if not ResourceLoader.exists(path):
+		return null
+	if not _cache.has(path):
+		_cache[path] = load(path)
+	return _cache[path] as Texture2D
+
+
+static func render_width(def_id: String, star: int = 1) -> float:
+	var cache_key := "render_width:%s:%d" % [def_id, star]
+	if _cache.has(cache_key):
+		return float(_cache[cache_key])
+	var visual := spec(def_id)
+	var bounds := visual.get("visible_bounds", Rect2i(0, 0, 64, 96)) as Rect2i
+	var visible_height := maxf(float(bounds.size.y), 1.0)
+	var target_height := float(visual.get("target_height", 2.28))
+	var frame := animation_frame_texture(def_id, "idle")
+	var canvas_width := float(frame.get_width()) if frame != null else float(bounds.size.x)
+	var star_scale := 1.0 + 0.08 * float(maxi(star - 1, 0))
+	var width := canvas_width * target_height / visible_height \
+		* star_scale * float(visual.get("visual_scale", 1.0))
+	_cache[cache_key] = width
+	return width
+
+
 static func animation_frame_count(def_id: String, animation: String) -> int:
 	var folder := sprite_folder(def_id)
 	if folder.is_empty():

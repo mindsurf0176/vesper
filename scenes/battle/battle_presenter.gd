@@ -7,7 +7,8 @@ const STAGE_SCRIPT := preload("res://scenes/battle/battle_stage_3d.gd")
 const ACTOR_SCRIPT := preload("res://scenes/battle/battle_actor_3d.gd")
 const WORLD_LEFT := BattleStage3D.ALLY_X + 0.85
 const WORLD_RIGHT := BattleStage3D.ENEMY_X - 0.85
-const LANE_STEP := 0.12
+const LANE_STEP := 0.34
+const FRONTLINE_PADDING := 0.22
 const EDGE_SCROLL_ZONE := 110.0
 const EDGE_SCROLL_SPEED := 0.36
 const FOLLOW_SPEED := 2.4
@@ -171,15 +172,16 @@ func _update_camera_follow(states: Array, delta: float) -> void:
 
 
 func _sync_actors(states: Array, snap: bool) -> void:
+	var positions := _presentation_positions(states)
 	for state in states:
 		var uid := int(state["uid"])
 		if not bool(state["deployed"]) and not _actors.has(uid):
 			continue
 		if not _actors.has(uid) and not _retiring.has(uid) and bool(state["alive"]):
-			_spawn_actor(state)
+			_spawn_actor(state, positions.get(uid, _actor_position(state)))
 		var actor := _actors.get(uid) as BattleActor3D
 		if actor != null:
-			actor.apply_snapshot(state, _actor_position(state), snap)
+			actor.apply_snapshot(state, positions.get(uid, _actor_position(state)), snap)
 
 
 func _reconcile_actor_lifetimes(states: Array) -> void:
@@ -200,10 +202,10 @@ func _begin_retirement(uid: int) -> BattleActor3D:
 	return actor
 
 
-func _spawn_actor(state: Dictionary) -> void:
+func _spawn_actor(state: Dictionary, world_position: Vector3) -> void:
 	var actor := ACTOR_SCRIPT.new() as BattleActor3D
 	_stage.actors_root.add_child(actor)
-	actor.setup(state, _actor_position(state))
+	actor.setup(state, world_position)
 	actor.set_playback_speed(playback_speed)
 	_actors[int(state["uid"])] = actor
 
@@ -306,6 +308,38 @@ func _actor_position(state: Dictionary) -> Vector3:
 	var lane := int(state["order"]) % 5
 	var lane_z := float(lane - 2) * LANE_STEP + (0.035 if int(state["team"]) == 1 else 0.0)
 	return Vector3(world_x, 0, lane_z)
+
+
+func _presentation_positions(states: Array) -> Dictionary:
+	var positions := {}
+	var front_by_team := {}
+	for state in states:
+		var uid := int(state["uid"])
+		positions[uid] = _actor_position(state)
+		if bool(state.get("frontline", false)) \
+				and bool(state.get("deployed", false)) \
+				and bool(state.get("alive", false)):
+			front_by_team[int(state["team"])] = state
+	if not front_by_team.has(0) or not front_by_team.has(1):
+		return positions
+
+	var left_state: Dictionary = front_by_team[0]
+	var right_state: Dictionary = front_by_team[1]
+	var left_uid := int(left_state["uid"])
+	var right_uid := int(right_state["uid"])
+	var left_position: Vector3 = positions[left_uid]
+	var right_position: Vector3 = positions[right_uid]
+	var current_gap := right_position.x - left_position.x
+	var required_gap := (CharacterVisuals.render_width(String(left_state["def_id"]), int(left_state.get("star", 1))) \
+		+ CharacterVisuals.render_width(String(right_state["def_id"]), int(right_state.get("star", 1)))) * 0.5 \
+		+ FRONTLINE_PADDING
+	if current_gap < required_gap:
+		var extra := (required_gap - current_gap) * 0.5
+		left_position.x -= extra
+		right_position.x += extra
+		positions[left_uid] = left_position
+		positions[right_uid] = right_position
+	return positions
 
 
 func _draw() -> void:

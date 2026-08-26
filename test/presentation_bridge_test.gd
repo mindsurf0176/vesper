@@ -25,6 +25,8 @@ func _run() -> void:
 	await process_frame
 	_test_actor_state_machine()
 	await process_frame
+	_test_frontline_spacing()
+	await process_frame
 	_test_death_lifecycle()
 	await process_frame
 	_test_presentation_is_passive()
@@ -125,6 +127,29 @@ func _test_actor_state_machine() -> void:
 	actor._process(0.12)
 	ok(actor._sprite.animation == "idle", "도착해 비전투 중이면 idle로 전환한다")
 	actor.queue_free()
+
+
+func _test_frontline_spacing() -> void:
+	print("[frontline spacing]")
+	var left := presenter._actor_position({"team": 0, "x": 140.0, "order": 0, "frontline": true})
+	var right := presenter._actor_position({"team": 1, "x": 140.0, "order": 0, "frontline": true})
+	var rear := presenter._actor_position({"team": 0, "x": 140.0, "order": 1, "frontline": false})
+	var positions := presenter._presentation_positions([
+		{"uid": 1, "team": 0, "x": 140.0, "order": 0, "frontline": true, "deployed": true, "alive": true,
+			"def_id": "aries", "star": 1},
+		{"uid": 2, "team": 1, "x": 140.0, "order": 0, "frontline": true, "deployed": true, "alive": true,
+			"def_id": "capricorn", "star": 1},
+	])
+	var spaced_left: Vector3 = positions[1]
+	var spaced_right: Vector3 = positions[2]
+	var required_gap := (CharacterVisuals.render_width("aries") + CharacterVisuals.render_width("capricorn")) * 0.5 \
+		+ BattlePresenter.FRONTLINE_PADDING
+	ok(spaced_right.x - spaced_left.x >= required_gap - 0.001,
+		"양 팀 최전방은 실제 스프라이트 폭만큼 화면에서 벌어진다",
+		"gap=%0.2f required=%0.2f" % [spaced_right.x - spaced_left.x, required_gap])
+	ok(absf(left.z - rear.z) >= BattlePresenter.LANE_STEP,
+		"같은 편 전열 유닛은 깊이 레인으로 겹침을 피한다",
+		"lane_gap=%0.2f" % absf(left.z - rear.z))
 
 
 func _test_death_lifecycle() -> void:
