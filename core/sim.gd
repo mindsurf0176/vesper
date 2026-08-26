@@ -331,7 +331,7 @@ func _emit_ability(u: SimUnit) -> void:
 
 func _retarget(u: SimUnit) -> void:
 	var t: SimUnit = _by_uid.get(u.target_uid) as SimUnit
-	if t == null or not t.is_active():
+	if t == null or not t.is_active() or t != _front_unit(1 - u.team):
 		t = _find_target(u)
 		u.target_uid = t.uid if t != null else -1
 
@@ -476,18 +476,27 @@ func _active_core_reduction(team: int) -> float:
 	return clampf(reduction, 0.0, 0.9)
 
 
-## 단일 라인이므로 가장 가까운 적을 친다 — 즉 가장 많이 전진해 온 적.
-## 앞에 선 유닛이 자연히 몸으로 막는다.
+## 단일 라인의 교전 규칙. 일반 공격은 반드시 상대 최전방 한 명에게만 향한다.
+## 뒤 유닛을 직접 고를 수 없으므로 최전방 방어자가 살아 있는 동안 후열은 보호된다.
 func _find_target(u: SimUnit) -> SimUnit:
+	return _front_unit(1 - u.team)
+
+
+## pos는 각자 자기 코어에서 전진한 거리이므로 팀과 무관하게 최댓값이 선두다.
+func _front_unit(team: int) -> SimUnit:
 	var best: SimUnit = null
 	var best_pos := -INF
 	for o in units:
-		if not o.is_active() or o.team == u.team:
+		if not o.is_active() or o.team != team:
 			continue
 		if o.pos > best_pos:
 			best_pos = o.pos
 			best = o
 	return best
+
+
+func _is_frontline(u: SimUnit) -> bool:
+	return u.is_active() and _front_unit(u.team) == u
 
 
 func _check_end() -> void:
@@ -550,6 +559,7 @@ func snapshot() -> Array:
 	var out: Array = []
 	for u in units:
 		var state := u.snapshot()
+		state["frontline"] = _is_frontline(u)
 		state["engaged"] = _engaged_for_presentation(u)
 		out.append(state)
 	return out

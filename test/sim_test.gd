@@ -18,6 +18,7 @@ func _initialize() -> void:
 	_test_shop_lock()
 	_test_queue_api()
 	_test_deploy_cost()
+	_test_frontline_guard()
 	_test_order_is_strategy()
 	_test_determinism()
 	_test_mirror_is_fair()
@@ -389,6 +390,30 @@ func _test_deploy_cost() -> void:
 	var sim3 := CombatSim.create(_lineup(["capricorn"]), _lineup(["capricorn"]))
 	sim3.step(Defs.TICK)
 	ok(not sim3.finished, "출격 대기 중이면 전투가 끝나지 않는다")
+
+
+func _test_frontline_guard() -> void:
+	print("[최전방 가드]")
+	var sim := CombatSim.create(_lineup(["taurus", "sagittarius"]), _lineup(["cancer", "pisces"]))
+	for unit in sim.units:
+		unit.deployed = true
+	# 적 기준 pos가 큰 하린이 선두다. 후열 유라는 공격 대상이 될 수 없어야 한다.
+	var front_enemy := _find_unit(sim, "cancer", 1)
+	var rear_enemy := _find_unit(sim, "pisces", 1)
+	front_enemy.pos = 90.0
+	rear_enemy.pos = 72.0
+	var ranger := _find_unit(sim, "sagittarius", 0)
+	sim._retarget(ranger)
+	ok(ranger.target_uid == front_enemy.uid, "일반 공격은 적 최전방만 조준한다")
+	ok(sim._is_frontline(front_enemy) and not sim._is_frontline(rear_enemy),
+		"최전방만 가드 판정을 가진다")
+	var rear_hp := rear_enemy.hp
+	sim._try_attack(ranger, front_enemy)
+	sim._resolve_damage()
+	ok(is_equal_approx(rear_enemy.hp, rear_hp), "최전방이 살아 있으면 후열은 피해를 받지 않는다")
+	front_enemy.alive = false
+	sim._retarget(ranger)
+	ok(ranger.target_uid == rear_enemy.uid, "최전방이 쓰러지면 다음 유닛이 전선을 잇는다")
 
 
 func _test_order_is_strategy() -> void:
