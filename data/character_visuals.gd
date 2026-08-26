@@ -101,7 +101,7 @@ const _SPECS := {
 		"battle_ready": true,
 	},
 	"pisces": {
-		"source_character": "소등사",
+		"source_character": "Douse",
 		"sprite": "res://assets/sprites/sodeungsa_pl",
 		"portrait": "res://assets/art/face_sodeungsa.png",
 		"card_art": "res://assets/art/card_sodeungsa.png",
