@@ -27,7 +27,7 @@ var _blocked_badge: Label
 
 
 func _init() -> void:
-	custom_minimum_size = Vector2(92, 108)
+	custom_minimum_size = Vector2(98, 116)
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	_build()
 
@@ -38,7 +38,7 @@ func _build() -> void:
 	add_child(box)
 
 	var portrait_frame := Control.new()
-	portrait_frame.custom_minimum_size = Vector2(78, 72)
+	portrait_frame.custom_minimum_size = Vector2(82, 74)
 	portrait_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	portrait_frame.clip_contents = true
 	box.add_child(portrait_frame)
@@ -82,20 +82,20 @@ func _build() -> void:
 
 	_name = Label.new()
 	_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_name.add_theme_font_size_override("font_size", 12)
-	_name.add_theme_color_override("font_color", Color("eef4f1"))
+	_name.add_theme_font_size_override("font_size", 13)
+	_name.add_theme_color_override("font_color", Color("f5f1df"))
 	box.add_child(_name)
 
 	_meta = Label.new()
 	_meta.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_meta.add_theme_font_size_override("font_size", 9)
-	_meta.add_theme_color_override("font_color", Color("91aaa7"))
+	_meta.add_theme_font_size_override("font_size", 10)
+	_meta.add_theme_color_override("font_color", Color("a7c0b9"))
 	box.add_child(_meta)
 
 	_time = Label.new()
 	_time.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_time.add_theme_font_size_override("font_size", 9)
-	_time.add_theme_color_override("font_color", Color("efc86d"))
+	_time.add_theme_font_size_override("font_size", 10)
+	_time.add_theme_color_override("font_color", Color("f3c777"))
 	box.add_child(_time)
 	_apply_style()
 
@@ -172,6 +172,8 @@ static func _style(bg: Color, border: Color, width: int) -> StyleBoxFlat:
 	sb.bg_color = bg
 	sb.border_color = border
 	sb.set_border_width_all(width)
+	sb.shadow_color = Color(0.0, 0.0, 0.0, 0.25)
+	sb.shadow_size = 4
 	sb.corner_radius_top_left = 5
 	sb.corner_radius_top_right = 5
 	sb.corner_radius_bottom_left = 5

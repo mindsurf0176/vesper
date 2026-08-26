@@ -30,16 +30,16 @@ func _build() -> void:
 	add_child(v)
 	_title = Label.new()
 	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_title.add_theme_font_size_override("font_size", 10)
-	_title.add_theme_color_override("font_color", Color("8ca7a5"))
+	_title.add_theme_font_size_override("font_size", 11)
+	_title.add_theme_color_override("font_color", Color("b8cec7"))
 	v.add_child(_title)
 	_body = CenterContainer.new()
 	_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v.add_child(_body)
 	_hint = Label.new()
 	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_hint.add_theme_font_size_override("font_size", 9)
-	_hint.add_theme_color_override("font_color", Color("718c8a"))
+	_hint.add_theme_font_size_override("font_size", 10)
+	_hint.add_theme_color_override("font_color", Color("7f9d98"))
 	v.add_child(_hint)
 	_apply_style()
 
@@ -97,6 +97,8 @@ func _apply_style() -> void:
 	sb.bg_color = bg
 	sb.border_color = border
 	sb.set_border_width_all(2 if selected else 1)
+	sb.shadow_color = Color(0.0, 0.0, 0.0, 0.20)
+	sb.shadow_size = 3
 	sb.corner_radius_top_left = 6
 	sb.corner_radius_top_right = 6
 	sb.corner_radius_bottom_left = 6
