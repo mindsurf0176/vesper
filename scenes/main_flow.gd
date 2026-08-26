@@ -42,6 +42,9 @@ var _command_btn: Button
 var _command_left := 0.0
 var _turn_left := 0.0
 var _plan_buttons: Array[Button] = []
+var _confirm_plan_btn: Button
+var _planned_orders: Array[String] = []
+var _action_points := 3
 var _result_layer: Control
 var _result_title: Label
 var _result_body: Label
@@ -134,6 +137,9 @@ func _build_battle() -> void:
 		plan_button.custom_minimum_size.x = 64
 		_plan_buttons.append(plan_button)
 		row.add_child(plan_button)
+	_confirm_plan_btn = _button("작전 확정", _confirm_plan)
+	_confirm_plan_btn.custom_minimum_size.x = 88
+	row.add_child(_confirm_plan_btn)
 	row.add_child(_button("도움말", _show_help))
 	_view = BattlePresenter.new()
 	_view.font = _font
@@ -320,8 +326,8 @@ func _start_battle(from_timeout: bool = false) -> void:
 	_view.set_playback_speed(speed)
 	_command_left = 0.0
 	_turn_left = 0.0
+	_enter_plan()
 	_accum = 0.0
-	phase = Phase.PLAN
 	_prep.visible = false
 	_battle_layer.visible = true
 	_refresh_battle_hud()
@@ -330,10 +336,28 @@ func _start_battle(from_timeout: bool = false) -> void:
 func _on_tactical_order(order: String) -> void:
 	if phase != Phase.PLAN or sim == null:
 		return
-	if sim.apply_tactical_order(order):
-		phase = Phase.BATTLE
-		_turn_left = 6.0
-		_refresh_battle_hud()
+	if _action_points <= 0:
+		return
+	_planned_orders.append(order)
+	_action_points -= 1
+	_refresh_battle_hud()
+
+
+func _confirm_plan() -> void:
+	if phase != Phase.PLAN or sim == null or _planned_orders.is_empty():
+		return
+	for order in _planned_orders:
+		sim.apply_tactical_order(order)
+	phase = Phase.BATTLE
+	_turn_left = 6.0
+	_refresh_battle_hud()
+
+
+func _enter_plan() -> void:
+	phase = Phase.PLAN
+	_action_points = 3
+	_planned_orders.clear()
+	_refresh_battle_hud()
 
 
 func _step_battle(delta: float) -> void:
@@ -349,8 +373,7 @@ func _step_battle(delta: float) -> void:
 	if sim.finished:
 		_resolve_and_show({game.human_seat().index: sim.result()})
 	elif _turn_left <= 0.0:
-		phase = Phase.PLAN
-		_refresh_battle_hud()
+		_enter_plan()
 
 
 func _refresh_battle_hud() -> void:
@@ -370,7 +393,10 @@ func _refresh_battle_hud() -> void:
 		line_state = "아군 전선 우세"
 	elif enemy_front - ally_front > 8.0:
 		line_state = "전선 밀림"
-	var turn_state := "명령을 선택하세요" if phase == Phase.PLAN else "라인 실행 중 · 다음 계획까지 %.1fs" % _turn_left
+	var plan_text := "AP %d/3" % _action_points
+	if not _planned_orders.is_empty():
+		plan_text += "  " + " + ".join(_planned_orders)
+	var turn_state := plan_text if phase == Phase.PLAN else "라인 실행 중 · 다음 계획까지 %.1fs" % _turn_left
 	_battle_top.text = "NIGHT %02d   %s  %d HP     VS     %d HP  %s\n%.1fs / %ds   ·   %s  ·  %s" % [
 		round_no, game.human_seat().name, int(sim.core_hp[0]), int(sim.core_hp[1]),
 		game.seats[foe_seat].name, sim.time, int(Defs.MAX_BATTLE_TIME), line_state, turn_state]
@@ -379,7 +405,8 @@ func _refresh_battle_hud() -> void:
 	_command_btn.disabled = phase != Phase.BATTLE or _command_left > 0.0 or sim.finished
 	_command_btn.text = "지휘기 %.1f" % _command_left if _command_left > 0.0 else "지휘기"
 	for plan_button in _plan_buttons:
-		plan_button.disabled = phase != Phase.PLAN or sim.finished
+		plan_button.disabled = phase != Phase.PLAN or sim.finished or _action_points <= 0
+	_confirm_plan_btn.disabled = phase != Phase.PLAN or sim.finished or _planned_orders.is_empty()
 
 
 func _on_command() -> void:

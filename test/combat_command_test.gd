@@ -15,5 +15,14 @@ func _init() -> void:
 		if String(event.get("t", "")) == "command_hit":
 			found = true
 	assert(found, "지휘기 이벤트가 프레젠터로 전달되지 않음")
+	var tactical := Sim.create([ally], [enemy], 3, 3)
+	for _i in 3:
+		tactical.step(1.0)
+	var ally_unit = tactical.units[0]
+	var before_pos: float = ally_unit.pos
+	assert(tactical.apply_tactical_order("전진"), "전진 명령을 적용하지 못함")
+	assert(ally_unit.pos > before_pos, "전진 명령이 전선에 반영되지 않음")
+	assert(tactical.apply_tactical_order("방어"), "방어 명령을 적용하지 못함")
+	assert(ally_unit.shield > 0.0, "방어 명령이 보호막에 반영되지 않음")
 	print("PASS combat command")
 	quit(0)
