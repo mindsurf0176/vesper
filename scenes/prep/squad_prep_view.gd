@@ -19,12 +19,17 @@ var _squad_box: HBoxContainer
 var _pool_box: GridContainer
 var _message: Label
 var _ready_btn: Button
+var _draft_pool: Array[String] = []
+var _draft_offers: Array[String] = []
+var _draft_active := false
 
 func _ready() -> void:
 	_build_ui()
 
 func bind_match(value: CorridorSession) -> void:
 	game = value
+	if game.human_seat().player.roster.is_empty():
+		_begin_draft()
 	refresh_all()
 
 func set_time_left(value: float) -> void:
@@ -42,7 +47,7 @@ func refresh_all() -> void:
 		return
 	var p := game.human_seat().player
 	_status.text = "NIGHT %02d   ·   HP %d   ·   보유 유물 %d개" % [game.round_no, p.hp, p.relics.size()]
-	_message.text = message if not message.is_empty() else "이번 원정에 데려갈 4명을 선택하고 전투 시작을 누르세요."
+	_message.text = message if not message.is_empty() else "후보 3명 중 1명을 선택하세요. 4명을 고르면 전투를 시작할 수 있습니다."
 	_ready_btn.disabled = p.queued_units().size() != 4
 	_rebuild_squad(p)
 	_rebuild_pool(p)
@@ -78,7 +83,7 @@ func _build_ui() -> void:
 	_squad_box.alignment = BoxContainer.ALIGNMENT_CENTER
 	_squad_box.add_theme_constant_override("separation", 12)
 	squad_panel.get_child(0).add_child(_squad_box)
-	var pool_panel := _section("사도 선택 · 6명 중 4명 · 카드를 눌러 교대", 270)
+	var pool_panel := _section("사도 드래프트 · 후보 3명 중 1명 선택", 270)
 	pool_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(pool_panel)
 	_pool_box = GridContainer.new()
@@ -108,7 +113,7 @@ func _rebuild_squad(p: Econ.Player) -> void:
 
 func _rebuild_pool(p: Econ.Player) -> void:
 	_clear(_pool_box)
-	for id in SQUAD_POOL:
+	for id in _draft_offers if _draft_active else SQUAD_POOL:
 		var selected := false
 		for unit in p.queued_units():
 			if str(unit.get("def_id", "")) == id:
@@ -136,6 +141,8 @@ func _card(unit: Dictionary, selected: bool) -> Button:
 
 func _toggle_unit(id: String) -> void:
 	var p := game.human_seat().player
+	if _draft_active and not _draft_offers.has(id):
+		return
 	var active_index := -1
 	var bench_index := -1
 	for i in p.roster.size():
@@ -157,8 +164,31 @@ func _toggle_unit(id: String) -> void:
 			set_message("4명만 데려갈 수 있습니다. 먼저 한 명을 교대하세요.")
 			return
 		p.roster.append({"def_id": id, "star": 1, "order": p.queued_units().size()})
+		if _draft_active:
+			_draft_offers.erase(id)
+			_draft_pool.erase(id)
+			_refill_draft_offers()
 	refresh_all()
 	set_message(UnitDB.ability_text(id))
+
+
+func _begin_draft() -> void:
+	_draft_pool.clear()
+	for id in SQUAD_POOL:
+		_draft_pool.append(id)
+	_draft_pool.shuffle()
+	_draft_offers.clear()
+	_draft_active = true
+	_refill_draft_offers()
+
+
+func _refill_draft_offers() -> void:
+	while _draft_offers.size() < 3 and not _draft_pool.is_empty():
+		_draft_offers.append(_draft_pool.pop_front())
+
+
+func draft_offers_for_test() -> Array[String]:
+	return _draft_offers.duplicate()
 
 func _section(title: String, height: float) -> PanelContainer:
 	var panel := PanelContainer.new()
