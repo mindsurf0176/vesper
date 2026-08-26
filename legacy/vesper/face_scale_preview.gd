@@ -24,7 +24,7 @@ var captured := false
 
 func _ready() -> void:
 	DirAccess.make_dir_recursive_absolute(OUT_PATH.get_base_dir())
-		battle = load("res://legacy/vesper/battle3d.tscn").instantiate()
+	battle = load("res://legacy/vesper/battle3d.tscn").instantiate()
 	add_child(battle)
 
 
