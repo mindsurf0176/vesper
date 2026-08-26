@@ -96,15 +96,10 @@ func _build_ui() -> void:
 	var bg := VesperBackdropScene.new()
 	add_child(bg)
 
-	var scroll := ScrollContainer.new()
-	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.add_theme_stylebox_override("panel", VesperUITheme.panel(Color("070d16"), Color("070d16"), 0))
-	add_child(scroll)
 	var root := VBoxContainer.new()
-	root.custom_minimum_size.x = maxf(320.0, get_viewport_rect().size.x - 18.0)
+	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.add_theme_constant_override("separation", 5)
-	scroll.add_child(root)
+	add_child(root)
 
 	var top := PanelContainer.new()
 	top.custom_minimum_size.y = 64
