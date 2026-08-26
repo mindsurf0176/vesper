@@ -12,17 +12,21 @@ const PLAYABLE_ROSTER := ["aries", "sagittarius", "capricorn", "pisces"]
 const _SPECS := {
 	"aries": {
 		"source_character": "",
-		"sprite": "res://assets/sprites/raon_codex",
-		"portrait": "res://assets/art/characters/raon/raon-face-v1.png",
-		"card_art": "res://assets/art/characters/raon/raon-card-cutout-v1.png",
+		"asset_provenance": "AssetForge: moa-ungoo-benchmark-clips-v9",
+		"sprite": "res://assets/sprites/moa_pl",
+		"portrait": "res://assets/art/characters/moa/moa-identity-v2-cutout.png",
+		"card_art": "res://assets/art/characters/moa/moa-identity-v2-cutout.png",
 		"target_height": 2.25,
-		"visible_bounds": Rect2i(24, 12, 214, 234),
+		"visible_bounds": Rect2i(4, 4, 238, 240),
 		"ground_offset": 0.0,
 		"face_scale": 1.0,
-		"filtering": "linear",
+		"filtering": "nearest",
 		"migration_only": false,
 		"battle_ready": true,
 		"asset_blocked": false,
+		# v9는 5개 정본 클립만 제공한다. 전투 대기 상태는 idle을 고정 재생한다.
+		"animation_aliases": {"aim": "idle"},
+		"animation_fps": {"idle": 8.0, "walk": 12.0, "attack": 14.0, "hit": 12.0, "death": 10.0},
 	},
 	"sagittarius": {
 		"source_character": "운구 소총수",
@@ -200,10 +204,21 @@ static func animation_frame_count(def_id: String, animation: String) -> int:
 	var folder := sprite_folder(def_id)
 	if folder.is_empty():
 		return 0
+	var source_animation := animation_source(def_id, animation)
 	var count := 0
-	while count < 64 and ResourceLoader.exists("%s/%s_%d.png" % [folder, animation, count]):
+	while count < 64 and ResourceLoader.exists("%s/%s_%d.png" % [folder, source_animation, count]):
 		count += 1
 	return count
+
+
+static func animation_source(def_id: String, animation: String) -> String:
+	var aliases := spec(def_id).get("animation_aliases", {}) as Dictionary
+	return String(aliases.get(animation, animation))
+
+
+static func animation_fps(def_id: String, animation: String, fallback: float) -> float:
+	var rates := spec(def_id).get("animation_fps", {}) as Dictionary
+	return float(rates.get(animation, fallback))
 
 
 static func missing_battle_animations(def_id: String) -> Array[String]:

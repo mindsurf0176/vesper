@@ -20,10 +20,11 @@ func _init() -> void:
 	session.seats[1].player.roster = [{"def_id":"aries", "star":1, "order":0}]
 	var sim = session.build_sim(0, 1)
 	var unit = sim.units[0]
-	assert(unit.max_hp > 720.0, "생존 유물이 HP에 반영되지 않음")
-	assert(unit.atk > 52.0, "공격 유물이 공격력에 반영되지 않음")
-	assert(unit.armor > 28.0, "방어 유물이 방어력에 반영되지 않음")
-	assert(unit.atk_range > 6.0 and unit.move_speed > 15.0, "사거리·기동 유물이 반영되지 않음")
+	var base := UnitDB.get_def("aries")
+	assert(unit.max_hp > float(base["hp"]), "생존 유물이 HP에 반영되지 않음")
+	assert(unit.atk > float(base["atk"]), "공격 유물이 공격력에 반영되지 않음")
+	assert(unit.armor > float(base["armor"]), "방어 유물이 방어력에 반영되지 않음")
+	assert(unit.atk_range > float(base["atk_range"]) and unit.move_speed > float(base["move_speed"]), "사거리·기동 유물이 반영되지 않음")
 
 	sim.cost[0] = 14.0
 	assert(sim.manual_deploy(0, unit.uid), "유물 보유 전투원이 출격하지 않음")

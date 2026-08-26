@@ -2,7 +2,7 @@
 
 ## One-line contract
 
-플레이어는 리븐·비질·워든·다우스로 구성된 4인 원정대의 출격 카드를 실시간으로 눌러 단일 전선을 돌파하고,
+플레이어는 모아·비질·워든·다우스로 구성된 4인 원정대의 출격 카드를 실시간으로 눌러 단일 전선을 돌파하고,
 끝없이 이어지는 회랑에서 전멸하기 전까지의 거리 기록을 갱신한다.
 
 ## Player loop
@@ -18,12 +18,12 @@
 ## Rules contract
 
 - Active engine: `CorridorSession` only. `Match` is legacy and must not be imported by active scenes.
-- Team: player uses the fixed four-person roster: 리븐, 비질, 워든, 다우스. Rest can rotate their order, not replace them.
+- Team: player uses the fixed four-person roster: 모아, 비질, 워든, 다우스. Rest can rotate their order, not replace them.
 - Battle: one logical line, `FIELD_LEN=280`, spawn offset `20`; the 3D camera shows a window and moves when the cursor rests near the left/right edge.
 - Player deployment: manual only. `CombatSim.manual_deploy(team, uid)` spends current cost.
 - Retreat/redeploy: click an active player card to retreat that unit. It heals at base for 5 seconds, then can be redeployed at its normal cost with full HP.
 - Enemy deployment: automatic queue for encounter pressure.
-- Role contrast: 리븐과 워든은 높은 체력·방어로 전선을 지킨다. 비질과 다우스는 42/36의 긴 사거리에서 높은 피해를 주지만, 낮은 체력·방어로 전선이 무너지면 빠르게 쓰러진다.
+- Role contrast: 모아와 워든은 전선을 열고 지킨다. 모아는 낮은 체력 대신 빠른 이동·근접 연격으로 빈틈을 찌르고, 비질과 다우스는 42/36의 긴 사거리에서 높은 피해를 주지만 전선이 무너지면 빠르게 쓰러진다.
 - Resources: battle cost starts at `0` and is visible as a continuously updating gauge; no AP or turn confirmation.
 - Win: enemy core reaches zero for the current segment. Lose: player core reaches zero or timeout at `75s`.
 - Run: endless segments. Every segment offers safe/supply, normal combat, and elite routes; every 7th segment can offer a boss route.

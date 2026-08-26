@@ -319,11 +319,13 @@ func _add_animation(frames: SpriteFrames, animation: String, folder: String) -> 
 	var count := CharacterVisuals.animation_frame_count(def_id, animation)
 	if count <= 0:
 		return
+	var source_animation := CharacterVisuals.animation_source(def_id, animation)
 	frames.add_animation(animation)
 	frames.set_animation_loop(animation, bool(LOOPED.get(animation, false)))
-	frames.set_animation_speed(animation, float(ANIMATION_FPS[animation]))
+	frames.set_animation_speed(animation,
+		CharacterVisuals.animation_fps(def_id, animation, float(ANIMATION_FPS[animation])))
 	for i in count:
-		frames.add_frame(animation, load("%s/%s_%d.png" % [folder, animation, i]))
+		frames.add_frame(animation, load("%s/%s_%d.png" % [folder, source_animation, i]))
 
 
 func _build_debug_frame(frames: SpriteFrames) -> void:

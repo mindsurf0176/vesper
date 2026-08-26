@@ -12,7 +12,7 @@ func _initialize() -> void:
 	_test_vertical_slice()
 	_test_completeness_is_explicit()
 	_test_normalized_scale_contract()
-	_test_raon_final_contract()
+	_test_moa_final_contract()
 	print("\n결과: %d 통과 / %d 실패" % [passed, failed])
 	quit(1 if failed > 0 else 0)
 
@@ -55,7 +55,7 @@ func _test_vertical_slice() -> void:
 		sprite_paths_ok = sprite_paths_ok and ResourceLoader.exists("%s/idle_0.png" % folder)
 		sprite_paths_ok = sprite_paths_ok and ResourceLoader.exists("%s/walk_0.png" % folder)
 		sprite_paths_ok = sprite_paths_ok and ResourceLoader.exists("%s/attack_0.png" % folder)
-	ok(ready == 8 and sprite_paths_ok, "라온 final과 migration 7명이 runtime sprite를 load한다")
+	ok(ready == 8 and sprite_paths_ok, "모아 final과 migration 7명이 runtime sprite를 load한다")
 
 	var full_contract := 0
 	for id in UnitDB.table():
@@ -146,22 +146,30 @@ func _test_normalized_scale_contract() -> void:
 	ok(runtime_foot_alignment_ok, "runtime sprite의 불투명 하단이 공통 지면에 정렬된다")
 
 
-func _test_raon_final_contract() -> void:
-	print("[Raon final sprite]")
+func _test_moa_final_contract() -> void:
+	print("[Moa final sprite]")
 	var spec := CharacterVisuals.spec("aries")
 	ok(not bool(spec.get("migration_only", true))
 			and not bool(spec.get("asset_blocked", true))
-			and String(spec.get("filtering", "")) == "linear",
-		"라온은 migration이 아닌 linear-filtered final asset이다")
-	var expected := {"idle": 4, "walk": 8, "aim": 4, "attack": 6, "hit": 4, "death": 6}
+			and String(spec.get("filtering", "")) == "nearest"
+			and String(spec.get("asset_provenance", "")) == "AssetForge: moa-ungoo-benchmark-clips-v9",
+		"모아는 AssetForge v9 nearest-filtered final asset이다")
+	var expected := {"idle": 6, "walk": 12, "aim": 6, "attack": 14, "hit": 6, "death": 10}
 	var frame_counts_ok := true
 	for animation in expected:
 		frame_counts_ok = frame_counts_ok \
 			and CharacterVisuals.animation_frame_count("aries", animation) == int(expected[animation])
-	ok(frame_counts_ok, "라온은 idle 4·walk 8·aim 4·attack 6·hit 4·death 6 frame을 가진다")
+	ok(frame_counts_ok, "모아는 idle 6·walk 12·aim 6·attack 14·hit 6·death 10 frame 계약을 가진다")
+	ok(CharacterVisuals.animation_source("aries", "aim") == "idle"
+			and is_equal_approx(CharacterVisuals.animation_fps("aries", "idle", 0.0), 8.0)
+			and is_equal_approx(CharacterVisuals.animation_fps("aries", "walk", 0.0), 12.0)
+			and is_equal_approx(CharacterVisuals.animation_fps("aries", "attack", 0.0), 14.0)
+			and is_equal_approx(CharacterVisuals.animation_fps("aries", "hit", 0.0), 12.0)
+			and is_equal_approx(CharacterVisuals.animation_fps("aries", "death", 0.0), 10.0),
+		"모아의 AssetForge 정본 FPS와 aim idle alias가 런타임에 연결된다")
 	var bounds := spec["visible_bounds"] as Rect2i
-	ok(bounds == Rect2i(24, 12, 214, 234),
-		"라온 32 frame alpha union bounds가 정본과 일치한다", str(bounds))
+	ok(bounds == Rect2i(4, 4, 238, 240),
+		"모아 48 frame alpha bounds가 244x247 정본 기준선과 일치한다", str(bounds))
 	ok(CharacterVisuals.texture("aries", "portrait") != null
 			and CharacterVisuals.texture("aries", "card_art") != null,
-		"라온 approved face와 card cutout을 load한다")
+		"모아 identity 카드·초상화 에셋을 load한다")

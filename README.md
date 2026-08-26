@@ -73,7 +73,7 @@ done
 전장 유닛 = **PixelLab 전투상태 파이프라인으로 만든 애니 도트 스프라이트**(일러와 같은 캐릭터·색). HD-2D 조명 받는 빌보드.
 - 에셋: `assets/sprites/<slug>_pl/walk_*.png`, `aim_*.png`, `attack_*.png`, `idle_0.png` (PixelLab, side/east 기준). 반대 방향은 엔진 flip.
 - 연동: `unit3d.gd`가 `def`에 `sprite` 폴더 있으면 **AnimatedSprite3D**(walk=이동/idle=정지/aim=교전 대기/attack=공격, billboard FIXED_Y, nearest, alpha-scissor, shaded) 사용, 없으면 QuadMesh 플레이스홀더.
-- 현재 스프라이트: 소등사(어번/틸 레인저), 집전 의무관(세이지 숄/등유 성물 힐러), 진혼병(검은 장송 코트/번트오렌지 근접 선봉), 관지기(은발/방패 디펜더). 적·나머지 아군은 아직 플레이스홀더 도형.
+- 현재 스프라이트: 모아(AssetForge v9 바람 근접 스트라이커), 소등사(어번/틸 레인저), 집전 의무관(세이지 숄/등유 성물 힐러), 관지기(은발/방패 디펜더). 적·나머지 아군은 아직 플레이스홀더 도형.
 - 생성 노하우: `create_character`로 원본 승인 → `create_character_state`로 저자세 조준/저자세 러닝 베이스 생성 → `animate_character(mode=v3, directions=["east"])`로 run/aim/attack 생성 → `pixellab_assemble.py`로 `<slug>_pl` 조립. PixelLab backblaze URL은 `curl -A "Mozilla/5.0"`로 받아야 함(기본 UA 403).
 - `unit3d.gd`: 동적 프레임 수 자동 감지 + **attack 애니**(교전 시 0.55초 재생) 지원. 이동=walk / 정지=idle / 공격=attack.
 - 시도했으나 실패: AutoSprite(일러→애니, 입력 무관 실패), 일러 컷아웃 스켈레탈 리깅(= "일러 변형"이라 부적합). 진짜 애니-Spine은 애니메이터 외주 영역.

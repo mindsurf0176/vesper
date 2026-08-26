@@ -222,7 +222,7 @@ func _build_help() -> void:
 	var title := _label("VESPER — 회랑을 돌파하는 법", 22, "f3c777")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
-	box.add_child(_help_step("① 4명의 계약자로 원정을 시작한다", "리븐, 비질, 워든, 다우스가 이번 런을 함께합니다. 휴식처에서는 선봉 순서를 바꿀 수 있습니다."))
+	box.add_child(_help_step("① 4명의 계약자로 원정을 시작한다", "모아, 비질, 워든, 다우스가 이번 런을 함께합니다. 휴식처에서는 선봉 순서를 바꿀 수 있습니다."))
 	box.add_child(_help_step("② 전투 중 하단 카드를 눌러 사도를 출격한다", "코스트는 시간이 지나면 차오릅니다. 누구를 먼저 내보낼지, 언제 아껴둘지가 핵심입니다."))
 	box.add_child(_help_step("③ 지도를 고르고 유물을 쌓는다", "엘리트는 강하지만 보상이 좋습니다. 보스 전에는 회복과 유물 조합을 준비하세요."))
 	var rule := _label("코스트가 차면 하단 사도 카드를 눌러 출격  ·  전투는 실시간 진행", 14, "8bd9c6")
@@ -283,7 +283,7 @@ func _begin_round() -> void:
 	_prep_expired = false
 	_prep.bind_match(game)
 	_prep.set_time_left(_prep_left)
-	_prep.set_message("리븐, 비질, 워든, 다우스가 원정대를 이룹니다. 회랑을 얼마나 멀리 가는지가 목표입니다.")
+	_prep.set_message("모아, 비질, 워든, 다우스가 원정대를 이룹니다. 회랑을 얼마나 멀리 가는지가 목표입니다.")
 	if _squad_locked:
 		_prep.visible = false
 		_start_battle()

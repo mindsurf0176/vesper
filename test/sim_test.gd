@@ -58,47 +58,47 @@ func _test_traits() -> void:
 	print("[원소 시너지]")
 	var E := Defs.Element
 
-	# 데이터 불변조건: 원소마다 정확히 셋. 이게 깨지면 트라인이 성립하지 않는다.
+	# 데이터 불변조건: 네 원소가 모두 존재하고 각 계통에 최소 2명이 있다.
 	var by_elem := {}
 	var by_tier := {}
 	for id in UnitDB.table():
 		var d := UnitDB.get_def(id)
 		by_elem[d["element"]] = int(by_elem.get(d["element"], 0)) + 1
 		by_tier[d["tier"]] = int(by_tier.get(d["tier"], 0)) + 1
-	var all_three := by_elem.size() == 4
+	var element_distribution_ok := by_elem.size() == 4
 	for e in by_elem:
-		if int(by_elem[e]) != Traits.TRINE:
-			all_three = false
-	ok(all_three, "원소 4종, 각 원소마다 별자리 정확히 %d개" % Traits.TRINE, str(by_elem))
+		if int(by_elem[e]) < 2 or int(by_elem[e]) > 4:
+			element_distribution_ok = false
+	ok(element_distribution_ok, "원소 4종이 모두 2~4명의 계통으로 구성된다", str(by_elem))
 	ok(UnitDB.table().size() == 12, "별자리는 열두 개", str(UnitDB.table().size()))
 	ok(int(by_tier.get(1, 0)) == 5 and int(by_tier.get(4, 0)) == 1,
 		"등급 분포가 피라미드", str(by_tier))
 
-	# 같은 별 셋은 1종으로 센다
-	ok(int(Traits.evaluate(_lineup(["aries", "aries", "aries"]))
-		.element_counts.get(E.FIRE, 0)) == 1, "같은 별 셋은 1종으로 카운트")
+	# 같은 계통 셋은 1종으로 센다
+	ok(int(Traits.evaluate(_lineup(["gemini", "gemini", "gemini"]))
+		.element_counts.get(E.AIR, 0)) == 1, "같은 계통 셋은 1종으로 카운트")
 
 	# 불 2종 -> 공격력
-	var fire2 := Traits.evaluate(_lineup(["aries", "sagittarius"]))
+	var fire2 := Traits.evaluate(_lineup(["sagittarius", "leo"]))
 	ok(int(fire2.element_counts.get(E.FIRE, 0)) == 2, "다른 불 2종은 2로 카운트")
-	ok(float(fire2.mods_for("aries")["atk_mult"]) > 1.0, "불 2단계는 공격력을 올린다")
+	ok(float(fire2.mods_for("sagittarius")["atk_mult"]) > 1.0, "불 2단계는 공격력을 올린다")
 
-	# 불 트라인
-	var fire3 := Traits.evaluate(_lineup(["aries", "sagittarius", "leo"]))
-	ok(bool(fire3.active[0]["is_trine"]), "불 3종이면 트라인", fire3.describe())
-	ok(float(fire3.mods_for("leo")["atk_mult"]) > float(fire2.mods_for("aries")["atk_mult"]),
+	# 흙 2단계·트라인
+	var earth2 := Traits.evaluate(_lineup(["virgo", "taurus"]))
+	var earth3 := Traits.evaluate(_lineup(["virgo", "taurus", "capricorn"]))
+	ok(bool(earth3.active[0]["is_trine"]), "흙 3종이면 트라인", earth3.describe())
+	ok(float(earth3.mods_for("capricorn")["armor_add"]) > float(earth2.mods_for("taurus")["armor_add"]),
 		"트라인이 2단계보다 강하다")
 
 	# 원소가 다르면 서로에게 영향이 없다
-	ok(is_equal_approx(float(fire3.mods_for("cancer")["atk_mult"]), 1.0),
-		"불 트라인은 물 별자리에 영향을 주지 않는다")
+	ok(is_equal_approx(float(earth3.mods_for("pisces")["atk_mult"]), 1.0),
+		"흙 트라인은 물 계통에 영향을 주지 않는다")
 
 	# 물 트라인은 회복
 	var water3 := Traits.evaluate(_lineup(["cancer", "pisces", "scorpio"]))
 	ok(water3.team_regen > 0.0, "물 트라인은 팀을 회복시킨다", "%.4f" % water3.team_regen)
 
 	# 흙은 방어, 바람은 공속
-	var earth2 := Traits.evaluate(_lineup(["virgo", "taurus"]))
 	ok(float(earth2.mods_for("taurus")["armor_add"]) > 0.0, "흙은 방어를 올린다")
 	var air2 := Traits.evaluate(_lineup(["gemini", "libra"]))
 	ok(float(air2.mods_for("gemini")["as_mult"]) > 1.0, "바람은 공격 속도를 올린다")
@@ -122,8 +122,8 @@ func _test_abilities() -> void:
 		names[a.get("name", "")] = true
 	ok(data_ok and names.size() == 12, "열두 별 모두 서로 다른 이름과 설명의 고유 능력을 가진다")
 
-	# 강림형: 게는 보호막, 물병은 기운 반환, 양은 가속을 즉시 얻는다.
-	var deploy := CombatSim.create(_lineup(["cancer", "aquarius", "aries"]), _lineup(["capricorn"]))
+	# 강림형: 게는 보호막, 물병은 기운 반환.
+	var deploy := CombatSim.create(_lineup(["cancer", "aquarius"]), _lineup(["capricorn"]))
 	deploy.cost[0] = float(UnitDB.deploy_cost("cancer"))
 	deploy.step(Defs.TICK)
 	var cancer := _find_unit(deploy, "cancer", 0)
@@ -132,10 +132,17 @@ func _test_abilities() -> void:
 	refund.cost[0] = float(UnitDB.deploy_cost("aquarius"))
 	refund._tick_deploy()
 	ok(is_equal_approx(float(refund.cost[0]), 2.0), "물병의 순풍이 기운을 되돌려준다")
-	var aries := _find_unit(deploy, "aries", 0)
-	while not aries.deployed:
-		deploy.step(Defs.TICK)
-	ok(deploy._haste_mult(aries) > 1.0, "양은 강림 직후 선봉 가속을 얻는다")
+	# AssetForge 모아: 세 번째 공격에 겹빛 연격을 발동한다.
+	var moa_sim := CombatSim.create(_lineup(["aries"]), _lineup(["capricorn"]))
+	var moa := _find_unit(moa_sim, "aries", 0)
+	var moa_target := _find_unit(moa_sim, "capricorn", 1)
+	moa.deployed = true
+	moa_target.deployed = true
+	moa.attack_count = 2
+	moa.cd = 0.0
+	moa_sim._try_attack(moa, moa_target)
+	moa_sim._resolve_damage()
+	ok(moa.attack_count == 3 and not moa_sim._events.is_empty(), "모아는 세 번째 공격에 겹빛 연격을 발동한다")
 
 	# 공격/방어형 효과는 능력 없는 동일 수치의 기준 계산과 비교한다.
 	var pierce := CombatSim.create(_lineup(["sagittarius"]), _lineup(["taurus"]))
@@ -145,18 +152,6 @@ func _test_abilities() -> void:
 	var pierced := sag.atk * Defs.counter_mult(sag.role, bull.role) \
 		* Defs.armor_mult(bull.armor * (1.0 - float(sag.ability["armor_pierce"])))
 	ok(pierced > normal, "사수의 꿰뚫는 화살은 방어를 일부 무시한다")
-
-	var gemini_sim := CombatSim.create(_lineup(["gemini"]), _lineup(["capricorn"]))
-	var gemini := _find_unit(gemini_sim, "gemini", 0)
-	gemini.deployed = true
-	gemini.attack_count = 2
-	var hp_before: float = _find_unit(gemini_sim, "capricorn", 1).hp
-	var cap := _find_unit(gemini_sim, "capricorn", 1)
-	cap.deployed = true
-	gemini.cd = 0.0
-	gemini_sim._try_attack(gemini, cap)
-	gemini_sim._resolve_damage()
-	ok(hp_before - cap.hp > 0.0 and gemini.attack_count == 3, "쌍둥이는 매 3번째 공격에 쌍성을 발동한다")
 
 	var fish := _find_unit(CombatSim.create(_lineup(["pisces"]), []), "pisces", 0)
 	fish.hit_count = 3
