@@ -11,6 +11,11 @@ func _initialize() -> void:
 	flow._choose_corridor()
 	await process_frame
 	assert(flow.phase == flow.Phase.PREP, "전투 노드가 준비 페이즈로 연결되지 않음")
+	assert(flow.game.human_seat().player.queued_units().size() == 5, "기본 원정대가 5명으로 구성되지 않음")
+	var selected_ids := {}
+	for unit in flow.game.human_seat().player.queued_units():
+		selected_ids[str(unit.get("def_id", ""))] = true
+	assert(selected_ids.size() == 5, "기본 원정대에 중복 사도가 포함됨")
 	assert(flow.game.seats[1].name == flow.corridor.route[0].get("name", ""), "조우 이름이 적 전투에 반영되지 않음")
 	assert(flow.game.seats[1].player.roster.size() >= 2, "조우별 적 편성이 생성되지 않음")
 	flow.corridor.route_index = 1

@@ -78,7 +78,7 @@ func _build_ui() -> void:
 	_squad_box.alignment = BoxContainer.ALIGNMENT_CENTER
 	_squad_box.add_theme_constant_override("separation", 12)
 	squad_panel.get_child(0).add_child(_squad_box)
-	var pool_panel := _section("사도 선택 · 카드를 눌러 교대", 270)
+	var pool_panel := _section("사도 선택 · 6명 중 5명 · 카드를 눌러 교대", 270)
 	pool_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root.add_child(pool_panel)
 	_pool_box = GridContainer.new()
@@ -119,9 +119,11 @@ func _rebuild_pool(p: Econ.Player) -> void:
 
 func _card(unit: Dictionary, selected: bool) -> Button:
 	var d := UnitDB.get_def(str(unit["def_id"]))
+	var ability := UnitDB.ability(str(unit["def_id"]))
 	var card := Button.new()
 	card.custom_minimum_size = Vector2(128, 112)
-	card.text = "%s\n%s  ·  %d 코스트\n%s" % [str(d["name"]), Defs.ROLE_NAMES[d["role"]], UnitDB.deploy_cost(unit["def_id"]), "선택됨" if selected else "선택"]
+	card.text = "%s\n%s  ·  %d 코스트\n%s\n%s" % [str(d["name"]), Defs.ROLE_NAMES[d["role"]], UnitDB.deploy_cost(unit["def_id"]), str(ability["name"]), "선택됨" if selected else "선택"]
+	card.tooltip_text = UnitDB.ability_text(str(unit["def_id"]))
 	card.add_theme_font_size_override("font_size", 15)
 	card.add_theme_color_override("font_color", VesperUITheme.TEXT)
 	card.add_theme_color_override("font_hover_color", Color("ffffff"))
