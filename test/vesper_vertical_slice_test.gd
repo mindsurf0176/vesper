@@ -16,6 +16,10 @@ func _initialize() -> void:
 	for unit in flow.game.human_seat().player.queued_units():
 		selected_ids[str(unit.get("def_id", ""))] = true
 	assert(selected_ids.size() == 4, "기본 원정대에 중복 사도가 포함됨")
+	flow.game.human_seat().player.roster[0]["order"] = -1
+	flow._start_battle(true)
+	assert(flow.phase == flow.Phase.PREP, "4명 미만 편성이 전투 시작을 우회함")
+	flow.game.human_seat().player.roster[0]["order"] = 0
 	assert(flow.game.seats[1].name == flow.corridor.route[0].get("name", ""), "조우 이름이 적 전투에 반영되지 않음")
 	assert(flow.game.seats[1].player.roster.size() >= 2, "조우별 적 편성이 생성되지 않음")
 	flow.corridor.route_index = 1

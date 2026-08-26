@@ -148,6 +148,7 @@ func _toggle_unit(id: String) -> void:
 			return
 		p.roster.append({"def_id": id, "star": 1, "order": p.queued_units().size()})
 	refresh_all()
+	set_message(UnitDB.ability_text(id))
 
 func _section(title: String, height: float) -> PanelContainer:
 	var panel := PanelContainer.new()

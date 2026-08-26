@@ -28,9 +28,21 @@ var _hud_layer: Control
 
 
 func _ready() -> void:
-	stretch = true
+	stretch = false
 	_build_viewport()
 	_build_hud()
+	_sync_viewport_size()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_RESIZED:
+		_sync_viewport_size()
+
+
+func _sync_viewport_size() -> void:
+	if _viewport == null or size.x <= 0.0 or size.y <= 0.0:
+		return
+	_viewport.size = Vector2i(ceili(size.x), ceili(size.y))
 
 
 func bind_sim(value: CombatSim) -> void:
@@ -84,7 +96,7 @@ func actor_for_test(uid: int) -> BattleActor3D:
 func _build_viewport() -> void:
 	_viewport = SubViewport.new()
 	_viewport.name = "BattleViewport"
-	_viewport.size = Vector2i(1280, 660)
+	_viewport.size = Vector2i(1, 1)
 	_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	_viewport.transparent_bg = false
 	add_child(_viewport)

@@ -17,7 +17,7 @@
 ## Rules contract
 
 - Active engine: `CorridorSession` only. `Match` is legacy and must not be imported by active scenes.
-- Team: player owns exactly 5 selected units for the whole run. Rest can rotate their order, not replace them.
+- Team: player selects exactly 4 of the 6 available units for the whole run. Rest can rotate their order, not replace them.
 - Battle: one logical line, `FIELD_LEN=280`, spawn offset `20`; the 3D camera shows a window and moves when the cursor rests near the left/right edge.
 - Player deployment: manual only. `CombatSim.manual_deploy(team, uid)` spends current cost.
 - Enemy deployment: automatic queue for encounter pressure.

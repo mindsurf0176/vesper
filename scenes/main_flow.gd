@@ -50,6 +50,10 @@ var _pending_relic_choices: Array[String] = []
 var _intro_pending := true
 var _squad_locked := false
 var _encounter_kind := "전투"
+var _prep_expired := false
+var _has_seen_battle_help := false
+var _help_close: Button
+var _help_return_focus: Control
 
 
 func _ready() -> void:
@@ -217,7 +221,8 @@ func _build_help() -> void:
 	var rule := _label("코스트가 차면 하단 사도 카드를 눌러 출격  ·  전투는 실시간 진행", 14, "8bd9c6")
 	rule.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(rule)
-	var close := _button("관측 회랑으로", _hide_help)
+	_help_close = _button("관측 회랑으로", _hide_help)
+	var close := _help_close
 	close.custom_minimum_size.y = 42
 	box.add_child(close)
 
@@ -230,11 +235,22 @@ func _help_step(title: String, body: String) -> VBoxContainer:
 
 
 func _show_help() -> void:
+	_help_return_focus = get_viewport().gui_get_focus_owner()
 	_help_layer.visible = true
+	_help_close.call_deferred("grab_focus")
 
 
 func _hide_help() -> void:
 	_help_layer.visible = false
+	if is_instance_valid(_help_return_focus):
+		_help_return_focus.call_deferred("grab_focus")
+	_help_return_focus = null
+
+
+func _unhandled_key_input(event: InputEvent) -> void:
+	if _help_layer != null and _help_layer.visible and event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+		_hide_help()
+		get_viewport().set_input_as_handled()
 
 
 func _begin_round() -> void:
@@ -252,6 +268,7 @@ func _begin_round() -> void:
 	pairs = game.pair_up()
 	_normalize_human_pair()
 	_prep_left = FIRST_PREP_TIME if round_no == 1 else PREP_TIME
+	_prep_expired = false
 	_prep.bind_match(game)
 	_prep.set_time_left(_prep_left)
 	_prep.set_message("6명 중 원정대 4명을 고르고 전투 시작을 누르세요.")
@@ -306,8 +323,12 @@ func _process(delta: float) -> void:
 			_prep.set_time_left(_prep_left)
 			if _prep_left <= 5.0 and player.queue_count() == 0:
 				_prep.set_message("편성된 사도가 없습니다 — 이번 회차는 빈 회랑으로 맞섭니다.")
-			if _prep_left <= 0.0:
-				_start_battle(true)
+			if _prep_left <= 0.0 and not _prep_expired:
+				_prep_expired = true
+				if player.queue_count() == 4:
+					_start_battle(true)
+				else:
+					_prep.set_message("원정대 4명을 모두 선택해야 전투를 시작할 수 있습니다.")
 		Phase.BATTLE:
 			_command_left = maxf(0.0, _command_left - delta)
 			_step_battle(delta)
@@ -321,8 +342,8 @@ func _process(delta: float) -> void:
 func _start_battle(from_timeout: bool = false) -> void:
 	if phase != Phase.PREP:
 		return
-	if player.queue_count() == 0 and not from_timeout:
-		_prep.set_message("강림 편성판에 사도를 하나 이상 올려야 준비를 마칠 수 있습니다.")
+	if player.queue_count() != 4:
+		_prep.set_message("원정대 4명을 모두 선택해야 전투를 시작할 수 있습니다.")
 		return
 	if foe_seat < 0 or foe_seat == game.human_seat().index:
 		_resolve_and_show({})
@@ -501,6 +522,7 @@ func _restart() -> void:
 	corridor = CorridorRun.new(rng.randi())
 	_intro_pending = true
 	_squad_locked = false
+	_has_seen_battle_help = false
 	speed = 1.0
 	_speed_btn.text = "배속 x1"
 	_show_corridor()
@@ -598,7 +620,7 @@ func _show_expedition_intro() -> void:
 	for unit in player.queued_units():
 		var def := UnitDB.get_def(str(unit.get("def_id", "")))
 		squad_names.append(str(def.get("name", "미확인")))
-	var squad := _label("원정대  ·  " + "  /  ".join(squad_names) + "\n출격 카드  ·  5장  ·  유물 %d개" % player.relics.size(), 14, "f2b95f")
+	var squad := _label("원정대  ·  " + "  /  ".join(squad_names) + "\n출격 카드  ·  4장  ·  유물 %d개" % player.relics.size(), 14, "f2b95f")
 	squad.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_corridor_box.add_child(squad)
 	var warning := _label("경고  ·  회랑에서는 쓰러진 사도를 되살릴 수 없습니다.", 12, "d28d7d")
@@ -636,7 +658,9 @@ func _choose_corridor(option_index: int = -1) -> void:
 		return
 	game.seats[1].name = str(node.get("name", "회랑의 적"))
 	_begin_round()
-	_show_help()
+	if not _has_seen_battle_help:
+		_has_seen_battle_help = true
+		_show_help()
 
 
 func _show_corridor_result() -> void:
