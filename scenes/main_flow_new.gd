@@ -235,12 +235,12 @@ func _launch_battle() -> void:
 	if state != null:
 		state.new_game()
 
-	# battle3d는 Node3D이므로 SubViewport에 담아야 Control 트리 안에서 렌더된다.
+	# 전투 씬은 2D 픽셀 월드지만 UI와 독립된 SubViewport에서 렌더한다.
 	var svp := SubViewport.new()
 	svp.size = Vector2i(1280, 720)
 	svp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	svp.transparent_bg = true
-	svp.own_world_3d = true
+	svp.own_world_3d = false
 
 	var battle_scene = load("res://legacy/vesper/battle3d.tscn")
 	if battle_scene == null:

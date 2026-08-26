@@ -23,6 +23,7 @@ func _run() -> void:
 	var battle = flow._battle_node
 	ok(battle != null and is_instance_valid(battle), "브리핑에서 실제 전투 씬을 생성한다")
 	ok(battle != null and battle.line_core_mode, "전투 씬은 정식 라인 코어를 사용한다")
+	ok(battle is Node2D and battle.find_children("*", "Node3D", true, false).is_empty(), "활성 전투 렌더 트리는 2D만 사용한다")
 	if battle != null and is_instance_valid(battle):
 		battle.cost = 10.0
 		battle._deploy_card_slot(0, battle.deployment_max_x())

@@ -12,8 +12,7 @@ func _draw() -> void:
 	_roster()
 
 func _deploy_zone() -> void:
-	var cam = main.cam
-	if cam == null or not main.has_method("deployment_min_x"):
+	if not main.has_method("deployment_min_x") or not main.has_method("world_to_screen"):
 		return
 	if main.has_method("_tutorial_enabled") and not main._tutorial_enabled("deploy_position"):
 		return
@@ -26,9 +25,7 @@ func _deploy_zone() -> void:
 		Vector3(max_x, 0.03, 1.65),
 		Vector3(min_x, 0.03, 1.65),
 	]:
-		if cam.is_position_behind(wp):
-			return
-		pts.append(cam.unproject_position(wp))
+		pts.append(main.world_to_screen(wp))
 	var fill := Color(main.AMBER.r, main.AMBER.g, main.AMBER.b, 0.10)
 	var line := Color(main.AMBER.r, main.AMBER.g, main.AMBER.b, 0.55)
 	if main.pending_card_slot >= 0:
@@ -42,16 +39,13 @@ func _deploy_zone() -> void:
 		draw_string(main.font, mid + Vector2(-90, -10), "배치 가능 영역", HORIZONTAL_ALIGNMENT_CENTER, 180, 14, Color(1.0, 0.86, 0.55, 0.92))
 
 func _unit_bars() -> void:
-	var cam = main.cam
-	if cam == null:
+	if not main.has_method("world_to_screen"):
 		return
 	for u in main.units:
 		if u.dead:
 			continue
 		var wp: Vector3 = u.top_world()
-		if cam.is_position_behind(wp):
-			continue
-		var sp: Vector2 = cam.unproject_position(wp)
+		var sp: Vector2 = main.world_to_screen(wp)
 		var w := 30.0
 		var p := sp - Vector2(w * 0.5, 0)
 		draw_rect(Rect2(p, Vector2(w, 4)), Color(0, 0, 0, 0.55))

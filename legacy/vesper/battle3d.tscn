@@ -2,5 +2,5 @@
 
 [ext_resource type="Script" path="res://legacy/vesper/battle3d.gd" id="1"]
 
-[node name="Battle3D" type="Node3D"]
+[node name="Battle2D" type="Node2D"]
 script = ExtResource("1")

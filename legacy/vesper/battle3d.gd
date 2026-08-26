@@ -1,8 +1,9 @@
-extends Node3D
-## 베스퍼 회랑 — HD-2D 전투(3D 디오라마 + 픽셀 빌보드). 로직은 MVP1(2D)에서 이식.
+extends Node2D
+## 베스퍼 회랑 — 2D 픽셀 라인 전투. 규칙은 LineBattle, 렌더링은 CanvasItem이 담당한다.
 
-const Unit3D = preload("res://legacy/vesper/unit3d.gd")
+const Unit2D = preload("res://legacy/vesper/unit2d.gd")
 const LineBattle = preload("res://core/line_battle.gd")
+const PixelFx2D = preload("res://legacy/vesper/pixel_fx_2d.gd")
 
 const W := 1280.0
 const H := 720.0
@@ -51,7 +52,8 @@ var from_run := false   # 편성→전투로 진입한 실제 런인가(결과 �
 var simulation_mode := false
 
 var font: Font
-var cam: Camera3D
+var cam = null
+var world_root: Node2D
 var blob_tex: ImageTexture
 var _tcache := {}
 var units: Array = []
@@ -76,7 +78,7 @@ var core_invuln := 0.0
 var last_stand_ready := false
 var last_stand_used := false
 var last_stand_armed := false
-var lamp_mat: StandardMaterial3D
+var lamp_mat = null
 var trauma := 0.0
 var cam_base := Vector3.ZERO
 var _hs_count := 0
@@ -194,14 +196,14 @@ func on_death(u) -> void:
 
 # ---------- 스폰 ----------
 func _spawn(def: Dictionary, team: int, spawn_x := SPAWN_X_AUTO, register_core := true):
-	var u := Unit3D.new()
+	var u := Unit2D.new()
 	var unit_def := _with_unit_visual(def, team)
 	u.setup(self, team, unit_def, _soldier_tex(int(unit_def["type"]), team, unit_def.get("visual", {})))
 	var x: float = spawn_x if spawn_x != SPAWN_X_AUTO else (ALLY_X + 1.4 if team == ALLY else ENEMY_X - 1.4)
-	u.position = Vector3(x, 0, randf_range(-0.55, 0.55))
+	u.position = Vector2(x, randf_range(-0.10, 0.10))
 	u.manual_simulation = line_core_mode
 	units.append(u)
-	add_child(u)
+	world_root.add_child(u)
 	if line_core_mode and register_core:
 		var core_uid: int = line_core.spawn_enemy(unit_def, _core_x_from_world(x)) if team == ENEMY else line_core.deploy(unit_def, _core_x_from_world(x))
 		if core_uid > 0:
@@ -539,7 +541,7 @@ func _cast_orb_skill(caster, role: int, count: int) -> void:
 			var amount: float = 18.0 * scale
 			if target != null:
 				target.take_damage(amount, 1.0)
-				spark(target.global_position + Vector3(0, 0.9, 0), TYPE_COL[role])
+				spark(target.top_world(), TYPE_COL[role])
 			else:
 				damage_core(ALLY, amount * 0.45)
 			float_world("%d오브 돌파" % count, caster.top_world(), TYPE_COL[role])
@@ -548,7 +550,7 @@ func _cast_orb_skill(caster, role: int, count: int) -> void:
 			var amount: float = 16.0 * scale
 			if target != null:
 				target.take_damage(amount, 1.0)
-				spark(target.global_position + Vector3(0, 0.9, 0), TYPE_COL[role])
+				spark(target.top_world(), TYPE_COL[role])
 			else:
 				damage_core(ALLY, amount * 0.55)
 			float_world("%d오브 조준" % count, caster.top_world(), TYPE_COL[role])
@@ -559,7 +561,7 @@ func _cast_orb_skill(caster, role: int, count: int) -> void:
 				var hp_ratio: float = target.hp / target.max_hp
 				var exec_mult: float = 1.65 if hp_ratio <= 0.40 else 1.0
 				target.take_damage(amount * exec_mult, exec_mult)
-				spark(target.global_position + Vector3(0, 0.9, 0), TYPE_COL[role])
+				spark(target.top_world(), TYPE_COL[role])
 			else:
 				damage_core(ALLY, amount * 0.62)
 			float_world("%d오브 처형" % count, caster.top_world(), TYPE_COL[role])
@@ -604,14 +606,14 @@ func _cast_character_orb_skill(caster, role: int, count: int, skill: Dictionary)
 			if target != null:
 				target.take_damage(amount, 1.0)
 				_push_enemy(target, float(skill.get("push", 0.0)))
-				spark(target.global_position + Vector3(0, 0.9, 0), TYPE_COL[role])
+				spark(target.top_world(), TYPE_COL[role])
 			else:
 				damage_core(ALLY, amount * 0.45)
 		"damage_weakest":
 			var target = _weakest_enemy()
 			if target != null:
 				target.take_damage(amount, 1.0)
-				spark(target.global_position + Vector3(0, 0.9, 0), TYPE_COL[role])
+				spark(target.top_world(), TYPE_COL[role])
 			else:
 				damage_core(ALLY, amount * 0.55)
 		"execute_weakest":
@@ -620,7 +622,7 @@ func _cast_character_orb_skill(caster, role: int, count: int, skill: Dictionary)
 				var hp_ratio: float = target.hp / target.max_hp
 				var exec_mult: float = 1.75 if hp_ratio <= float(skill.get("execute", 0.35)) else 1.0
 				target.take_damage(amount * exec_mult, exec_mult)
-				spark(target.global_position + Vector3(0, 0.9, 0), TYPE_COL[role])
+				spark(target.top_world(), TYPE_COL[role])
 			else:
 				damage_core(ALLY, amount * 0.55)
 		"guard_push":
@@ -664,15 +666,7 @@ func _selected_corrupted_count() -> int:
 	return n
 
 func _world_x_from_screen(screen_pos: Vector2) -> float:
-	if cam == null:
-		return DEPLOY_MIN_X
-	var from := cam.project_ray_origin(screen_pos)
-	var dir := cam.project_ray_normal(screen_pos)
-	if abs(dir.y) < 0.0001:
-		return DEPLOY_MIN_X
-	var t := -from.y / dir.y
-	var hit := from + dir * t
-	return hit.x
+	return clampf((screen_pos.x - W * 0.5) / 50.0, DEPLOY_MIN_X, DEPLOY_WORLD_MAX_X)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
@@ -725,12 +719,12 @@ func _on_soshin() -> void:
 	_combat_audio("soshin", { "burned": names_burned }, 1.0)
 	float_world("소신 −%d 망자" % names_burned, Vector3(ALLY_X + 1.8, 2.4, 0), Color(1.0, 0.5, 0.4))
 	if ally_hp < ally_hp_max * 0.22:
-		var u := Unit3D.new()
+		var u := Unit2D.new()
 		var ashen_def := _with_unit_visual(EDEF["ashen"], ENEMY)
 		u.setup(self, ENEMY, ashen_def, _soldier_tex(STRIKER, ENEMY, ashen_def.get("visual", {})))
 		u.ashen = true
-		u.position = Vector3(ALLY_X + 1.8, 0, randf_range(-0.5, 0.5))
-		units.append(u); add_child(u)
+		u.position = Vector2(ALLY_X + 1.8, randf_range(-0.10, 0.10))
+		units.append(u); world_root.add_child(u)
 		float_world("재의 사도가 등을 돌렸다", Vector3(ALLY_X + 2.6, 3.0, 0), Color(0.82, 0.82, 0.86))
 		_combat_audio("ash_spawn", {}, 1.0)
 
@@ -811,18 +805,9 @@ func _process(delta: float) -> void:
 		core_dim = max(0.0, core_dim - delta * 1.6)
 	core_invuln = max(0.0, core_invuln - delta)
 	deploy_feedback_time = max(0.0, deploy_feedback_time - delta)
-	if lamp_mat != null:
-		lamp_mat.emission_energy_multiplier = (5.5 + 2.5 * (ally_hp / ally_hp_max)) * (1.0 - 0.5 * core_dim)
 	if overlay != null:
 		overlay.queue_redraw()
-	# 스크린쉐이크(trauma^2 감쇠 노이즈)
-	if cam != null:
-		trauma = max(0.0, trauma - delta * 2.0)
-		if trauma > 0.0:
-			var s: float = trauma * trauma
-			cam.position = cam_base + Vector3(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0), 0.0) * s * 0.35
-		elif cam.position != cam_base:
-			cam.position = cam_base
+	trauma = max(0.0, trauma - delta * 2.0)
 	if line_core_mode:
 		_process_line_core(delta)
 		return
@@ -1045,9 +1030,7 @@ func _pause_btn(text: String, x: float, y: float, col: Color) -> Button:
 
 # ---------- 연출 ----------
 func float_world(text: String, wpos: Vector3, color: Color) -> void:
-	if cam == null or cam.is_position_behind(wpos):
-		return
-	var sp: Vector2 = cam.unproject_position(wpos)
+	var sp: Vector2 = world_to_screen(wpos)
 	var l := Label.new()
 	l.text = text
 	l.add_theme_font_override("font", font)
@@ -1065,23 +1048,10 @@ func float_world(text: String, wpos: Vector3, color: Color) -> void:
 func spark(pos: Vector3, color: Color) -> void:
 	if simulation_mode:
 		return
-	var m := MeshInstance3D.new()
-	var q := QuadMesh.new(); q.size = Vector2(0.5, 0.5)
-	m.mesh = q
-	var mm := StandardMaterial3D.new()
-	mm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	mm.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	mm.albedo_color = Color(color.r, color.g, color.b, 0.9)
-	mm.emission_enabled = true; mm.emission = color; mm.emission_energy_multiplier = 3.0
-	m.material_override = mm
-	m.position = pos
-	add_child(m)
-	var t := create_tween()
-	t.tween_property(m, "scale", Vector3(1.9, 1.9, 1.9), 0.15)
-	t.parallel().tween_property(mm, "albedo_color:a", 0.0, 0.15)
-	t.tween_callback(m.queue_free)
+	var fx := PixelFx2D.new()
+	fx.position = Vector2(pos.x, -pos.y)
+	fx.configure(PackedVector2Array([Vector2.ZERO]), color, 0.15)
+	world_root.add_child(fx)
 
 func _tick_combat_audio(delta: float) -> void:
 	for key in combat_audio_cooldowns.keys():
@@ -1116,7 +1086,7 @@ func attack_fx_to_pos(attacker, target_pos: Vector3, color: Color, kind := "") -
 	if simulation_mode or attacker == null:
 		return
 	_combat_audio(_attack_audio_event(kind), { "kind": kind }, 0.10)
-	var from: Vector3 = attacker.global_position + Vector3(0, attacker.vh * 0.58, 0)
+	var from: Vector3 = attacker.top_world() - Vector3(0, attacker.vh * 0.42, 0)
 	var to: Vector3 = target_pos
 	var c := color
 	var linger := 0.12
@@ -1130,26 +1100,9 @@ func attack_fx_to_pos(attacker, target_pos: Vector3, color: Color, kind := "") -
 		_line_fx(to + Vector3(-0.18, 0.18, 0), to + Vector3(0.22, -0.12, 0), c.lightened(0.15), 0.10)
 
 func _line_fx(from: Vector3, to: Vector3, color: Color, lifetime: float) -> void:
-	var mesh := ImmediateMesh.new()
-	mesh.surface_begin(Mesh.PRIMITIVE_LINES)
-	mesh.surface_add_vertex(from)
-	mesh.surface_add_vertex(to)
-	mesh.surface_end()
-	var line := MeshInstance3D.new()
-	line.mesh = mesh
-	var mat_fx := StandardMaterial3D.new()
-	mat_fx.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat_fx.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat_fx.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	mat_fx.albedo_color = Color(color.r, color.g, color.b, 0.95)
-	mat_fx.emission_enabled = true
-	mat_fx.emission = color
-	mat_fx.emission_energy_multiplier = 2.4
-	line.material_override = mat_fx
-	add_child(line)
-	var t := create_tween()
-	t.tween_property(mat_fx, "albedo_color:a", 0.0, lifetime)
-	t.tween_callback(line.queue_free)
+	var fx := PixelFx2D.new()
+	fx.configure(PackedVector2Array([Vector2(from.x, -from.y), Vector2(to.x, -to.y)]), color, lifetime)
+	world_root.add_child(fx)
 
 func death_fx(pos: Vector3, color: Color) -> void:
 	if simulation_mode:
@@ -1179,111 +1132,20 @@ func hitstop(d: float) -> void:
 		_hs_count = 0
 		Engine.time_scale = 1.0
 
-# ---------- 3D 월드 ----------
+# ---------- 2D 월드 ----------
 func _build_world() -> void:
-	# 배경은 main_flow의 2D 백드롭이 담당한다. 3D 월드는 캐릭터와 최소
-	# 조명만 렌더링해 웹/저사양 기기의 픽셀 비용을 낮춘다.
-	var env := Environment.new()
-	env.background_mode = Environment.BG_CLEAR_COLOR
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.45, 0.58, 0.58)
-	env.ambient_light_energy = 0.65
-	var we := WorldEnvironment.new(); we.environment = env
-	add_child(we)
-	# 카메라
-	cam = Camera3D.new()
-	cam.position = Vector3(0, 4.4, 16.0)
-	cam.fov = 40.0
-	add_child(cam)
-	cam.look_at(Vector3(0, 1.0, 0), Vector3.UP)
-	cam.current = true
-	cam_base = cam.position
-	# 조명
-	var dl := DirectionalLight3D.new()
-	dl.rotation_degrees = Vector3(-48, -34, 0)
-	dl.light_color = Color(1.0, 0.93, 0.82)
-	dl.light_energy = 0.7
-	dl.shadow_enabled = false
-	add_child(dl)
-	var ol := OmniLight3D.new()
-	ol.position = Vector3(ALLY_X, 1.7, 0.6); ol.light_color = AMBER
-	ol.light_energy = 2.0; ol.omni_range = 8.0; ol.shadow_enabled = false
-	add_child(ol)
-	var oc := OmniLight3D.new()
-	oc.position = Vector3(ENEMY_X, 1.7, 0.6); oc.light_color = CYAN
-	oc.light_energy = 1.5; oc.omni_range = 8.0
-	add_child(oc)
-	_cores()
-	_spores()
+	# 논리 좌표는 기존 -8.5..8.5를 유지하고, 한 번의 2D transform으로
+	# 1280x720 화면 중앙에 픽셀 월드를 배치한다.
+	world_root = Node2D.new()
+	world_root.position = Vector2(W * 0.5, 430.0)
+	world_root.scale = Vector2(50.0, 50.0)
+	add_child(world_root)
+	var stage := Node2D.new()
+	stage.set_script(load("res://legacy/vesper/battlefield_2d.gd"))
+	world_root.add_child(stage)
 
-func _mat(col: Color, rough := 0.92, emis := Color(0, 0, 0), ee := 0.0) -> StandardMaterial3D:
-	var m := StandardMaterial3D.new()
-	m.albedo_color = col; m.roughness = rough
-	if ee > 0.0:
-		m.emission_enabled = true; m.emission = emis; m.emission_energy_multiplier = ee
-	return m
-
-func _box(size: Vector3, pos: Vector3, col: Color, rough := 0.9) -> void:
-	var mi := MeshInstance3D.new()
-	var bm := BoxMesh.new(); bm.size = size; mi.mesh = bm
-	mi.position = pos; mi.material_override = _mat(col, rough)
-	add_child(mi)
-
-func _plane(size: Vector2, pos: Vector3, col: Color) -> void:
-	var mi := MeshInstance3D.new()
-	var pm := PlaneMesh.new(); pm.size = size; mi.mesh = pm
-	mi.position = pos; mi.material_override = _mat(col, 0.95)
-	add_child(mi)
-
-func _diorama() -> void:
-	_plane(Vector2(46, 18), Vector3(0, 0, -1), Color(0.07, 0.125, 0.13))
-	_plane(Vector2(46, 4.0), Vector3(0, 0.02, 0.2), Color(0.10, 0.18, 0.18))
-	_box(Vector3(46, 10, 0.6), Vector3(0, 5.0, -4.6), Color(0.06, 0.11, 0.12))
-	for x in [-6.0, -2.0, 2.0, 6.0]:
-		_box(Vector3(0.7, 5.6, 0.7), Vector3(x, 2.8, -3.0), Color(0.08, 0.13, 0.14), 0.8)
-	_box(Vector3(1.5, 9, 1.5), Vector3(-11.5, 4.0, 2.9), Color(0.03, 0.06, 0.07))
-	_box(Vector3(1.5, 9, 1.5), Vector3(11.5, 4.0, 2.9), Color(0.03, 0.06, 0.07))
-	_box(Vector3(26, 1.1, 1.2), Vector3(0, 8.2, 2.7), Color(0.03, 0.06, 0.07))
-	_box(Vector3(0.9, 0.9, 0.9), Vector3(-1.4, 0.45, 1.2), Color(0.09, 0.14, 0.15), 0.85)
-	_box(Vector3(0.7, 0.7, 0.7), Vector3(2.0, 0.35, -0.9), Color(0.09, 0.14, 0.15), 0.85)
-
-func _cores() -> void:
-	_box(Vector3(1.1, 1.7, 1.1), Vector3(ALLY_X, 0.85, 0), Color(0.12, 0.10, 0.08))
-	var lamp := MeshInstance3D.new()
-	var sm := SphereMesh.new(); sm.radius = 0.6; sm.height = 1.2
-	lamp.mesh = sm; lamp.position = Vector3(ALLY_X, 2.0, 0)
-	lamp_mat = _mat(AMBER, 0.3, AMBER, 7.0)
-	lamp.material_override = lamp_mat
-	add_child(lamp)
-	var knot := MeshInstance3D.new()
-	var km := SphereMesh.new(); km.radius = 0.8; km.height = 1.6
-	knot.mesh = km; knot.position = Vector3(ENEMY_X, 1.4, 0)
-	knot.material_override = _mat(CYAN.darkened(0.2), 0.4, CYAN, 5.0)
-	add_child(knot)
-
-func _spores() -> void:
-	var p := GPUParticles3D.new()
-	p.amount = 110; p.lifetime = 8.0; p.preprocess = 4.0
-	p.position = Vector3(0, 1.6, 0.3)
-	var pm := ParticleProcessMaterial.new()
-	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
-	pm.emission_box_extents = Vector3(13, 2.6, 2.0)
-	pm.gravity = Vector3(0, 0.05, 0)
-	pm.initial_velocity_min = 0.05; pm.initial_velocity_max = 0.2
-	pm.scale_min = 0.4; pm.scale_max = 1.1
-	pm.color = Color(CYAN.r, CYAN.g, CYAN.b, 0.7)
-	p.process_material = pm
-	var qm := QuadMesh.new(); qm.size = Vector2(0.06, 0.06)
-	var dm := StandardMaterial3D.new()
-	dm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	dm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	dm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	dm.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	dm.albedo_color = Color(CYAN.r, CYAN.g, CYAN.b, 0.8)
-	dm.emission_enabled = true; dm.emission = CYAN; dm.emission_energy_multiplier = 2.0
-	qm.material = dm
-	p.draw_pass_1 = qm
-	add_child(p)
+func world_to_screen(world_pos: Vector3) -> Vector2:
+	return Vector2(W * 0.5 + world_pos.x * 50.0, 430.0 - world_pos.y * 50.0)
 
 # ---------- 픽셀 병사 텍스처 ----------
 func _soldier_tex(utype: int, team: int, visual: Dictionary = {}) -> ImageTexture:
