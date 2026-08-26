@@ -263,9 +263,11 @@ func _configure_corridor_encounter() -> void:
 		ids = ["capricorn", "sagittarius", "virgo", "scorpio", "aries"]
 	var foe := game.seats[1].player
 	foe.roster.clear()
-	foe.level = clampi(3 + ids.size(), UnitDB.MIN_LEVEL, UnitDB.MAX_LEVEL)
+	var threat := float(node.get("threat", 1.0))
+	var threat_level := maxi(0, roundi((threat - 1.0) * 3.0))
+	foe.level = clampi(3 + ids.size() + threat_level, UnitDB.MIN_LEVEL, UnitDB.MAX_LEVEL)
 	for i in ids.size():
-		foe.roster.append({"def_id": ids[i], "star": 2 if kind == "보스" else 1, "order": i})
+		foe.roster.append({"def_id": ids[i], "star": 2 if kind == "보스" or kind == "엘리트" else 1, "order": i})
 
 
 func _process(delta: float) -> void:
