@@ -8,6 +8,8 @@ const ACTOR_SCRIPT := preload("res://scenes/battle/battle_actor_3d.gd")
 const WORLD_LEFT := BattleStage3D.ALLY_X + 0.85
 const WORLD_RIGHT := BattleStage3D.ENEMY_X - 0.85
 const LANE_STEP := 0.12
+const EDGE_SCROLL_ZONE := 110.0
+const EDGE_SCROLL_SPEED := 0.36
 
 var sim: CombatSim = null
 var label_left := "아군"
@@ -100,7 +102,8 @@ func _build_hud() -> void:
 	add_child(_hud_layer)
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	_update_edge_scroll(delta)
 	if sim == null:
 		_stage.set_core_state([Defs.CORE_HP, Defs.CORE_HP], Defs.CORE_HP)
 		queue_redraw()
@@ -116,6 +119,22 @@ func _process(_delta: float) -> void:
 	var now := Time.get_ticks_msec() / 1000.0
 	_ability_calls = _ability_calls.filter(func(call): return float(call["until"]) >= now)
 	queue_redraw()
+
+
+func _update_edge_scroll(delta: float) -> void:
+	if sim == null or size.x <= 0.0:
+		return
+	var pointer := get_local_mouse_position()
+	if pointer.y < 0.0 or pointer.y > size.y or pointer.x < 0.0 or pointer.x > size.x:
+		return
+	var direction := 0.0
+	if pointer.x <= EDGE_SCROLL_ZONE:
+		direction = -1.0
+	elif pointer.x >= size.x - EDGE_SCROLL_ZONE:
+		direction = 1.0
+	if is_zero_approx(direction):
+		return
+	set_field_scroll(field_scroll + direction * EDGE_SCROLL_SPEED * delta)
 
 
 func _sync_actors(states: Array, snap: bool) -> void:

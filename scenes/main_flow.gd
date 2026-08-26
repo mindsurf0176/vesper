@@ -38,7 +38,6 @@ var _battle_top: Label
 var _speed_btn: Button
 var _command_btn: Button
 var _command_left := 0.0
-var _battle_scroll: HScrollBar
 var _plan_buttons: Array[Button] = []
 var _result_layer: Control
 var _result_title: Label
@@ -135,16 +134,6 @@ func _build_battle() -> void:
 	_view.font = _font
 	_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root_box.add_child(_view)
-	_battle_scroll = HScrollBar.new()
-	_battle_scroll.name = "BattleFieldScroll"
-	_battle_scroll.min_value = 0.0
-	_battle_scroll.max_value = 100.0
-	_battle_scroll.step = 1.0
-	_battle_scroll.value = 50.0
-	_battle_scroll.custom_minimum_size.y = 18
-	_battle_scroll.tooltip_text = "전장 좌우 이동"
-	_battle_scroll.value_changed.connect(func(value: float): _view.set_field_scroll(value / 100.0))
-	root_box.add_child(_battle_scroll)
 	var card_panel := PanelContainer.new()
 	card_panel.custom_minimum_size.y = 132
 	card_panel.add_theme_stylebox_override("panel", _panel_style("0d1a25"))
@@ -343,7 +332,6 @@ func _start_battle(from_timeout: bool = false) -> void:
 	_view.label_right = game.seats[foe_seat].name
 	_view.bind_sim(sim)
 	_view.set_playback_speed(speed)
-	_battle_scroll.value = 50.0
 	_view.set_field_scroll(0.5)
 	_command_left = 0.0
 	phase = Phase.BATTLE
