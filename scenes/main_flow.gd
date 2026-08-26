@@ -47,6 +47,8 @@ var _planned_orders: Array[String] = []
 var _planned_powers: Array[int] = []
 var _command_hand: Array[Dictionary] = []
 var _discarded_cards: Array[Dictionary] = []
+var _draw_pile: Array[String] = []
+var _discard_pile: Array[String] = []
 var _action_points := 3
 var _result_layer: Control
 var _result_title: Label
@@ -58,6 +60,8 @@ var _corridor_box: VBoxContainer
 var _pending_relic_choices: Array[String] = []
 var _pending_card_choices: Array[String] = []
 var _intro_pending := true
+var _squad_locked := false
+var _encounter_kind := "전투"
 
 
 func _ready() -> void:
@@ -256,6 +260,9 @@ func _begin_round() -> void:
 	_prep.bind_match(game)
 	_prep.set_time_left(_prep_left)
 	_prep.set_message("항성 기억을 호출하고 왼쪽부터 강림 순서를 만드세요.")
+	if _squad_locked:
+		_prep.visible = false
+		_start_battle()
 
 
 func _normalize_human_pair() -> void:
@@ -278,6 +285,7 @@ func _configure_corridor_encounter() -> void:
 		return
 	var node := corridor.current()
 	var kind := str(node.get("kind", "전투"))
+	_encounter_kind = kind
 	var ids: Array[String] = ["aries", "sagittarius"]
 	if kind == "엘리트":
 		ids = ["taurus", "aries", "sagittarius", "scorpio"]
@@ -325,6 +333,7 @@ func _start_battle(from_timeout: bool = false) -> void:
 		_resolve_and_show({})
 		return
 	sim = game.build_sim(game.human_seat().index, foe_seat)
+	_squad_locked = true
 	_view.label_left = game.human_seat().name
 	_view.label_right = game.seats[foe_seat].name
 	_view.bind_sim(sim)
@@ -361,17 +370,13 @@ func _card_catalog() -> Array[Dictionary]:
 
 func _draw_hand() -> void:
 	_command_hand.clear()
-	var deck: Array[Dictionary] = []
-	for card_id in player.command_deck:
-		var card := _card_by_id(card_id)
-		if not card.is_empty():
-			deck.append(card)
-	if deck.is_empty():
-		for card_id in ["charge", "guard", "focus"]:
-			deck.append(_card_by_id(card_id))
-	deck.shuffle()
-	for i in mini(3, deck.size()):
-		_command_hand.append(deck[i])
+	if _draw_pile.is_empty():
+		_draw_pile.append_array(_discard_pile)
+		_discard_pile.clear()
+	_draw_pile.shuffle()
+	for i in mini(3, _draw_pile.size()):
+		var card_id: String = _draw_pile.pop_back()
+		_command_hand.append(_card_by_id(card_id))
 
 
 func _card_by_id(card_id: String) -> Dictionary:
@@ -393,7 +398,7 @@ func _on_card_pressed(hand_index: int) -> void:
 	_action_points -= card_cost
 	_planned_orders.append(str(card["order"]))
 	_planned_powers.append(int(card["power"]))
-	_discarded_cards.append(card)
+	_discard_pile.append(str(card["id"]))
 	_command_hand.remove_at(hand_index)
 	_refresh_battle_hud()
 
@@ -403,6 +408,9 @@ func _confirm_plan() -> void:
 		return
 	for i in _planned_orders.size():
 		sim.apply_tactical_order(_planned_orders[i], _planned_powers[i])
+	for card in _command_hand:
+		_discard_pile.append(str(card["id"]))
+	_command_hand.clear()
 	phase = Phase.BATTLE
 	_turn_left = 6.0
 	_refresh_battle_hud()
@@ -413,6 +421,9 @@ func _enter_plan() -> void:
 	_action_points = 3
 	_planned_orders.clear()
 	_planned_powers.clear()
+	if _draw_pile.is_empty() and _discard_pile.is_empty():
+		_draw_pile.append_array(player.command_deck)
+		_draw_pile.shuffle()
 	_draw_hand()
 	_refresh_battle_hud()
 
@@ -453,10 +464,16 @@ func _refresh_battle_hud() -> void:
 	var plan_text := "AP %d/3" % _action_points
 	if not _planned_orders.is_empty():
 		plan_text += "  예약: " + " + ".join(_planned_orders)
+	plan_text += "  ·  덱 %d / 버림 %d" % [_draw_pile.size(), _discard_pile.size()]
 	var turn_state := plan_text if phase == Phase.PLAN else "라인 실행 중 · 다음 계획까지 %.1fs" % _turn_left
+	var pattern_state := ""
+	var interval := 6.0 if _encounter_kind == "엘리트" else 5.0 if _encounter_kind == "보스" else 0.0
+	if interval > 0.0:
+		var until_pattern := interval - fmod(sim.time, interval)
+		pattern_state = "  ·  ⚠ %s %.1fs" % ["검은 파동" if _encounter_kind == "엘리트" else "매듭 재생", until_pattern]
 	_battle_top.text = "NIGHT %02d   %s  %d HP     VS     %d HP  %s\n%.1fs / %ds   ·   %s  ·  %s" % [
 		round_no, game.human_seat().name, int(sim.core_hp[0]), int(sim.core_hp[1]),
-		game.seats[foe_seat].name, sim.time, int(Defs.MAX_BATTLE_TIME), line_state, turn_state]
+		game.seats[foe_seat].name, sim.time, int(Defs.MAX_BATTLE_TIME), line_state, turn_state + pattern_state]
 	if not player.relics.is_empty():
 		_battle_top.text += "   ·   유물: " + ", ".join(_relic_names(player.relics))
 	_command_btn.disabled = phase != Phase.BATTLE or _command_left > 0.0 or sim.finished
@@ -572,6 +589,10 @@ func _restart() -> void:
 	_seed_starter_squad()
 	corridor = CorridorRun.new(rng.randi())
 	_intro_pending = true
+	_squad_locked = false
+	_draw_pile.clear()
+	_discard_pile.clear()
+	_command_hand.clear()
 	speed = 1.0
 	_speed_btn.text = "배속 x1"
 	_show_corridor()
@@ -619,7 +640,7 @@ func _show_corridor() -> void:
 	var info := _label("SEED %d   ·   FLOOR %d/5\n%s  ·  위협 배율 %.1f" % [corridor.seed, int(current.get("floor", 1)), current.get("name", ""), float(current.get("threat", 1.0))], 15, "b9cfca")
 	info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_corridor_box.add_child(info)
-	var note := _label("전투 노드에서는 기존 라인배틀러 준비와 전투가 이어집니다.\n보급과 이벤트를 선택하면 다음 전투를 유리하게 만들 수 있습니다.", 14, "e8efeb")
+	var note := _label("전투 노드에서는 원정대가 자동으로 출발하고, 전투 중 전술 카드를 선택합니다.\n보급·이벤트·휴식처에서 다음 전투를 준비할 수 있습니다.", 14, "e8efeb")
 	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_corridor_box.add_child(note)
 	if not player.relics.is_empty():
@@ -628,7 +649,7 @@ func _show_corridor() -> void:
 		_corridor_box.add_child(relics)
 	var options := corridor.available_options()
 	if not options.is_empty():
-		_corridor_box.add_child(_label("2층 경로를 선택하세요", 15, "f3c777"))
+		_corridor_box.add_child(_label("%d층 경로를 선택하세요" % int(current.get("floor", 1)), 15, "f3c777"))
 		for i in options.size():
 			var option: Dictionary = options[i]
 			var option_button := _button("%s  ·  위협 %.1f" % [option.get("name", "회랑"), float(option.get("threat", 1.0))], _choose_corridor.bind(i))
