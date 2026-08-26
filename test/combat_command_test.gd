@@ -5,9 +5,10 @@ const Sim = preload("res://core/sim.gd")
 func _init() -> void:
 	var ally := {"def_id":"aries", "order":0, "star":1}
 	var enemy := {"def_id":"sagittarius", "order":0, "star":1}
-	var sim = Sim.create([ally], [enemy], 3, 3)
-	for _i in 3:
+	var sim = Sim.create([ally], [enemy], 3, 3, true)
+	for _i in 12:
 		sim.step(1.0)
+	assert(sim.units[1].is_active(), "지휘기 검증 전에 적 유닛이 출격하지 않음")
 	assert(sim.cast_command_strike(48.0), "지휘기가 적 유닛을 타격하지 못함")
 	var events := sim.consume_events()
 	var found := false
@@ -16,6 +17,8 @@ func _init() -> void:
 			found = true
 	assert(found, "지휘기 이벤트가 프레젠터로 전달되지 않음")
 	var tactical := Sim.create([ally], [enemy], 3, 3)
+	tactical.units[0].deployed = true
+	tactical.units[1].deployed = true
 	for _i in 3:
 		tactical.step(1.0)
 	var ally_unit = tactical.units[0]
@@ -25,6 +28,8 @@ func _init() -> void:
 	assert(tactical.apply_tactical_order("방어"), "방어 명령을 적용하지 못함")
 	assert(ally_unit.shield > 0.0, "방어 명령이 보호막에 반영되지 않음")
 	var heavy := Sim.create([ally], [enemy], 3, 3)
+	heavy.units[0].deployed = true
+	heavy.units[1].deployed = true
 	for _i in 3:
 		heavy.step(1.0)
 	var target = heavy.units[1]

@@ -247,9 +247,14 @@ func _hide_help() -> void:
 	_help_return_focus = null
 
 
-func _unhandled_key_input(event: InputEvent) -> void:
-	if _help_layer != null and _help_layer.visible and event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+func _input(event: InputEvent) -> void:
+	if _help_layer == null or not _help_layer.visible or not event is InputEventKey or not event.pressed:
+		return
+	if event.keycode == KEY_ESCAPE:
 		_hide_help()
+		get_viewport().set_input_as_handled()
+	elif event.keycode == KEY_TAB:
+		_help_close.grab_focus()
 		get_viewport().set_input_as_handled()
 
 
@@ -354,7 +359,7 @@ func _start_battle(from_timeout: bool = false) -> void:
 	_view.label_right = game.seats[foe_seat].name
 	_view.bind_sim(sim)
 	_view.set_playback_speed(speed)
-	_view.set_field_scroll(0.5)
+	_view.set_field_scroll(0.0)
 	_command_left = 0.0
 	phase = Phase.BATTLE
 	_accum = 0.0
@@ -405,7 +410,7 @@ func _refresh_battle_hud() -> void:
 		game.seats[foe_seat].name, sim.time, int(Defs.MAX_BATTLE_TIME), line_state, turn_state + pattern_state]
 	if not player.relics.is_empty():
 		_battle_top.text += "   ·   유물: " + ", ".join(_relic_names(player.relics))
-	_command_btn.disabled = phase != Phase.BATTLE or _command_left > 0.0 or sim.finished
+	_command_btn.disabled = phase != Phase.BATTLE or _command_left > 0.0 or sim.finished or not _has_active_enemy()
 	_command_btn.text = "지휘기 %.1f" % _command_left if _command_left > 0.0 else "지휘기"
 	var available: Array = []
 	for unit in sim.units:
@@ -442,6 +447,15 @@ func _on_command() -> void:
 	if sim.cast_command_strike(48.0):
 		_command_left = 12.0
 		_refresh_battle_hud()
+
+
+func _has_active_enemy() -> bool:
+	if sim == null:
+		return false
+	for unit in sim.units:
+		if unit.team == 1 and unit.is_active():
+			return true
+	return false
 
 
 func _resolve_and_show(precomputed: Dictionary) -> void:

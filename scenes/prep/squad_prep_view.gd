@@ -136,12 +136,22 @@ func _card(unit: Dictionary, selected: bool) -> Button:
 
 func _toggle_unit(id: String) -> void:
 	var p := game.human_seat().player
-	var found := -1
+	var active_index := -1
+	var bench_index := -1
 	for i in p.roster.size():
-		if str(p.roster[i].get("def_id", "")) == id and int(p.roster[i].get("order", -1)) >= 0:
-			found = i
-	if found >= 0:
-		p.roster[found]["order"] = -1
+		if str(p.roster[i].get("def_id", "")) != id:
+			continue
+		if int(p.roster[i].get("order", -1)) >= 0:
+			active_index = i
+		else:
+			bench_index = i
+	if active_index >= 0:
+		p.roster[active_index]["order"] = -1
+	elif bench_index >= 0:
+		if p.queued_units().size() >= 4:
+			set_message("4명만 데려갈 수 있습니다. 먼저 한 명을 교대하세요.")
+			return
+		p.roster[bench_index]["order"] = p.queued_units().size()
 	else:
 		if p.queued_units().size() >= 4:
 			set_message("4명만 데려갈 수 있습니다. 먼저 한 명을 교대하세요.")

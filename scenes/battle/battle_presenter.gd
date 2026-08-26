@@ -10,6 +10,7 @@ const WORLD_RIGHT := BattleStage3D.ENEMY_X - 0.85
 const LANE_STEP := 0.12
 const EDGE_SCROLL_ZONE := 110.0
 const EDGE_SCROLL_SPEED := 0.36
+const FOLLOW_SPEED := 2.4
 
 var sim: CombatSim = null
 var label_left := "아군"
@@ -124,6 +125,7 @@ func _process(delta: float) -> void:
 		bind_sim(sim)
 	var states := sim.snapshot()
 	_sync_actors(states, false)
+	_update_camera_follow(states, delta)
 	_consume_events()
 	_reconcile_actor_lifetimes(states)
 	_cleanup_retiring()
@@ -147,6 +149,25 @@ func _update_edge_scroll(delta: float) -> void:
 	if is_zero_approx(direction):
 		return
 	set_field_scroll(field_scroll + direction * EDGE_SCROLL_SPEED * delta)
+
+
+func _update_camera_follow(states: Array, delta: float) -> void:
+	if sim == null or size.x <= 0.0:
+		return
+	var pointer := get_local_mouse_position()
+	if pointer.x <= EDGE_SCROLL_ZONE or pointer.x >= size.x - EDGE_SCROLL_ZONE:
+		return
+	var front := 0.0
+	var has_front := false
+	for state in states:
+		if int(state["team"]) != 0 or not bool(state["deployed"]) or not bool(state["alive"]):
+			continue
+		front = maxf(front, float(state["x"]))
+		has_front = true
+	if not has_front:
+		return
+	var target := clampf((front - 70.0) / maxf(Defs.FIELD_LEN - 140.0, 1.0), 0.0, 1.0)
+	set_field_scroll(lerpf(field_scroll, target, clampf(delta * FOLLOW_SPEED, 0.0, 1.0)))
 
 
 func _sync_actors(states: Array, snap: bool) -> void:
