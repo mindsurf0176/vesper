@@ -65,9 +65,12 @@ func refresh_all() -> void:
 		return
 	var p := game.human_seat().player
 	var foe := _human_foe()
-	_hud.text = "%d번째 밤   ♥ %d   ◆ %d (+%d)   Lv.%d  XP %d/%s   강림 %d/%d   상대 %s" % [
-		game.round_no, p.hp, p.gold, game.econ.interest(p.gold), p.level, p.xp,
-		str(UnitDB.XP_TO_NEXT.get(p.level, "MAX")), p.queue_count(), p.level,
+	_hud.text = "NIGHT %02d   %s   ·   HP %d   ·   GOLD %d (+%d)   ·   LV %d" % [
+		game.round_no, game.seats[foe].name if foe >= 0 else "고요한 밤", p.hp, p.gold,
+		game.econ.interest(p.gold), p.level]
+	_hud.text += "\n강림 %d/%d   ·   XP %d/%s   ·   상대 %s" % [
+		p.queue_count(), p.level, p.xp,
+		str(UnitDB.XP_TO_NEXT.get(p.level, "MAX")),
 		game.seats[foe].name if foe >= 0 else "없음"]
 	_message.text = message
 	_rebuild_synergy(p)
@@ -97,7 +100,7 @@ func _build_ui() -> void:
 	add_child(root)
 
 	var top := PanelContainer.new()
-	top.custom_minimum_size.y = 54
+	top.custom_minimum_size.y = 76
 	top.add_theme_stylebox_override("panel", _panel("102226", 9))
 	root.add_child(top)
 	var top_row := HBoxContainer.new()
@@ -106,7 +109,9 @@ func _build_ui() -> void:
 	var mode := _label("OBSERVATORY / PREP", 11, "70aaa4")
 	mode.custom_minimum_size.x = 154
 	top_row.add_child(mode)
-	_hud = _label("", 14, "eef4f1")
+	_hud = _label("", 13, "eef4f1")
+	_hud.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_hud.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_hud.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top_row.add_child(_hud)
 	_timer = _label("준비 45", 20, "efc86d")
@@ -409,11 +414,11 @@ func _unit_tooltip(def_id: String, star: int) -> String:
 func _section(title: String, min_w: float) -> PanelContainer:
 	var p := PanelContainer.new()
 	p.custom_minimum_size.x = min_w
-	p.add_theme_stylebox_override("panel", _panel("0d1d20", 7))
+	p.add_theme_stylebox_override("panel", _panel("0d1d20", 9))
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 4)
 	p.add_child(v)
-	v.add_child(_label(title, 11, "83aaa6"))
+	v.add_child(_label(title, 13, "f3c777"))
 	return p
 
 
@@ -426,6 +431,8 @@ func _panel(hex: String, margin: int) -> StyleBoxFlat:
 	sb.content_margin_bottom = margin
 	sb.border_color = Color("28474b")
 	sb.set_border_width_all(1)
+	sb.shadow_color = Color(0.0, 0.0, 0.0, 0.22)
+	sb.shadow_size = 5
 	sb.corner_radius_top_left = 5
 	sb.corner_radius_top_right = 5
 	sb.corner_radius_bottom_left = 5
@@ -444,8 +451,34 @@ func _label(text: String, size: int, hex: String) -> Label:
 func _button(text: String, cb: Callable) -> Button:
 	var b := Button.new()
 	b.text = text
+	b.add_theme_font_size_override("font_size", 13)
+	b.add_theme_color_override("font_color", Color("dce9e3"))
+	b.add_theme_color_override("font_hover_color", Color("fff0c2"))
+	b.add_theme_color_override("font_pressed_color", Color("f3c777"))
+	b.add_theme_color_override("font_disabled_color", Color("6f8481"))
+	b.add_theme_stylebox_override("normal", _button_style("193134", "31585a"))
+	b.add_theme_stylebox_override("hover", _button_style("254447", "f3c777"))
+	b.add_theme_stylebox_override("pressed", _button_style("102124", "f3c777"))
+	b.add_theme_stylebox_override("disabled", _button_style("101c1e", "263b3d"))
+	b.custom_minimum_size.y = 36
 	b.pressed.connect(cb)
 	return b
+
+
+func _button_style(bg_hex: String, border_hex: String) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(bg_hex)
+	sb.border_color = Color(border_hex)
+	sb.set_border_width_all(1)
+	sb.corner_radius_top_left = 5
+	sb.corner_radius_top_right = 5
+	sb.corner_radius_bottom_left = 5
+	sb.corner_radius_bottom_right = 5
+	sb.content_margin_left = 10
+	sb.content_margin_right = 10
+	sb.content_margin_top = 7
+	sb.content_margin_bottom = 7
+	return sb
 
 
 func _clear(node: Node) -> void:

@@ -110,13 +110,15 @@ func _build_battle() -> void:
 	root_box.add_theme_constant_override("separation", 0)
 	_battle_layer.add_child(root_box)
 	var top := PanelContainer.new()
-	top.custom_minimum_size.y = 58
+	top.custom_minimum_size.y = 76
 	top.add_theme_stylebox_override("panel", _panel_style("122326"))
 	root_box.add_child(top)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
 	top.add_child(row)
-	_battle_top = _label("", 15, "e8efeb")
+	_battle_top = _label("", 16, "e8efeb")
+	_battle_top.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_battle_top.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_battle_top.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(_battle_top)
 	_speed_btn = _button("배속 x1", _on_speed)
@@ -347,10 +349,9 @@ func _refresh_battle_hud() -> void:
 		line_state = "아군 전선 우세"
 	elif enemy_front - ally_front > 8.0:
 		line_state = "전선 밀림"
-	_battle_top.text = "%s  코어 %d   ◀  %.1fs / %ds  ▶   코어 %d  %s" % [
-		game.human_seat().name, int(sim.core_hp[0]), sim.time, int(Defs.MAX_BATTLE_TIME),
-		int(sim.core_hp[1]), game.seats[foe_seat].name]
-	_battle_top.text += "   ·   " + line_state
+	_battle_top.text = "NIGHT %02d   %s  %d HP     VS     %d HP  %s\n%.1fs / %ds   ·   %s" % [
+		round_no, game.human_seat().name, int(sim.core_hp[0]), int(sim.core_hp[1]),
+		game.seats[foe_seat].name, sim.time, int(Defs.MAX_BATTLE_TIME), line_state]
 	if not player.relics.is_empty():
 		_battle_top.text += "   ·   유물: " + ", ".join(_relic_names(player.relics))
 	_command_btn.disabled = _command_left > 0.0 or sim.finished
