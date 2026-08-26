@@ -7,7 +7,7 @@ const SquadPrepViewScene = preload("res://scenes/prep/squad_prep_view.gd")
 ## STARLINE의 준비 → 전투 → 결과 → 게임오버 흐름.
 ## STARLINE gameplay core와 Vesper passive presentation을 연결한다.
 
-enum Phase { MAP, PREP, PLAN, BATTLE, RESULT, GAMEOVER }
+enum Phase { MAP, PREP, BATTLE, RESULT, GAMEOVER }
 
 const FIRST_PREP_TIME := 45.0
 const PREP_TIME := 30.0
@@ -22,8 +22,6 @@ var rng := RandomNumberGenerator.new()
 var pairs: Array = []
 var foe_seat := -1
 
-var econ: Econ:
-	get: return game.econ
 var player: Econ.Player:
 	get: return game.human_seat().player
 var round_no: int:
@@ -40,16 +38,7 @@ var _battle_top: Label
 var _speed_btn: Button
 var _command_btn: Button
 var _command_left := 0.0
-var _turn_left := 0.0
 var _plan_buttons: Array[Button] = []
-var _confirm_plan_btn: Button
-var _planned_orders: Array[String] = []
-var _planned_powers: Array[int] = []
-var _command_hand: Array[Dictionary] = []
-var _discarded_cards: Array[Dictionary] = []
-var _draw_pile: Array[String] = []
-var _discard_pile: Array[String] = []
-var _action_points := 3
 var _result_layer: Control
 var _result_title: Label
 var _result_body: Label
@@ -58,7 +47,6 @@ var _help_layer: Control
 var _corridor_layer: Control
 var _corridor_box: VBoxContainer
 var _pending_relic_choices: Array[String] = []
-var _pending_card_choices: Array[String] = []
 var _intro_pending := true
 var _squad_locked := false
 var _encounter_kind := "전투"
@@ -141,20 +129,25 @@ func _build_battle() -> void:
 	row.add_child(_speed_btn)
 	_command_btn = _button("지휘기", _on_command)
 	row.add_child(_command_btn)
-	for i in 3:
-		var plan_button := _button("", _on_deploy_card.bind(i))
-		plan_button.custom_minimum_size.x = 110
-		_plan_buttons.append(plan_button)
-		row.add_child(plan_button)
-	_confirm_plan_btn = _button("작전 확정", _confirm_plan)
-	_confirm_plan_btn.custom_minimum_size.x = 88
-	_confirm_plan_btn.visible = false
-	row.add_child(_confirm_plan_btn)
 	row.add_child(_button("도움말", _show_help))
 	_view = BattlePresenter.new()
 	_view.font = _font
 	_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root_box.add_child(_view)
+	var card_panel := PanelContainer.new()
+	card_panel.custom_minimum_size.y = 132
+	card_panel.add_theme_stylebox_override("panel", _panel_style("0d1a25"))
+	root_box.add_child(card_panel)
+	var card_bar := HBoxContainer.new()
+	card_bar.add_theme_constant_override("separation", 10)
+	card_bar.alignment = BoxContainer.ALIGNMENT_CENTER
+	card_panel.add_child(card_bar)
+	for i in 3:
+		var plan_button := _button("", _on_deploy_card.bind(i))
+		plan_button.custom_minimum_size = Vector2(210, 96)
+		plan_button.add_theme_font_size_override("font_size", 16)
+		_plan_buttons.append(plan_button)
+		card_bar.add_child(plan_button)
 
 
 func _build_result() -> void:
@@ -214,12 +207,12 @@ func _build_help() -> void:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 12)
 	panel.add_child(box)
-	var title := _label("STARLINE — 강림 순서를 설계하세요", 22, "f3c777")
+	var title := _label("STARLINE — 회랑을 돌파하는 법", 22, "f3c777")
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
-	box.add_child(_help_step("① 5개의 항성 기억 중 사도를 호출한다", "같은 기억 셋은 자동으로 중첩 관측되고, 같은 원소의 사도를 모으면 강해집니다."))
-	box.add_child(_help_step("② 9칸 대기석에서 강림 편성판으로 옮긴다", "편성판 왼쪽 사도부터 차례로 단일 항성 회랑에 강림합니다."))
-	box.add_child(_help_step("③ 상대 편성과 관측 순위를 보고 순서를 확정한다", "강한 사도를 앞에 두면 항성 기운을 모으는 동안 전선이 빕니다."))
+	box.add_child(_help_step("① 원정 시작 전에 3명을 고른다", "한 번 고른 원정대는 이번 런 내내 함께합니다. 휴식처에서는 선봉 순서를 바꿀 수 있습니다."))
+	box.add_child(_help_step("② 전투 중 하단 카드를 눌러 사도를 출격한다", "코스트는 시간이 지나면 차오릅니다. 누구를 먼저 내보낼지, 언제 아껴둘지가 핵심입니다."))
+	box.add_child(_help_step("③ 지도를 고르고 유물을 쌓는다", "엘리트는 강하지만 보상이 좋습니다. 보스 전에는 회복과 유물 조합을 준비하세요."))
 	var rule := _label("코스트가 차면 하단 사도 카드를 눌러 출격  ·  전투는 실시간 진행", 14, "8bd9c6")
 	rule.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(rule)
@@ -260,7 +253,7 @@ func _begin_round() -> void:
 	_prep_left = FIRST_PREP_TIME if round_no == 1 else PREP_TIME
 	_prep.bind_match(game)
 	_prep.set_time_left(_prep_left)
-	_prep.set_message("항성 기억을 호출하고 왼쪽부터 강림 순서를 만드세요.")
+	_prep.set_message("원정대 3명을 고르고 전투 시작을 누르세요.")
 	if _squad_locked:
 		_prep.visible = false
 		_start_battle()
@@ -340,92 +333,10 @@ func _start_battle(from_timeout: bool = false) -> void:
 	_view.bind_sim(sim)
 	_view.set_playback_speed(speed)
 	_command_left = 0.0
-	_turn_left = 0.0
 	phase = Phase.BATTLE
 	_accum = 0.0
 	_prep.visible = false
 	_battle_layer.visible = true
-	_refresh_battle_hud()
-
-
-func _on_tactical_order(order: String) -> void:
-	if phase != Phase.PLAN or sim == null:
-		return
-	if _action_points <= 0:
-		return
-	_planned_orders.append(order)
-	_action_points -= 1
-	_refresh_battle_hud()
-
-
-func _card_catalog() -> Array[Dictionary]:
-	return [
-		{"id": "charge", "name": "선봉 돌격", "order": "전진", "power": 1, "cost": 1, "hint": "전선 +12"},
-		{"id": "breakthrough", "name": "강행 돌파", "order": "전진", "power": 2, "cost": 2, "hint": "전선 +24"},
-		{"id": "guard", "name": "보호 진형", "order": "방어", "power": 1, "cost": 1, "hint": "전원 보호막"},
-		{"id": "fortify", "name": "긴급 방벽", "order": "방어", "power": 2, "cost": 2, "hint": "강한 보호막"},
-		{"id": "focus", "name": "집중 사격", "order": "집중", "power": 1, "cost": 1, "hint": "최약 적 36 피해"},
-		{"id": "execute", "name": "처형 명령", "order": "집중", "power": 2, "cost": 2, "hint": "최약 적 72 피해"},
-	]
-
-
-func _draw_hand() -> void:
-	_command_hand.clear()
-	if _draw_pile.is_empty():
-		_draw_pile.append_array(_discard_pile)
-		_discard_pile.clear()
-	_draw_pile.shuffle()
-	for i in mini(3, _draw_pile.size()):
-		var card_id: String = _draw_pile.pop_back()
-		_command_hand.append(_card_by_id(card_id))
-
-
-func _card_by_id(card_id: String) -> Dictionary:
-	for card in _card_catalog():
-		if str(card["id"]) == card_id:
-			return card.duplicate(true)
-	return {}
-
-
-func _on_card_pressed(hand_index: int) -> void:
-	if phase != Phase.PLAN or sim == null:
-		return
-	if hand_index < 0 or hand_index >= _command_hand.size():
-		return
-	var card: Dictionary = _command_hand[hand_index]
-	var card_cost := int(card["cost"])
-	if _action_points < card_cost:
-		return
-	_action_points -= card_cost
-	_planned_orders.append(str(card["order"]))
-	_planned_powers.append(int(card["power"]))
-	_discard_pile.append(str(card["id"]))
-	_command_hand.remove_at(hand_index)
-	_refresh_battle_hud()
-
-
-func _confirm_plan() -> void:
-	if phase != Phase.PLAN or sim == null or _planned_orders.is_empty():
-		return
-	for i in _planned_orders.size():
-		sim.apply_tactical_order(_planned_orders[i], _planned_powers[i])
-	for card in _command_hand:
-		_discard_pile.append(str(card["id"]))
-	_command_hand.clear()
-	phase = Phase.BATTLE
-	_turn_left = 8.0
-	_refresh_battle_hud()
-
-
-func _enter_plan() -> void:
-	phase = Phase.PLAN
-	_action_points = 3
-	_planned_orders.clear()
-	_planned_powers.clear()
-	if _draw_pile.is_empty() and _discard_pile.is_empty():
-		_draw_pile.append_array(player.command_deck)
-		_draw_pile.shuffle()
-	_draw_hand()
 	_refresh_battle_hud()
 
 
@@ -447,7 +358,7 @@ func _refresh_battle_hud() -> void:
 	if sim == null:
 		return
 	var ally_front := 0.0
-	var enemy_front := 100.0
+	var enemy_front := Defs.FIELD_LEN
 	for unit in sim.units:
 		if not unit.is_active():
 			continue
@@ -488,9 +399,6 @@ func _refresh_battle_hud() -> void:
 		else:
 			plan_button.text = "출격 완료"
 			plan_button.disabled = true
-	_confirm_plan_btn.disabled = true
-
-
 func _on_deploy_card(hand_index: int) -> void:
 	if phase != Phase.BATTLE or sim == null or sim.finished:
 		return
@@ -511,18 +419,6 @@ func _on_command() -> void:
 	if sim.cast_command_strike(48.0):
 		_command_left = 12.0
 		_refresh_battle_hud()
-
-
-func _on_tactic(tactic: String) -> void:
-	if phase != Phase.PREP:
-		return
-	player.tactic = tactic
-	_prep.set_message("전술 변경: %s — %s" % [tactic, _tactic_description(tactic)])
-	_prep.refresh_all()
-
-
-func _tactic_description(tactic: String) -> String:
-	return {"압박":"공격력 +12%", "요새":"최대 HP +15%, 공격 속도 -8%", "순환":"공격 속도 +14%, 최대 HP -8%"}.get(tactic, "")
 
 
 func _resolve_and_show(precomputed: Dictionary) -> void:
@@ -561,10 +457,10 @@ func _resolve_and_show(precomputed: Dictionary) -> void:
 		_result_count.text = "새로운 원정을 시작할 수 있습니다."
 	else:
 		corridor.complete_current()
-		_queue_latest_reward_choices()
+		_queue_latest_relic_choice()
 		phase = Phase.RESULT
 		_result_left = RESULT_TIME
-		_result_count.text = "계속을 눌러 보상을 선택하세요" if not _pending_relic_choices.is_empty() or not _pending_card_choices.is_empty() else "%.1f초 뒤 다음 회랑" % _result_left
+		_result_count.text = "계속을 눌러 유물을 선택하세요" if not _pending_relic_choices.is_empty() else "%.1f초 뒤 다음 회랑" % _result_left
 
 
 func _other_results(human: int) -> String:
@@ -582,7 +478,7 @@ func _other_results(human: int) -> String:
 
 func _on_result_continue() -> void:
 	if phase == Phase.RESULT:
-		if not _pending_relic_choices.is_empty() or not _pending_card_choices.is_empty():
+		if not _pending_relic_choices.is_empty():
 			_show_relic_choice()
 		elif corridor.is_finished():
 			_show_corridor_result()
@@ -603,9 +499,6 @@ func _restart() -> void:
 	corridor = CorridorRun.new(rng.randi())
 	_intro_pending = true
 	_squad_locked = false
-	_draw_pile.clear()
-	_discard_pile.clear()
-	_command_hand.clear()
 	speed = 1.0
 	_speed_btn.text = "배속 x1"
 	_show_corridor()
@@ -618,7 +511,6 @@ func _seed_starter_squad() -> void:
 		{"def_id":"sagittarius", "star":1, "order":1},
 		{"def_id":"taurus", "star":1, "order":2},
 	]
-	p.command_deck = ["charge", "guard", "focus", "charge", "guard", "focus"]
 
 
 func _show_corridor() -> void:
@@ -653,7 +545,7 @@ func _show_corridor() -> void:
 	var info := _label("SEED %d   ·   FLOOR %d/5\n%s  ·  위협 배율 %.1f" % [corridor.seed, int(current.get("floor", 1)), current.get("name", ""), float(current.get("threat", 1.0))], 15, "b9cfca")
 	info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_corridor_box.add_child(info)
-	var note := _label("전투 노드에서는 원정대가 자동으로 출발하고, 전투 중 전술 카드를 선택합니다.\n보급·이벤트·휴식처에서 다음 전투를 준비할 수 있습니다.", 14, "e8efeb")
+	var note := _label("전투 노드에서는 하단 사도 카드를 눌러 실시간으로 출격합니다.\n보급·이벤트·휴식처에서 다음 전투를 준비할 수 있습니다.", 14, "e8efeb")
 	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_corridor_box.add_child(note)
 	if not player.relics.is_empty():
@@ -695,7 +587,7 @@ func _show_expedition_intro() -> void:
 	rule.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_corridor_box.add_child(rule)
 	_corridor_box.add_child(HSeparator.new())
-	var mission := _label("이번 원정의 목표\n5개 층을 통과하고 베스퍼 매듭을 파괴하세요.\n전투마다 전술 카드를 고르고, 쓰러지기 전에 회복할 장소를 찾으세요.", 14, "b9cfca")
+	var mission := _label("이번 원정의 목표\n5개 층을 통과하고 베스퍼 매듭을 파괴하세요.\n전투에서 출격 타이밍을 잡고, 쓰러지기 전에 회복할 장소를 찾으세요.", 14, "b9cfca")
 	mission.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	mission.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_corridor_box.add_child(mission)
@@ -736,8 +628,8 @@ func _choose_corridor(option_index: int = -1) -> void:
 		p.gold += 6 if kind == "보급" else 3
 		p.hp = mini(Econ.START_HP, p.hp + (12 if kind == "보급" else 0))
 		corridor.complete_current()
-		_queue_latest_reward_choices()
-		_show_relic_choice() if not _pending_relic_choices.is_empty() or not _pending_card_choices.is_empty() else _show_corridor()
+		_queue_latest_relic_choice()
+		_show_relic_choice() if not _pending_relic_choices.is_empty() else _show_corridor()
 		return
 	game.seats[1].name = str(node.get("name", "회랑의 적"))
 	_begin_round()
@@ -796,18 +688,14 @@ func _rest_reorder() -> void:
 	_show_corridor()
 
 
-func _queue_latest_reward_choices() -> void:
+func _queue_latest_relic_choice() -> void:
 	_pending_relic_choices.clear()
-	_pending_card_choices.clear()
 	if corridor.rewards.is_empty():
 		return
 	var reward: Dictionary = corridor.rewards.back()
 	for relic in reward.get("relic_choices", []):
 		if not player.relics.has(str(relic)):
 			_pending_relic_choices.append(str(relic))
-	for card_id in reward.get("card_choices", []):
-		if not player.command_deck.has(str(card_id)):
-			_pending_card_choices.append(str(card_id))
 
 
 func _show_relic_choice() -> void:
@@ -836,16 +724,6 @@ func _choose_relic(relic: String) -> void:
 		return
 	player.relics.append(relic)
 	_pending_relic_choices.clear()
-	_pending_card_choices.clear()
-	_show_corridor()
-
-
-func _choose_card(card_id: String) -> void:
-	if not _pending_card_choices.has(card_id):
-		return
-	player.command_deck.append(card_id)
-	_pending_card_choices.clear()
-	_pending_relic_choices.clear()
 	_show_corridor()
 
 
@@ -862,45 +740,6 @@ func _relic_name(relic: String) -> String:
 
 func _relic_description(relic: String) -> String:
 	return {"ember_cache":"아군 최대 HP +10%", "signal_lens":"아군 공격 속도 +12%", "hollow_crown":"아군 공격력 +15%"}.get(relic, "알 수 없는 효과")
-
-
-func _on_buy(slot: int) -> void:
-	_prep.set_message("" if econ.buy(player, slot) else "골드가 모자라거나 대기석이 가득 찼습니다.")
-	_prep.refresh_all()
-
-
-func _on_sell(index: int) -> void:
-	if econ.sell(player, index):
-		_prep.set_message("항성 기억을 공용 관측망으로 돌려보냈습니다.")
-	_prep.refresh_all()
-
-
-func _on_place(index: int, order: int) -> void:
-	_prep.set_message("" if econ.enqueue(player, index, order) else "강림 슬롯이 가득 찼습니다. 레벨을 올리세요.")
-	_prep.refresh_all()
-
-
-func _on_to_bench(index: int) -> void:
-	_prep.set_message("" if econ.to_bench(player, index) else "대기석이 가득 찼습니다.")
-	_prep.refresh_all()
-
-
-func _on_reroll() -> void:
-	if not econ.reroll(player):
-		_prep.set_message("새 항성 기억을 호출할 골드가 모자랍니다.")
-	_prep.refresh_all()
-
-
-func _on_buy_xp() -> void:
-	if not econ.buy_xp(player):
-		_prep.set_message("경험치를 살 수 없습니다.")
-	_prep.refresh_all()
-
-
-func _on_lock() -> void:
-	econ.set_shop_locked(player, not player.shop_locked)
-	_prep.set_message("잠근 호출 신호는 다음 회차에도 유지됩니다." if player.shop_locked else "호출 신호 잠금을 풀었습니다.")
-	_prep.refresh_all()
 
 
 func _on_speed() -> void:
