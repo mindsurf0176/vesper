@@ -18,11 +18,11 @@
 
 - Active engine: `CorridorSession` only. `Match` is legacy and must not be imported by active scenes.
 - Team: player owns exactly 3 selected units for the whole run. Rest can rotate their order, not replace them.
-- Battle: one logical line, `FIELD_LEN=140`, spawn offset `20`.
+- Battle: one logical line, `FIELD_LEN=280`, spawn offset `20`; the 3D camera shows a window and the player can scroll left/right.
 - Player deployment: manual only. `CombatSim.manual_deploy(team, uid)` spends current cost.
 - Enemy deployment: automatic queue for encounter pressure.
-- Resources: battle cost is visible as a continuously updating gauge; no AP or turn confirmation.
-- Win: enemy core reaches zero. Lose: player core reaches zero or timeout.
+- Resources: battle cost starts at `0` and is visible as a continuously updating gauge; no AP or turn confirmation.
+- Win: enemy core reaches zero. Lose: player core reaches zero or timeout at `75s`.
 - Run: five floors, branch nodes on floors 2–4, boss on floor 5.
 
 ## Decisions that create mastery
@@ -63,4 +63,4 @@
 - Static: editor load, `git diff --check`, no active `Match` references.
 - Export: Godot Web release succeeds.
 - Delivery: Vercel production responds HTTP 200.
-- Manual visual check: 1280x720 landscape; bottom cards remain visible without scrolling.
+- Manual visual check: 1280x720 landscape; bottom cards remain visible without scrolling and the field scrollbar moves the camera across the full line.

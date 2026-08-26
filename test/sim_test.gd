@@ -123,6 +123,7 @@ func _test_abilities() -> void:
 
 	# 강림형: 게는 보호막, 물병은 기운 반환, 양은 가속을 즉시 얻는다.
 	var deploy := CombatSim.create(_lineup(["cancer", "aquarius", "aries"]), _lineup(["capricorn"]))
+	deploy.cost[0] = float(UnitDB.deploy_cost("cancer"))
 	deploy.step(Defs.TICK)
 	var cancer := _find_unit(deploy, "cancer", 0)
 	ok(cancer.deployed and cancer.shield > 0.0, "게는 강림할 때 별껍질을 얻는다")
@@ -356,26 +357,33 @@ func _test_queue_api() -> void:
 
 func _test_deploy_cost() -> void:
 	print("[코스트 출격]")
-	# 최고 코스트 유닛은 시작 코스트로 못 낸다. 기다리는 시간이 곧 그 선택의 대가다.
+	# 모든 전투는 0 코스트에서 시작한다. 기다리는 시간이 곧 첫 선택의 대가다.
 	var iron_cost := float(UnitDB.deploy_cost("capricorn"))
 	var sim := CombatSim.create(_lineup(["capricorn"]), _lineup(["cancer"]))
 	sim.step(Defs.TICK)
 	var iron: CombatSim.SimUnit = sim.units[0]
-	ok(not iron.deployed, "코스트가 모자라면 출격하지 않는다")
+	ok(is_equal_approx(float(sim.cost[0]), Defs.COST_REGEN * Defs.TICK) and not iron.deployed,
+		"전투는 0 코스트에서 시작한다")
 	var t := 0.0
 	while not iron.deployed and t < 30.0:
 		sim.step(Defs.TICK)
 		t += Defs.TICK
-	var expect := (iron_cost - Defs.START_COST) / Defs.COST_REGEN
+	var expect := iron_cost / Defs.COST_REGEN
 	ok(iron.deployed and absf(t - expect) < 0.3,
 		"최고 코스트 유닛은 충전을 다 기다린 뒤 출격", "t=%.2f expect=%.2f" % [t, expect])
 	ok(expect >= 5.0, "그 대기 시간이 전황을 바꿀 만큼 길다", "%.1fs" % expect)
 
-	# 시작 코스트로 감당되는 만큼만 나간다.
+	# 충전된 만큼만 순서대로 나간다.
 	var sim2 := CombatSim.create(_lineup(["aries", "gemini"]), _lineup(["cancer"]))
 	sim2.step(Defs.TICK)
+	ok(not sim2.units[0].deployed and not sim2.units[1].deployed,
+		"초반 충전 전에는 출격하지 않는다")
+	var sim2_time := 0.0
+	while not sim2.units[0].deployed and sim2_time < 5.0:
+		sim2.step(Defs.TICK)
+		sim2_time += Defs.TICK
 	ok(sim2.units[0].deployed and not sim2.units[1].deployed,
-		"시작 코스트로 감당되는 만큼만 출격한다")
+		"충전 후 첫 유닛만 출격한다")
 
 	# 큐가 남아 있으면 필드가 비어도 패배가 아니다.
 	var sim3 := CombatSim.create(_lineup(["capricorn"]), _lineup(["capricorn"]))

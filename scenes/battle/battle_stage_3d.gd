@@ -4,8 +4,9 @@ extends Node3D
 ## Vesper의 HD-2D 전장을 Web-safe presentation으로 분리한 stage.
 ## 전투 수치나 승패를 소유하지 않고 camera, core, VFX만 담당한다.
 
-const ALLY_X := -8.5
-const ENEMY_X := 8.5
+const ALLY_X := -17.0
+const ENEMY_X := 17.0
+const CAMERA_TRAVEL := 7.0
 const TEAM_COLOR := [Color("f0a85c"), Color("5fd3df")]
 
 var camera: Camera3D
@@ -23,6 +24,14 @@ func _ready() -> void:
 
 func set_playback_speed(value: float) -> void:
 	playback_speed = maxf(value, 0.1)
+
+
+func set_field_scroll(normalized: float) -> void:
+	var center_x := lerpf(-CAMERA_TRAVEL, CAMERA_TRAVEL, clampf(normalized, 0.0, 1.0))
+	_camera_base.x = center_x
+	if camera != null:
+		camera.position.x = center_x
+		camera.look_at(Vector3(center_x, 1.15, 0), Vector3.UP)
 
 
 func core_position(team: int) -> Vector3:
@@ -143,6 +152,7 @@ func _build_world() -> void:
 	add_child(camera)
 	camera.look_at(Vector3(0, 1.15, 0), Vector3.UP)
 	_camera_base = camera.position
+	set_field_scroll(0.5)
 
 	var key_light := DirectionalLight3D.new()
 	key_light.rotation_degrees = Vector3(-48, -34, 0)
@@ -203,7 +213,7 @@ func _build_motes() -> void:
 	particles.preprocess = 3.5
 	particles.position = Vector3(0, 1.7, 0.3)
 	particles.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
-	particles.emission_box_extents = Vector3(13, 2.5, 1.8)
+	particles.emission_box_extents = Vector3(16, 2.5, 1.8)
 	particles.gravity = Vector3(0, 0.025, 0)
 	particles.initial_velocity_min = 0.03
 	particles.initial_velocity_max = 0.10

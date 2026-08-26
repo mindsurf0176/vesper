@@ -13,6 +13,7 @@ var sim: CombatSim = null
 var label_left := "아군"
 var label_right := "상대"
 var playback_speed := 1.0
+var field_scroll := 0.5
 var font: Font
 
 var _viewport: SubViewport
@@ -57,6 +58,12 @@ func set_playback_speed(value: float) -> void:
 		_stage.set_playback_speed(playback_speed)
 	for actor in _actors.values():
 		(actor as BattleActor3D).set_playback_speed(playback_speed)
+
+
+func set_field_scroll(value: float) -> void:
+	field_scroll = clampf(value, 0.0, 1.0)
+	if _stage != null:
+		_stage.set_field_scroll(field_scroll)
 	for actor in _retiring.values():
 		(actor as BattleActor3D).set_playback_speed(playback_speed)
 
@@ -83,6 +90,7 @@ func _build_viewport() -> void:
 	_stage.name = "Stage"
 	_viewport.add_child(_stage)
 	set_playback_speed(playback_speed)
+	_stage.set_field_scroll(field_scroll)
 
 
 func _build_hud() -> void:
