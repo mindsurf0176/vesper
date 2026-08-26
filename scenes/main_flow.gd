@@ -7,7 +7,7 @@ const SquadPrepViewScene = preload("res://scenes/prep/squad_prep_view.gd")
 ## STARLINE의 준비 → 전투 → 결과 → 게임오버 흐름.
 ## STARLINE gameplay core와 Vesper passive presentation을 연결한다.
 
-enum Phase { MAP, PREP, BATTLE, RESULT, GAMEOVER }
+enum Phase { MAP, PREP, PLAN, BATTLE, RESULT, GAMEOVER }
 
 const FIRST_PREP_TIME := 45.0
 const PREP_TIME := 30.0
@@ -40,6 +40,8 @@ var _battle_top: Label
 var _speed_btn: Button
 var _command_btn: Button
 var _command_left := 0.0
+var _turn_left := 0.0
+var _plan_buttons: Array[Button] = []
 var _result_layer: Control
 var _result_title: Label
 var _result_body: Label
@@ -127,6 +129,11 @@ func _build_battle() -> void:
 	row.add_child(_speed_btn)
 	_command_btn = _button("지휘기", _on_command)
 	row.add_child(_command_btn)
+	for order in ["전진", "방어", "집중"]:
+		var plan_button := _button(order, _on_tactical_order.bind(order))
+		plan_button.custom_minimum_size.x = 64
+		_plan_buttons.append(plan_button)
+		row.add_child(plan_button)
 	row.add_child(_button("도움말", _show_help))
 	_view = BattlePresenter.new()
 	_view.font = _font
@@ -312,11 +319,21 @@ func _start_battle(from_timeout: bool = false) -> void:
 	_view.bind_sim(sim)
 	_view.set_playback_speed(speed)
 	_command_left = 0.0
+	_turn_left = 0.0
 	_accum = 0.0
-	phase = Phase.BATTLE
+	phase = Phase.PLAN
 	_prep.visible = false
 	_battle_layer.visible = true
 	_refresh_battle_hud()
+
+
+func _on_tactical_order(order: String) -> void:
+	if phase != Phase.PLAN or sim == null:
+		return
+	if sim.apply_tactical_order(order):
+		phase = Phase.BATTLE
+		_turn_left = 6.0
+		_refresh_battle_hud()
 
 
 func _step_battle(delta: float) -> void:
@@ -331,6 +348,9 @@ func _step_battle(delta: float) -> void:
 	_refresh_battle_hud()
 	if sim.finished:
 		_resolve_and_show({game.human_seat().index: sim.result()})
+	elif _turn_left <= 0.0:
+		phase = Phase.PLAN
+		_refresh_battle_hud()
 
 
 func _refresh_battle_hud() -> void:
@@ -350,13 +370,16 @@ func _refresh_battle_hud() -> void:
 		line_state = "아군 전선 우세"
 	elif enemy_front - ally_front > 8.0:
 		line_state = "전선 밀림"
-	_battle_top.text = "NIGHT %02d   %s  %d HP     VS     %d HP  %s\n%.1fs / %ds   ·   %s" % [
+	var turn_state := "명령을 선택하세요" if phase == Phase.PLAN else "라인 실행 중 · 다음 계획까지 %.1fs" % _turn_left
+	_battle_top.text = "NIGHT %02d   %s  %d HP     VS     %d HP  %s\n%.1fs / %ds   ·   %s  ·  %s" % [
 		round_no, game.human_seat().name, int(sim.core_hp[0]), int(sim.core_hp[1]),
-		game.seats[foe_seat].name, sim.time, int(Defs.MAX_BATTLE_TIME), line_state]
+		game.seats[foe_seat].name, sim.time, int(Defs.MAX_BATTLE_TIME), line_state, turn_state]
 	if not player.relics.is_empty():
 		_battle_top.text += "   ·   유물: " + ", ".join(_relic_names(player.relics))
-	_command_btn.disabled = _command_left > 0.0 or sim.finished
+	_command_btn.disabled = phase != Phase.BATTLE or _command_left > 0.0 or sim.finished
 	_command_btn.text = "지휘기 %.1f" % _command_left if _command_left > 0.0 else "지휘기"
+	for plan_button in _plan_buttons:
+		plan_button.disabled = phase != Phase.PLAN or sim.finished
 
 
 func _on_command() -> void:

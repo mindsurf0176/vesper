@@ -118,6 +118,36 @@ func cast_command_strike(damage: float = 48.0) -> bool:
 	return hit
 
 
+func apply_tactical_order(order: String) -> bool:
+	if finished:
+		return false
+	if order == "전진":
+		for unit in units:
+			if unit.team == 0 and unit.is_active():
+				unit.pos = minf(Defs.FIELD_LEN - 18.0, unit.pos + 12.0)
+		return true
+	if order == "방어":
+		for unit in units:
+			if unit.team == 0 and unit.is_active():
+				unit.shield = maxf(unit.shield, unit.max_hp * 0.18)
+		return true
+	if order == "집중":
+		var target: SimUnit = null
+		for unit in units:
+			if unit.team == 1 and unit.is_active() and (target == null or unit.hp < target.hp):
+				target = unit
+		if target == null:
+			return false
+		target.hp = maxf(0.0, target.hp - 36.0)
+		_events.append({"t": "command_hit", "to": target.uid, "dmg": 36.0})
+		if target.hp <= 0.0:
+			target.alive = false
+			_events.append({"t": "death", "uid": target.uid})
+		_check_end()
+		return true
+	return false
+
+
 func _make_unit(team: int, p: Dictionary, order: int, tr: Traits) -> SimUnit:
 	var def_id: String = p["def_id"]
 	var d := UnitDB.get_def(def_id)
