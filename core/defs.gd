@@ -39,13 +39,13 @@ const SPAWN_OFFSET := 15.0   ## 코어에서 출격 지점까지의 거리
 
 ## 승리조건은 상대 관측 코어를 꺼뜨리는 것. 사도가 모두 쓰러지는 것은 그 자체로 패배가 아니라
 ## "코어가 무방비가 된 상태"다.
-const CORE_HP := 350.0
+const CORE_HP := 520.0
 const TICK := 1.0 / 30.0
-const MAX_BATTLE_TIME := 45.0
+const MAX_BATTLE_TIME := 55.0
 
 ## 교착 방지. 이 시각 이후 모든 피해가 초당 RAMPUP_PER_SEC 만큼 증폭된다.
-const RAMPUP_START := 15.0
-const RAMPUP_PER_SEC := 0.20
+const RAMPUP_START := 20.0
+const RAMPUP_PER_SEC := 0.18
 
 # 출격 코스트 --------------------------------------------------------------
 ## 시작 코스트를 낮게, 상한도 낮게 잡아야 "비싼 유닛부터"가 지배 전략이 되지 않는다.

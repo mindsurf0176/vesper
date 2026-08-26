@@ -412,7 +412,7 @@ func _confirm_plan() -> void:
 		_discard_pile.append(str(card["id"]))
 	_command_hand.clear()
 	phase = Phase.BATTLE
-	_turn_left = 6.0
+	_turn_left = 8.0
 	_refresh_battle_hud()
 
 
