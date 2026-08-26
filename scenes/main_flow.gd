@@ -52,6 +52,7 @@ var _pending_relic_choices: Array[String] = []
 func _ready() -> void:
 	rng.randomize()
 	game = Match.create(rng.randi(), true)
+	_seed_starter_squad()
 	_font = load("res://assets/IBMPlexSansKR-Regular.otf")
 	if _font == null or not _font.has_char("가".unicode_at(0)):
 		_font = load("res://assets/Galmuri11.ttf")
@@ -461,10 +462,19 @@ func _next_round() -> void:
 func _restart() -> void:
 	rng.randomize()
 	game = Match.create(rng.randi(), true)
+	_seed_starter_squad()
 	corridor = CorridorRun.new(rng.randi())
 	speed = 1.0
 	_speed_btn.text = "배속 x1"
 	_show_corridor()
+
+
+func _seed_starter_squad() -> void:
+	var p := game.human_seat().player
+	p.roster = [
+		{"def_id":"aries", "star":1, "order":0},
+		{"def_id":"sagittarius", "star":1, "order":-1},
+	]
 
 
 func _show_corridor() -> void:

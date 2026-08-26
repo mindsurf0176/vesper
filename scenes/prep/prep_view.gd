@@ -96,10 +96,15 @@ func _build_ui() -> void:
 	var bg := VesperBackdropScene.new()
 	add_child(bg)
 
+	var scroll := ScrollContainer.new()
+	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.add_theme_stylebox_override("panel", VesperUITheme.panel(Color("070d16"), Color("070d16"), 0))
+	add_child(scroll)
 	var root := VBoxContainer.new()
-	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	root.custom_minimum_size.x = maxf(320.0, get_viewport_rect().size.x - 18.0)
 	root.add_theme_constant_override("separation", 5)
-	add_child(root)
+	scroll.add_child(root)
 
 	var top := PanelContainer.new()
 	top.custom_minimum_size.y = 76
@@ -209,7 +214,7 @@ func _build_ui() -> void:
 	_sell_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_sell_btn.disabled = true
 	manage_row.add_child(_sell_btn)
-	_ready_btn = _button("강림 순서 확정", func(): ready_requested.emit())
+	_ready_btn = _button("전투 시작", func(): ready_requested.emit())
 	_ready_btn.tooltip_text = "편성된 순서대로 전투를 시작합니다"
 	_ready_btn.custom_minimum_size.y = 42
 	controls.add_child(_ready_btn)
