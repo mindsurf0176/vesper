@@ -625,12 +625,14 @@ func _panel_style(color_hex: String) -> StyleBoxFlat:
 	style.content_margin_right = 12
 	style.content_margin_top = 10
 	style.content_margin_bottom = 10
-	style.border_color = Color("315257")
+	style.border_color = Color("385c5e")
 	style.set_border_width_all(1)
-	style.corner_radius_top_left = 4
-	style.corner_radius_top_right = 4
-	style.corner_radius_bottom_left = 4
-	style.corner_radius_bottom_right = 4
+	style.corner_radius_top_left = 6
+	style.corner_radius_top_right = 6
+	style.corner_radius_bottom_left = 6
+	style.corner_radius_bottom_right = 6
+	style.shadow_color = Color(0.0, 0.0, 0.0, 0.28)
+	style.shadow_size = 8
 	return style
 
 
@@ -645,5 +647,33 @@ func _label(text: String, font_size: int, color_hex: String) -> Label:
 func _button(text: String, callback: Callable) -> Button:
 	var button := Button.new()
 	button.text = text
+	button.add_theme_font_size_override("font_size", 14)
+	button.add_theme_color_override("font_color", Color("dce9e3"))
+	button.add_theme_color_override("font_hover_color", Color("fff0c2"))
+	button.add_theme_color_override("font_pressed_color", Color("f3c777"))
+	button.add_theme_color_override("font_disabled_color", Color("6f8481"))
+	button.add_theme_stylebox_override("normal", _button_style("193134", "31585a"))
+	button.add_theme_stylebox_override("hover", _button_style("254447", "f3c777"))
+	button.add_theme_stylebox_override("pressed", _button_style("102124", "f3c777"))
+	button.add_theme_stylebox_override("disabled", _button_style("101c1e", "263b3d"))
+	button.add_theme_stylebox_override("focus", _button_style("254447", "f3c777"))
+	button.focus_mode = Control.FOCUS_ALL
+	button.clip_text = true
 	button.pressed.connect(callback)
 	return button
+
+
+func _button_style(bg_hex: String, border_hex: String) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(bg_hex)
+	style.border_color = Color(border_hex)
+	style.set_border_width_all(1)
+	style.corner_radius_top_left = 5
+	style.corner_radius_top_right = 5
+	style.corner_radius_bottom_left = 5
+	style.corner_radius_bottom_right = 5
+	style.content_margin_left = 14
+	style.content_margin_right = 14
+	style.content_margin_top = 8
+	style.content_margin_bottom = 8
+	return style
