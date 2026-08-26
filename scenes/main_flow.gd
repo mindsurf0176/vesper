@@ -348,6 +348,8 @@ func _refresh_battle_hud() -> void:
 		game.human_seat().name, int(sim.core_hp[0]), sim.time, int(Defs.MAX_BATTLE_TIME),
 		int(sim.core_hp[1]), game.seats[foe_seat].name]
 	_battle_top.text += "   ·   " + line_state
+	if not player.relics.is_empty():
+		_battle_top.text += "   ·   유물: " + ", ".join(_relic_names(player.relics))
 	_command_btn.disabled = _command_left > 0.0 or sim.finished
 	_command_btn.text = "지휘기 %.1f" % _command_left if _command_left > 0.0 else "지휘기"
 
@@ -397,6 +399,7 @@ func _resolve_and_show(precomputed: Dictionary) -> void:
 		_result_count.text = "새로운 밤을 시작할 수 있습니다."
 	else:
 		corridor.complete_current()
+		_grant_latest_relic()
 		phase = Phase.RESULT
 		_result_left = RESULT_TIME
 
@@ -459,6 +462,10 @@ func _show_corridor() -> void:
 	var note := _label("전투 노드에서는 기존 라인배틀러 준비와 전투가 이어집니다.\n보급과 이벤트를 선택하면 다음 전투를 유리하게 만들 수 있습니다.", 14, "e8efeb")
 	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_corridor_box.add_child(note)
+	if not player.relics.is_empty():
+		var relics := _label("보유 유물: " + ", ".join(_relic_names(player.relics)), 13, "8bd9c6")
+		relics.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_corridor_box.add_child(relics)
 	var options := corridor.available_options()
 	if not options.is_empty():
 		_corridor_box.add_child(_label("2층 경로를 선택하세요", 15, "f3c777"))
@@ -488,6 +495,7 @@ func _choose_corridor(option_index: int = -1) -> void:
 		p.gold += 6 if kind == "보급" else 3
 		p.hp = mini(Econ.START_HP, p.hp + (12 if kind == "보급" else 0))
 		corridor.complete_current()
+		_grant_latest_relic()
 		_show_corridor()
 		return
 	game.seats[1].name = str(node.get("name", "회랑의 적"))
@@ -503,6 +511,24 @@ func _show_corridor_result() -> void:
 	_result_title.text = "회랑 돌파 완료"
 	_result_body.text = "베스퍼 매듭을 통과했습니다.\n\n새로운 시드로 다시 회랑에 도전할 수 있습니다."
 	_result_count.text = "RUN CLEAR"
+
+
+func _grant_latest_relic() -> void:
+	if corridor.rewards.is_empty():
+		return
+	var reward: Dictionary = corridor.rewards.back()
+	var relic := str(reward.get("relic", ""))
+	if relic.is_empty() or player.relics.has(relic):
+		return
+	player.relics.append(relic)
+
+
+func _relic_names(relics: Array[String]) -> Array[String]:
+	var names := {"ember_cache":"잔불 보관함", "signal_lens":"신호 렌즈", "hollow_crown":"공허 왕관"}
+	var out: Array[String] = []
+	for relic in relics:
+		out.append(str(names.get(relic, relic)))
+	return out
 
 
 func _on_buy(slot: int) -> void:

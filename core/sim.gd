@@ -136,11 +136,11 @@ func _make_unit(team: int, p: Dictionary, order: int, tr: Traits) -> SimUnit:
 	u.role = d["role"]
 	u.deploy_cost = float(UnitDB.deploy_cost(def_id))
 
-	u.max_hp = float(d["hp"]) * sm * float(mods["hp_mult"])
+	u.max_hp = float(d["hp"]) * sm * float(mods["hp_mult"]) * float(p.get("relic_hp_mult", 1.0))
 	u.hp = u.max_hp
-	u.atk = float(d["atk"]) * sm * float(mods["atk_mult"])
+	u.atk = float(d["atk"]) * sm * float(mods["atk_mult"]) * float(p.get("relic_atk_mult", 1.0))
 	u.armor = float(d["armor"]) + float(mods["armor_add"])
-	u.atk_speed = float(d["atk_speed"]) * float(mods["as_mult"])
+	u.atk_speed = float(d["atk_speed"]) * float(mods["as_mult"]) * float(p.get("relic_as_mult", 1.0))
 	u.atk_range = float(d["atk_range"])
 	u.move_speed = float(d["move_speed"])
 	u.ability = d["ability"].duplicate(true)

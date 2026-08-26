@@ -115,11 +115,22 @@ func build_sim(a: int, b: int) -> CombatSim:
 	var pb := seats[b].player
 	var ua: Array = []
 	for u in pa.queued_units():
-		ua.append(u.duplicate())
+		var placement: Dictionary = u.duplicate()
+		_apply_relic_modifiers(placement, pa.relics)
+		ua.append(placement)
 	var ub: Array = []
 	for u in pb.queued_units():
 		ub.append(u.duplicate())
 	return CombatSim.create(ua, ub, pa.level, pb.level)
+
+
+func _apply_relic_modifiers(placement: Dictionary, relics: Array[String]) -> void:
+	if relics.has("ember_cache"):
+		placement["relic_hp_mult"] = 1.10
+	if relics.has("signal_lens"):
+		placement["relic_as_mult"] = 1.12
+	if relics.has("hollow_crown"):
+		placement["relic_atk_mult"] = 1.15
 
 
 ## 모든 짝의 전투를 즉시 계산하고 정산한다. skip_pair에 들어간 짝은
