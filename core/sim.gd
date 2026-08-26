@@ -100,6 +100,24 @@ func _build_team(team: int, placements: Array) -> void:
 		_queue[team].append(u)
 
 
+func cast_command_strike(damage: float = 48.0) -> bool:
+	## 전투 중 한 번 개입할 수 있는 등불함 지휘기.
+	if finished:
+		return false
+	var hit := false
+	for unit in units:
+		if not unit.is_active() or unit.team != 1:
+			continue
+		unit.hp = maxf(0.0, unit.hp - damage)
+		_events.append({"t":"command_hit", "to":unit.uid, "dmg":damage})
+		hit = true
+		if unit.hp <= 0.0:
+			unit.alive = false
+			_events.append({"t":"death", "uid":unit.uid})
+	_check_end()
+	return hit
+
+
 func _make_unit(team: int, p: Dictionary, order: int, tr: Traits) -> SimUnit:
 	var def_id: String = p["def_id"]
 	var d := UnitDB.get_def(def_id)

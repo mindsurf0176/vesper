@@ -33,6 +33,8 @@ var _battle_layer: Control
 var _view: BattlePresenter
 var _battle_top: Label
 var _speed_btn: Button
+var _command_btn: Button
+var _command_left := 0.0
 var _result_layer: Control
 var _result_title: Label
 var _result_body: Label
@@ -93,6 +95,8 @@ func _build_battle() -> void:
 	row.add_child(_battle_top)
 	_speed_btn = _button("배속 x1", _on_speed)
 	row.add_child(_speed_btn)
+	_command_btn = _button("지휘기", _on_command)
+	row.add_child(_command_btn)
 	row.add_child(_button("도움말", _show_help))
 	_view = BattlePresenter.new()
 	_view.font = _font
@@ -190,6 +194,7 @@ func _begin_round() -> void:
 	phase = Phase.PREP
 	sim = null
 	_view.bind_sim(null)
+	_command_left = 0.0
 	_result_layer.visible = false
 	_battle_layer.visible = false
 	_prep.visible = true
@@ -229,6 +234,7 @@ func _process(delta: float) -> void:
 			if _prep_left <= 0.0:
 				_start_battle(true)
 		Phase.BATTLE:
+			_command_left = maxf(0.0, _command_left - delta)
 			_step_battle(delta)
 		Phase.RESULT:
 			_result_left = maxf(0.0, _result_left - delta)
@@ -251,6 +257,7 @@ func _start_battle(from_timeout: bool = false) -> void:
 	_view.label_right = game.seats[foe_seat].name
 	_view.bind_sim(sim)
 	_view.set_playback_speed(speed)
+	_command_left = 0.0
 	_accum = 0.0
 	phase = Phase.BATTLE
 	_prep.visible = false
@@ -293,6 +300,16 @@ func _refresh_battle_hud() -> void:
 		game.human_seat().name, int(sim.core_hp[0]), sim.time, int(Defs.MAX_BATTLE_TIME),
 		int(sim.core_hp[1]), game.seats[foe_seat].name]
 	_battle_top.text += "   ·   " + line_state
+	_command_btn.disabled = _command_left > 0.0 or sim.finished
+	_command_btn.text = "지휘기 %.1f" % _command_left if _command_left > 0.0 else "지휘기"
+
+
+func _on_command() -> void:
+	if phase != Phase.BATTLE or sim == null or _command_left > 0.0:
+		return
+	if sim.cast_command_strike(48.0):
+		_command_left = 12.0
+		_refresh_battle_hud()
 
 
 func _resolve_and_show(precomputed: Dictionary) -> void:

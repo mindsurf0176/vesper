@@ -152,6 +152,11 @@ func _consume_events() -> void:
 	for event in sim.consume_events():
 		var kind := String(event.get("t", ""))
 		match kind:
+			"command_hit":
+				var target := _active_actor(int(event["to"]))
+				if target != null:
+					target.play_hit()
+					_stage.impact_fx(target.hit_socket_global(), Color("f4ad52"), true)
 			"deploy":
 				var deployed := _active_actor(int(event["uid"]))
 				if deployed != null:
