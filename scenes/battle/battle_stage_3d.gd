@@ -203,13 +203,56 @@ func _build_diorama() -> void:
 	_plane(Vector2(46, 18), Vector3(0, 0, -1), Color("101f21"))
 	_plane(Vector2(46, 4), Vector3(0, 0.02, 0.2), Color("183032"))
 	_box(Vector3(46, 10, 0.6), Vector3(0, 5, -4.6), Color("0d1b1d"))
-	for x in [-6.0, -2.0, 2.0, 6.0]:
-		_box(Vector3(0.7, 5.6, 0.7), Vector3(x, 2.8, -3.0), Color("142729"))
+	# 후경: 반복되는 벽면 패널이 긴 회랑의 깊이와 진행 방향을 만든다.
+	for x in [-15.0, -10.0, -5.0, 0.0, 5.0, 10.0, 15.0]:
+		_box(Vector3(4.5, 4.8, 0.18), Vector3(x, 3.7, -4.22), Color("102324"))
+		_box(Vector3(0.08, 4.4, 0.08), Vector3(x - 2.08, 3.7, -4.02), Color("1b3839"))
+		_box(Vector3(0.08, 4.4, 0.08), Vector3(x + 2.08, 3.7, -4.02), Color("0b1b1d"))
+	# 중경: 아치와 배관을 낮은 채도로 배치해 캐릭터 실루엣을 침범하지 않는다.
+	for x in [-14.0, -7.0, 0.0, 7.0, 14.0]:
+		_box(Vector3(0.24, 6.4, 0.24), Vector3(x, 3.35, -2.75), Color("142b2d"))
+		_box(Vector3(4.5, 0.24, 0.24), Vector3(x, 6.45, -2.75), Color("142b2d"))
+		_box(Vector3(4.0, 0.12, 0.12), Vector3(x, 6.08, -2.55), Color("234548"))
+	# 전경: 전선 아래의 레일과 점검 패널이 카메라 이동을 체감하게 한다.
+	for z in [-1.35, -0.25, 0.85]:
+		_box(Vector3(44, 0.055, 0.075), Vector3(0, 0.07, z), Color("315354"))
+	for x in range(-20, 21, 4):
+		_box(Vector3(0.055, 0.045, 3.0), Vector3(float(x), 0.085, -0.25), Color("244244"))
+	for x in [-14.0, -7.0, 0.0, 7.0, 14.0]:
+		_accent_box(Vector3(1.25, 0.075, 0.08), Vector3(x, 5.95, -2.48), Color("5fcfc0"), 2.2)
+		_accent_box(Vector3(0.08, 0.08, 1.1), Vector3(x, 0.13, -1.35), Color("4bafa9"), 1.8)
+		_lamp(Vector3(x, 5.62, -2.36), Color("75d8c4"))
 	_box(Vector3(1.5, 9, 1.5), Vector3(-11.5, 4.0, 2.9), Color("071012"))
 	_box(Vector3(1.5, 9, 1.5), Vector3(11.5, 4.0, 2.9), Color("071012"))
 	_box(Vector3(26, 1.1, 1.2), Vector3(0, 8.2, 2.7), Color("071012"))
 	_box(Vector3(0.9, 0.9, 0.9), Vector3(-1.4, 0.45, 1.2), Color("17292b"))
 	_box(Vector3(0.7, 0.7, 0.7), Vector3(2.0, 0.35, -0.9), Color("17292b"))
+	# 양쪽 끝의 색상 표식은 기지와 적 매듭의 방향성을 강화한다.
+	_accent_box(Vector3(0.10, 3.2, 0.10), Vector3(-15.2, 2.1, -2.32), TEAM_COLOR[0], 1.6)
+	_accent_box(Vector3(0.10, 3.2, 0.10), Vector3(15.2, 2.1, -2.32), TEAM_COLOR[1], 1.6)
+
+
+func _accent_box(size: Vector3, position: Vector3, color: Color, energy: float) -> void:
+	var instance := MeshInstance3D.new()
+	var mesh := BoxMesh.new()
+	mesh.size = size
+	instance.mesh = mesh
+	instance.position = position
+	instance.material_override = _material(color, 0.42, color, energy)
+	add_child(instance)
+
+
+func _lamp(position: Vector3, color: Color) -> void:
+	# 광원만 두면 Web 렌더러에서 발광 지점이 약하게 보일 수 있어,
+	# 작은 발광 패널을 함께 둔다.
+	_accent_box(Vector3(0.18, 0.12, 0.06), position, color, 4.0)
+	var light := OmniLight3D.new()
+	light.position = position
+	light.light_color = color
+	light.light_energy = 0.75
+	light.omni_range = 3.8
+	light.shadow_enabled = false
+	add_child(light)
 
 
 func _build_cores() -> void:

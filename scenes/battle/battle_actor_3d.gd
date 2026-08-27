@@ -365,13 +365,14 @@ func _add_blob() -> void:
 
 
 func _add_hp_bars() -> void:
-	var width := maxf(0.62, visual_height * 0.42)
-	_hp_back = _bar(width, 0.065, Color(0.015, 0.025, 0.03, 0.82))
-	_hp_back.position = Vector3(0, visual_height + 0.20, 0.02)
-	_hp_fill = _bar(width, 0.046, Color("86dc9a"))
-	_hp_fill.position = _hp_back.position + Vector3(0, 0.002, 0.01)
-	_shield_fill = _bar(width, 0.026, Color("f5d77b"))
-	_shield_fill.position = _hp_back.position + Vector3(0, 0.072, 0.01)
+	var width := maxf(0.82, visual_height * 0.50)
+	_hp_back = _bar(width, 0.105, Color(0.008, 0.014, 0.018, 0.96))
+	_hp_back.position = Vector3(0, visual_height + 0.22, 0.02)
+	var hp_color := Color("78e2a5") if team == 0 else Color("f07e74")
+	_hp_fill = _bar(width - 0.035, 0.072, hp_color)
+	_hp_fill.position = _hp_back.position + Vector3(0, 0.002, 0.012)
+	_shield_fill = _bar(width - 0.04, 0.046, Color("f5d77b"))
+	_shield_fill.position = _hp_back.position + Vector3(0, 0.105, 0.012)
 
 
 func _bar(width: float, height: float, color: Color) -> MeshInstance3D:
@@ -393,8 +394,9 @@ func _update_bars(hp_ratio: float, shield_ratio: float) -> void:
 	if _hp_fill == null or retiring:
 		return
 	_set_bar_ratio(_hp_fill, hp_ratio)
-	_hp_back.visible = hp_ratio < 0.999 or shield_ratio > 0.001
-	_hp_fill.visible = _hp_back.visible
+	# 체력이 가득 차도 전투원 상태를 읽을 수 있도록 기본적으로 표시한다.
+	_hp_back.visible = true
+	_hp_fill.visible = true
 	_shield_fill.visible = shield_ratio > 0.001
 	_set_bar_ratio(_shield_fill, minf(shield_ratio, 1.0))
 

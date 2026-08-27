@@ -55,6 +55,9 @@ func _test_spawn_and_snapshot() -> void:
 	var ally := _find_sim_unit(sim, "aries", 0)
 	var actor := presenter.actor_for_test(ally.uid)
 	ok(actor != null and actor.def_id == "aries", "deployed snapshot이 Vesper actor를 spawn한다")
+	ok(actor._hp_back.visible and actor._hp_fill.visible, "전투 중 체력바가 최대 체력에서도 표시된다")
+	var hp_mesh := actor._hp_fill.mesh as QuadMesh
+	ok(hp_mesh != null and hp_mesh.size.y >= 0.07, "체력바 높이가 전장 화면에서 읽을 수 있는 크기다")
 	var before := actor.target_position.x
 	ally.pos += 8.0
 	presenter._process(Defs.TICK)
