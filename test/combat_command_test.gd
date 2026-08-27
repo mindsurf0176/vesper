@@ -6,6 +6,8 @@ func _init() -> void:
 	var ally := {"def_id":"aries", "order":0, "star":1}
 	var enemy := {"def_id":"sagittarius", "order":0, "star":1}
 	var sim = Sim.create([ally], [enemy], 3, 3, true)
+	assert(not sim.apply_tactical_order("방어"), "출격 전 전술 명령을 허용함")
+	assert(sim.tactical_charges[0] == 2, "무효 전술 명령이 충전을 소모함")
 	for _i in 12:
 		sim.step(1.0)
 	assert(sim.units[1].is_active(), "지휘기 검증 전에 적 유닛이 출격하지 않음")

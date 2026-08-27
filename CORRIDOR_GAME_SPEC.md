@@ -25,6 +25,7 @@
 - Enemy deployment: automatic queue for encounter pressure.
 - Role contrast: 모아와 워든은 전선을 열고 지킨다. 모아는 낮은 체력 대신 빠른 이동·근접 연격으로 빈틈을 찌르고, 비질과 다우스는 42/36의 긴 사거리에서 높은 피해를 주지만 전선이 무너지면 빠르게 쓰러진다.
 - Resources: battle cost starts at `0` and is visible as a continuously updating gauge; no AP or turn confirmation.
+- Tactical commands: each battle grants two charges shared by `전진`, `방어`, and `집중`; a command is only valid while an allied unit is deployed.
 - Win: enemy core reaches zero for the current segment. Lose: player core reaches zero or timeout at `75s`.
 - Run: endless segments. Every segment offers safe/supply, normal combat, and elite routes; every 7th segment can offer a boss route.
 - Threat: segment threat rises with distance, and encounter HP/attack scale gradually up to the engine's level cap.
@@ -40,7 +41,7 @@
 ## UI contract
 
 - Top: compact floor, core HP, cost gauge, encounter warning.
-- Center: battlefield only; no tactical planning toolbar.
+- Center: battlefield and passive event/phase feedback. Tactical commands live in the compact battle control strip above the unit cards.
 - Bottom: four unit cards. Each card shows portrait, role, cost, alive/deployed state,
   and a clear disabled charging state.
 - Card click is the primary verb. No hidden auto-deployment for the player.
@@ -50,15 +51,17 @@
 
 - Normal encounter: two enemy units, no special pulse.
 - Elite: stronger roster and a six-second `검은 파동` warning/damage pulse.
-- Boss: stronger roster and a five-second `매듭 재생` warning/heal pulse.
+- Battle variants: `철벽` strengthens and slows the frontline, `돌격` increases enemy movement/attack, and `증식` adds one enemy to the roster.
+- Boss: stronger roster, a five-second `매듭 재생` warning/heal pulse, and a `매듭 붕괴` phase at 50% enemy core HP that accelerates the encounter.
 - Rest: choose `체력 +20` or `선봉 교대`.
+- Supply/event: supply chooses between repair and salvage; event chooses between signal decoding with relic access and a high-risk forced detour.
 - Reward: choose one unique relic whenever the reward pool has an unused choice. Normal, supply, event, elite, and boss rewards expose different relic families.
 - Relics: 15 unique effects, including shields, opening burst, low-HP comeback, armor pierce, movement, regeneration, and core damage.
 
 ## Explicit non-goals for this submission
 
 - No eight-player match, shop, reroll, AI prep, rank, or hidden economy loop in active play.
-- No separate AP/turn tactical command system.
+- No turn-based confirmation flow; tactical commands are limited real-time interventions with two charges.
 - No new art production; reuse current character assets and code-native UI.
 - No multiplayer or persistence beyond the current run; the current run's distance is the score.
 

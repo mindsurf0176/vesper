@@ -12,7 +12,7 @@ const PLAYABLE_ROSTER := ["aries", "sagittarius", "capricorn", "pisces"]
 const _SPECS := {
 	"aries": {
 		"source_character": "",
-		"asset_provenance": "AssetForge: moa-ungoo-benchmark-clips-v9",
+		"asset_provenance": "AssetForge: moa-ungoo-benchmark-clips-v21",
 		"sprite": "res://assets/sprites/moa_pl",
 		"portrait": "res://assets/art/characters/moa/moa-identity-v2-cutout.png",
 		"card_art": "res://assets/art/characters/moa/moa-identity-v2-cutout.png",
@@ -24,7 +24,7 @@ const _SPECS := {
 		"migration_only": false,
 		"battle_ready": true,
 		"asset_blocked": false,
-		# v9는 5개 정본 클립만 제공한다. 전투 대기 상태는 idle을 고정 재생한다.
+		# v21은 공통 126색 팔레트와 matte 보정이 적용된 5개 정본 클립이다. 전투 대기 상태는 idle을 고정 재생한다.
 		"animation_aliases": {"aim": "idle"},
 		"animation_fps": {"idle": 8.0, "walk": 12.0, "attack": 14.0, "hit": 12.0, "death": 10.0},
 	},

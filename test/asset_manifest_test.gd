@@ -152,8 +152,8 @@ func _test_moa_final_contract() -> void:
 	ok(not bool(spec.get("migration_only", true))
 			and not bool(spec.get("asset_blocked", true))
 			and String(spec.get("filtering", "")) == "nearest"
-			and String(spec.get("asset_provenance", "")) == "AssetForge: moa-ungoo-benchmark-clips-v9",
-		"모아는 AssetForge v9 nearest-filtered final asset이다")
+			and String(spec.get("asset_provenance", "")) == "AssetForge: moa-ungoo-benchmark-clips-v21",
+		"모아는 AssetForge v21 nearest-filtered final asset이다")
 	var expected := {"idle": 6, "walk": 12, "aim": 6, "attack": 14, "hit": 6, "death": 10}
 	var frame_counts_ok := true
 	for animation in expected:

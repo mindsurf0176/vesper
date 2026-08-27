@@ -150,6 +150,13 @@ func cast_command_strike(damage: float = 48.0) -> bool:
 func apply_tactical_order(order: String, power: int = 1) -> bool:
 	if finished or tactical_charges[0] <= 0 or not ["전진", "방어", "집중"].has(order):
 		return false
+	var has_ally := false
+	for unit in units:
+		if unit.team == 0 and unit.is_active():
+			has_ally = true
+			break
+	if not has_ally:
+		return false
 	var strength := maxi(power, 1)
 	if order == "전진":
 		for unit in units:

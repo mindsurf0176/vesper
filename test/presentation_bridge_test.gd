@@ -75,6 +75,12 @@ func _test_event_mapping() -> void:
 	sim._events.append({"t": "ability", "uid": ally.uid, "name": "선봉"})
 	presenter._process(Defs.TICK)
 	ok(ally_actor._action_lock == "attack", "ability event가 actor action을 재생한다")
+	sim._events.append({"t": "tactical", "name": "방어", "team": 0})
+	presenter._process(Defs.TICK)
+	ok(not presenter._ability_calls.is_empty() and String(presenter._ability_calls.back().get("label", "")).contains("전술 명령"), "전술 명령이 전투 배너로 표시된다")
+	sim._events.append({"t": "pattern", "name": "매듭 붕괴", "phase": 2})
+	presenter._process(Defs.TICK)
+	ok(String(presenter._ability_calls.back().get("label", "")).contains("매듭 붕괴"), "보스 페이즈가 경고 배너로 표시된다")
 
 
 func _test_retreat_and_redeploy_presentation() -> void:

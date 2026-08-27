@@ -13,6 +13,7 @@ enum Phase { MAP, PREP, BATTLE, RESULT, GAMEOVER }
 const FIRST_PREP_TIME := 45.0
 const PREP_TIME := 30.0
 const RESULT_TIME := 4.0
+const RECORD_PATH := "user://vesper_corridor_record.cfg"
 
 var game: CorridorSession
 var corridor: CorridorRun
@@ -31,6 +32,7 @@ var round_no: int:
 var _accum := 0.0
 var _prep_left := FIRST_PREP_TIME
 var _result_left := RESULT_TIME
+var _best_distance_record := 0
 var _font: Font
 var _prep
 var _battle_layer: Control
@@ -71,6 +73,7 @@ func _ready() -> void:
 	project_theme.default_font_size = 15
 	theme = project_theme
 	_build_ui()
+	_load_best_distance()
 	corridor = CorridorRun.new(rng.randi())
 	_show_corridor()
 
@@ -467,7 +470,7 @@ func _refresh_battle_hud() -> void:
 		var tactical_button := _tactical_buttons[i]
 		var order: String = ["전진", "방어", "집중"][i]
 		tactical_button.text = "%s  [%d]" % [order, tactical_count]
-		tactical_button.disabled = sim.finished or tactical_count <= 0 or (order == "집중" and not _has_active_enemy())
+		tactical_button.disabled = sim.finished or tactical_count <= 0 or not _has_active_ally() or (order == "집중" and not _has_active_enemy())
 		tactical_button.tooltip_text = "전투당 2회 · " + ("아군 전선을 밀어붙입니다." if order == "전진" else "최전방에 보호막을 부여합니다." if order == "방어" else "적 최전방에 즉시 피해를 줍니다.")
 	for i in _plan_buttons.size():
 		var plan_button := _plan_buttons[i]
@@ -534,6 +537,15 @@ func _has_active_enemy() -> bool:
 	return false
 
 
+func _has_active_ally() -> bool:
+	if sim == null:
+		return false
+	for unit in sim.units:
+		if unit.team == 0 and unit.is_active():
+			return true
+	return false
+
+
 func _resolve_and_show(precomputed: Dictionary) -> void:
 	var before_hp := player.hp
 	var this_round := round_no
@@ -570,6 +582,7 @@ func _resolve_and_show(precomputed: Dictionary) -> void:
 		_result_count.text = "새로운 원정을 시작할 수 있습니다."
 	else:
 		corridor.complete_current()
+		_record_best_distance()
 		_queue_latest_relic_choice()
 		phase = Phase.RESULT
 		_result_left = RESULT_TIME
@@ -618,6 +631,21 @@ func _restart() -> void:
 	_show_corridor()
 
 
+func _load_best_distance() -> void:
+	var config := ConfigFile.new()
+	if config.load(RECORD_PATH) == OK:
+		_best_distance_record = maxi(0, int(config.get_value("corridor", "best_distance", 0)))
+
+
+func _record_best_distance() -> void:
+	if corridor == null or corridor.distance <= _best_distance_record:
+		return
+	_best_distance_record = corridor.distance
+	var config := ConfigFile.new()
+	config.set_value("corridor", "best_distance", _best_distance_record)
+	config.save(RECORD_PATH)
+
+
 func _seed_starter_squad() -> void:
 	var p := game.human_seat().player
 	p.roster = []
@@ -648,12 +676,12 @@ func _show_corridor() -> void:
 	var path := HBoxContainer.new()
 	path.alignment = BoxContainer.ALIGNMENT_CENTER
 	path.add_theme_constant_override("separation", 8)
-	var distance_label := _label("DISTANCE  %03d   ·   BEST  %03d\n━━━━━━━━━━━━━━━━━━━━   ∞" % [corridor.distance, corridor.best_distance], 15, "72d7d0")
+	var distance_label := _label("DISTANCE  %03d   ·   BEST  %03d\n━━━━━━━━━━━━━━━━━━━━   ∞" % [corridor.distance, _best_distance_record], 15, "72d7d0")
 	distance_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	path.add_child(distance_label)
 	_corridor_box.add_child(path)
 	var variant := str(current.get("variant", ""))
-	var encounter_note := ("\n변종  ·  " + variant) if not variant.is_empty() else ""
+	var encounter_note := ("\n변종  ·  %s — %s" % [variant, _variant_description(variant)]) if not variant.is_empty() else ""
 	var info := _label("SEED %d   ·   구간 %d\n%s  ·  위협 배율 %.1f%s" % [corridor.seed, int(current.get("floor", 1)), current.get("name", ""), float(current.get("threat", 1.0)), encounter_note], 15, "b9cfca")
 	info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_corridor_box.add_child(info)
@@ -678,7 +706,10 @@ func _show_corridor() -> void:
 		_corridor_box.add_child(_label("다음 구간 경로를 선택하세요", 15, "f3c777"))
 		for i in options.size():
 			var option: Dictionary = options[i]
-			var option_button := _button("%s  ·  위협 %.1f" % [option.get("name", "회랑"), float(option.get("threat", 1.0))], _choose_corridor.bind(i))
+			var option_variant := str(option.get("variant", ""))
+			var variant_suffix := "  ·  " + option_variant if not option_variant.is_empty() else ""
+			var option_button := _button("%s  ·  위협 %.1f%s" % [option.get("name", "회랑"), float(option.get("threat", 1.0)), variant_suffix], _choose_corridor.bind(i))
+			option_button.tooltip_text = _variant_description(option_variant) if not option_variant.is_empty() else "안전한 경로입니다."
 			option_button.custom_minimum_size.y = 46
 			_corridor_box.add_child(option_button)
 	else:
@@ -761,7 +792,7 @@ func _show_corridor_result() -> void:
 	_battle_layer.visible = false
 	_prep.visible = false
 	_result_title.text = "회랑 기록"
-	_result_body.text = "원정이 종료되었습니다.\n\n이번 기록: %d 구간\n최고 기록: %d 구간" % [corridor.distance, corridor.best_distance]
+	_result_body.text = "원정이 종료되었습니다.\n\n이번 기록: %d 구간\n최고 기록: %d 구간" % [corridor.distance, _best_distance_record]
 	_result_count.text = "NEW RUN"
 
 
@@ -793,6 +824,7 @@ func _rest_heal() -> void:
 		return
 	player.hp = mini(Econ.START_HP, player.hp + 20)
 	corridor.complete_current()
+	_record_best_distance()
 	_show_corridor()
 
 
@@ -829,6 +861,7 @@ func _choose_special(choice_id: String) -> void:
 	var p := game.human_seat().player
 	p.hp = clampi(p.hp + int(outcome.get("hp", 0)), 0, Econ.START_HP)
 	p.gold += int(outcome.get("gold", 0))
+	_record_best_distance()
 	_pending_special_options.clear()
 	_pending_relic_choices.clear()
 	for relic in outcome.get("relic_choices", []):
@@ -900,6 +933,17 @@ func _relic_name(relic: String) -> String:
 
 func _relic_description(relic: String) -> String:
 	return RELIC_DB.description(relic)
+
+
+func _variant_description(variant: String) -> String:
+	match variant:
+		"철벽":
+			return "최전방 적의 체력이 높고 느립니다."
+		"돌격":
+			return "적 전체의 이동 속도와 공격력이 높습니다."
+		"증식":
+			return "적 편성이 하나 더 늘어납니다."
+	return "일반 조우입니다."
 
 
 func _on_speed() -> void:

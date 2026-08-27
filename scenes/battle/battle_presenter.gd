@@ -214,6 +214,19 @@ func _consume_events() -> void:
 	for event in sim.consume_events():
 		var kind := String(event.get("t", ""))
 		match kind:
+			"tactical":
+				_ability_calls.append({
+					"label": "전술 명령  ·  %s" % String(event.get("name", "실행")),
+					"def_id": "aries",
+					"until": Time.get_ticks_msec() / 1000.0 + 0.9 / maxf(playback_speed, 1.0),
+				})
+				_stage.relic_fx(Vector3(0.0, 1.0, 0.0), Color("7cc5cf"))
+			"pattern":
+				_ability_calls.append({
+					"label": "경고  ·  %s" % String(event.get("name", "패턴")),
+					"def_id": "aries",
+					"until": Time.get_ticks_msec() / 1000.0 + 1.25 / maxf(playback_speed, 1.0),
+				})
 			"command_hit":
 				var target := _active_actor(int(event["to"]))
 				if target != null:
@@ -388,7 +401,8 @@ func _draw_ability_banner() -> void:
 	var rect := Rect2(size.x * 0.5 - 160, 50, 320, 42)
 	draw_rect(rect, Color(0.02, 0.04, 0.05, 0.88))
 	draw_rect(rect, color, false, 2.0)
-	_text(rect.position + Vector2(18, 27), "%s  ·  %s" % [unit["name"], call["name"]], Color("fff2d2"), 15)
+	var label := str(call.get("label", "%s  ·  %s" % [unit["name"], call.get("name", "발동")]))
+	_text(rect.position + Vector2(18, 27), label, Color("fff2d2"), 15)
 
 
 func _element_color(element: int) -> Color:
