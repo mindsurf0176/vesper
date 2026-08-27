@@ -47,11 +47,12 @@ func current() -> Dictionary:
 func current_mutator() -> Dictionary:
 	return mutator.duplicate(true)
 
-func complete_current() -> void:
+func complete_current(grant_reward: bool = true) -> void:
 	if cleared or failed:
 		return
 	var node := current()
-	rewards.append(_reward_for(node))
+	if grant_reward:
+		rewards.append(_reward_for(node))
 	distance += 1
 	best_distance = maxi(best_distance, distance)
 	route_index += 1
@@ -106,7 +107,7 @@ func choose_special(choice_id: String) -> Dictionary:
 		var reward := _reward_for(current())
 		var outcome := option.duplicate(true)
 		outcome["relic_choices"] = reward.get("relic_choices", []) if bool(option.get("take_relic", false)) else []
-		complete_current()
+		complete_current(false)
 		return outcome
 	return {}
 

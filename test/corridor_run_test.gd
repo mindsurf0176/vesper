@@ -26,6 +26,9 @@ func _init() -> void:
 	assert(a.distance == 13 and a.best_distance == 13, "무한 회랑 거리 기록이 누적되지 않음")
 	assert(not a.is_finished() and a.current().get("floor", 0) == 14, "보스 이후에도 회랑이 계속되지 않음")
 	assert(reward_relic_count >= 36, "전투 보상에 충분한 유물 선택지가 없음")
+	var loss := Run.new(31337)
+	loss.complete_current(false)
+	assert(loss.distance == 1 and loss.rewards.is_empty(), "패배 구간이 유물 보상을 지급함")
 	var special := Run.new(1717)
 	var saw_special := false
 	for _i in 20:

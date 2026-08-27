@@ -582,12 +582,20 @@ func _resolve_and_show(precomputed: Dictionary) -> void:
 		_result_title.text = "원정 실패"
 		_result_count.text = "새로운 원정을 시작할 수 있습니다."
 	else:
-		corridor.complete_current()
+		var earned_battle_reward := verdict == "승리"
+		# 전투 패배는 코어 피해를 입고 계속 갈 수 있지만, 같은 구간의
+		# 유물 보상까지 주면 패배가 사실상 무료 선택이 된다.
+		corridor.complete_current(earned_battle_reward)
 		_record_best_distance()
-		_queue_latest_relic_choice()
+		_pending_relic_choices.clear()
+		if earned_battle_reward:
+			_queue_latest_relic_choice()
 		phase = Phase.RESULT
 		_result_left = RESULT_TIME
-		_result_count.text = "계속을 눌러 유물을 선택하세요" if not _pending_relic_choices.is_empty() else "%.1f초 뒤 다음 회랑" % _result_left
+		if not earned_battle_reward:
+			_result_count.text = "패배 · 이번 구간 유물 보상 없음 · 계속해서 회복 기회를 찾으세요"
+		else:
+			_result_count.text = "계속을 눌러 유물을 선택하세요" if not _pending_relic_choices.is_empty() else "%.1f초 뒤 다음 회랑" % _result_left
 
 
 func _other_results(human: int) -> String:
@@ -830,7 +838,7 @@ func _rest_heal() -> void:
 	if corridor.current().get("kind", "") != "휴식":
 		return
 	player.hp = mini(Econ.START_HP, player.hp + 20)
-	corridor.complete_current()
+	corridor.complete_current(false)
 	_record_best_distance()
 	_show_corridor()
 
@@ -884,7 +892,7 @@ func _rest_reorder() -> void:
 	var first_order := int(queued[0].get("order", 0))
 	queued[0]["order"] = int(queued[queued.size() - 1].get("order", queued.size() - 1))
 	queued[queued.size() - 1]["order"] = first_order
-	corridor.complete_current()
+	corridor.complete_current(false)
 	_show_corridor()
 
 
