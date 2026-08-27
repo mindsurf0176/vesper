@@ -622,6 +622,15 @@ func _show_corridor() -> void:
 		var relics := _label("보유 유물: " + ", ".join(_relic_names(player.relics)), 13, "8bd9c6")
 		relics.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		_corridor_box.add_child(relics)
+	var combos := RELIC_DB.active_combos(player.relics)
+	if not combos.is_empty():
+		var combo_names: PackedStringArray = []
+		for combo in combos:
+			combo_names.append(str(combo["name"]))
+		var combo_label := _label("활성 연계 %d개: %s" % [combos.size(), "  ·  ".join(combo_names)], 13, "f3c777")
+		combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		combo_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_corridor_box.add_child(combo_label)
 	var options := corridor.available_options()
 	if not options.is_empty():
 		_corridor_box.add_child(_label("다음 구간 경로를 선택하세요", 15, "f3c777"))

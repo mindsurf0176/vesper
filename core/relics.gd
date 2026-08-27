@@ -24,6 +24,24 @@ const TABLE := [
 	{"id":"core_lens", "name":"매듭 렌즈", "tag":"돌파", "desc":"적 코어에 주는 피해 +25%"},
 ]
 
+const COMBOS := [
+	{"id":"lantern_fortress", "required":["ember_cache", "anchor_shard"],
+		"name":"등불 요새", "desc":"최대 HP +8%, 출격 보호막 +10%p",
+		"effects":{"relic_hp_mult":1.08, "relic_shield_ratio":0.10}},
+	{"id":"sightline_link", "required":["signal_lens", "longwatch"],
+		"name":"조준 링크", "desc":"공격 속도 +8%, 사거리 +4",
+		"effects":{"relic_as_mult":1.08, "relic_range_add":4.0}},
+	{"id":"breach_doctrine", "required":["hollow_crown", "breach_round"],
+		"name":"관통 교리", "desc":"공격력 +7%, 방어 관통 +10%p",
+		"effects":{"relic_atk_mult":1.07, "relic_armor_pierce_add":0.10}},
+	{"id":"first_breach", "required":["quickstep", "relay_beacon"],
+		"name":"선행 돌입", "desc":"이동 속도 +8%, 첫 공격 피해 +10%",
+		"effects":{"relic_move_mult":1.08, "relic_opening_atk_mult":0.10}},
+	{"id":"recovery_shell", "required":["ward_sigil", "tide_core"],
+		"name":"회복 장갑", "desc":"받는 피해 -5%, 전투 회복 +0.4%/초",
+		"effects":{"relic_damage_taken_mult":0.95, "relic_team_regen":0.004}},
+]
+
 
 static func all() -> Array:
 	return TABLE.duplicate(true)
@@ -44,6 +62,19 @@ static func name(relic_id: String) -> String:
 static func description(relic_id: String) -> String:
 	var relic := get_def(relic_id)
 	return str(relic.get("desc", "알 수 없는 효과"))
+
+
+static func active_combos(relics: Array[String]) -> Array[Dictionary]:
+	var active: Array[Dictionary] = []
+	for combo in COMBOS:
+		var complete := true
+		for required in combo["required"]:
+			if not relics.has(str(required)):
+				complete = false
+				break
+		if complete:
+			active.append(combo.duplicate(true))
+	return active
 
 
 static func apply_to_placement(placement: Dictionary, relics: Array[String]) -> void:
@@ -80,3 +111,17 @@ static func apply_to_placement(placement: Dictionary, relics: Array[String]) -> 
 				placement["relic_damage_taken_mult"] = float(placement.get("relic_damage_taken_mult", 1.0)) * 1.15
 			"core_lens":
 				placement["relic_core_damage_mult"] = float(placement.get("relic_core_damage_mult", 1.0)) * 1.25
+	for combo in active_combos(relics):
+		_apply_combo_effects(placement, combo.get("effects", {}))
+
+
+static func _apply_combo_effects(placement: Dictionary, effects: Dictionary) -> void:
+	for key in effects:
+		var value := float(effects[key])
+		match str(key):
+			"relic_hp_mult", "relic_as_mult", "relic_atk_mult", "relic_move_mult", "relic_damage_taken_mult":
+				placement[key] = float(placement.get(key, 1.0)) * value
+			"relic_team_regen":
+				placement[key] = maxf(float(placement.get(key, 0.0)), value)
+			_:
+				placement[key] = float(placement.get(key, 0.0)) + value
