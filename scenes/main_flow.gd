@@ -47,6 +47,7 @@ var _result_layer: Control
 var _result_title: Label
 var _result_body: Label
 var _result_count: Label
+var _result_continue_button: Button
 var _help_layer: Control
 var _corridor_layer: Control
 var _corridor_box: VBoxContainer
@@ -210,9 +211,9 @@ func _build_result() -> void:
 	_result_count = _label("", 12, "8fa6a8")
 	_result_count.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(_result_count)
-	var next := _button("계속", _on_result_continue)
-	next.custom_minimum_size.y = 42
-	box.add_child(next)
+	_result_continue_button = _button("계속", _on_result_continue)
+	_result_continue_button.custom_minimum_size.y = 42
+	box.add_child(_result_continue_button)
 
 
 func _build_help() -> void:
@@ -577,25 +578,25 @@ func _resolve_and_show(precomputed: Dictionary) -> void:
 	_prep.visible = false
 	if sim != null:
 		_view.show_victory(sim.winner)
-	if not player.is_alive() or game.is_over():
-		phase = Phase.GAMEOVER
-		_result_title.text = "원정 실패"
-		_result_count.text = "새로운 원정을 시작할 수 있습니다."
-	else:
-		var earned_battle_reward := verdict == "승리"
-		# 전투 패배는 코어 피해를 입고 계속 갈 수 있지만, 같은 구간의
-		# 유물 보상까지 주면 패배가 사실상 무료 선택이 된다.
-		corridor.complete_current(earned_battle_reward)
+	if verdict != "승리" or not player.is_alive() or game.is_over():
+		corridor.fail()
 		_record_best_distance()
 		_pending_relic_choices.clear()
-		if earned_battle_reward:
-			_queue_latest_relic_choice()
+		phase = Phase.GAMEOVER
+		_result_title.text = "원정 실패"
+		_result_body.text = "%d번째 구간에서 원정대가 무너졌습니다.\n\n이번 런 도달 거리 %d  ·  최고 기록 %d\n\n패배하면 해당 런은 종료됩니다. 다음 원정에서 기록을 갱신하세요." % [
+			this_round, corridor.distance, _best_distance_record]
+		_result_count.text = "패배 · 유물 보상 없음 · 새 원정을 시작하세요"
+		_result_continue_button.text = "새 원정 시작"
+	else:
+		corridor.complete_current(true)
+		_record_best_distance()
+		_pending_relic_choices.clear()
+		_queue_latest_relic_choice()
 		phase = Phase.RESULT
 		_result_left = RESULT_TIME
-		if not earned_battle_reward:
-			_result_count.text = "패배 · 이번 구간 유물 보상 없음 · 계속해서 회복 기회를 찾으세요"
-		else:
-			_result_count.text = "계속을 눌러 유물을 선택하세요" if not _pending_relic_choices.is_empty() else "%.1f초 뒤 다음 회랑" % _result_left
+		_result_count.text = "계속을 눌러 유물을 선택하세요" if not _pending_relic_choices.is_empty() else "%.1f초 뒤 다음 회랑" % _result_left
+		_result_continue_button.text = "계속"
 
 
 func _other_results(human: int) -> String:
@@ -809,6 +810,7 @@ func _show_corridor_result() -> void:
 	_result_title.text = "회랑 기록"
 	_result_body.text = "원정이 종료되었습니다.\n\n이번 기록: %d 구간\n최고 기록: %d 구간" % [corridor.distance, _best_distance_record]
 	_result_count.text = "NEW RUN"
+	_result_continue_button.text = "새 원정 시작"
 
 
 func _show_rest_choice() -> void:

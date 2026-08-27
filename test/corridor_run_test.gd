@@ -29,6 +29,11 @@ func _init() -> void:
 	var loss := Run.new(31337)
 	loss.complete_current(false)
 	assert(loss.distance == 1 and loss.rewards.is_empty(), "패배 구간이 유물 보상을 지급함")
+	var failed := Run.new(4242)
+	failed.fail()
+	assert(failed.is_finished() and failed.failed, "패배한 런이 종료 상태가 아님")
+	failed.complete_current()
+	assert(failed.distance == 0, "종료된 런이 패배 후에도 다음 구간으로 진행함")
 	var special := Run.new(1717)
 	var saw_special := false
 	for _i in 20:
