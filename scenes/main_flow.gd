@@ -472,7 +472,7 @@ func _refresh_battle_hud() -> void:
 		var order: String = ["전진", "방어", "집중"][i]
 		tactical_button.text = "%s  [%d]" % [order, tactical_count]
 		tactical_button.disabled = sim.finished or tactical_count <= 0 or not _has_active_ally() or (order == "집중" and not _has_active_enemy())
-		tactical_button.tooltip_text = "전투당 2회 · " + ("아군 전선을 밀어붙입니다." if order == "전진" else "최전방에 보호막을 부여합니다." if order == "방어" else "적 최전방에 즉시 피해를 줍니다.")
+		tactical_button.tooltip_text = "전투당 2회 · " + ("적 선두가 앞서면 돌파 효과 강화" if order == "전진" else "적 선두가 앞서면 보호막 강화" if order == "방어" else "적 체력 40% 이하에서 피해 강화")
 	for i in _plan_buttons.size():
 		var plan_button := _plan_buttons[i]
 		var unit: CombatSim.SimUnit = null

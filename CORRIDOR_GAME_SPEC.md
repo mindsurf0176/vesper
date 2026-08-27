@@ -37,6 +37,9 @@
 - Role contrast: 모아와 워든은 전선을 열고 지킨다. 모아는 낮은 체력 대신 빠른 이동·근접 연격으로 빈틈을 찌르고, 비질과 다우스는 42/36의 긴 사거리에서 높은 피해를 주지만 전선이 무너지면 빠르게 쓰러진다.
 - Resources: battle cost starts at `0` and is visible as a continuously updating gauge; no AP or turn confirmation.
 - Tactical commands: each battle grants two charges shared by `전진`, `방어`, and `집중`; a command is only valid while an allied unit is deployed.
+- Deployment combos: selected pairs of consecutive player deployments within four seconds trigger a short combat modifier and a `combo` event. The current pairs are 워든→비질 (엄호 사격), 모아→다우스 (돌파 신호), 비질→모아 (표적 고정), and 다우스→워든 (후퇴 엄호).
+- Frontline break: defeating the enemy's current frontline while manual player control is active returns 2 cost and emits a `break` event. Automatic balance simulations do not receive this player reward.
+- Situational tactics: `전진` is stronger when the enemy leads the line, `방어` grants a stronger shield in the same danger state, and `집중` deals bonus damage to an enemy at 40% HP or less.
 - Win: enemy core reaches zero for the current segment. Lose: player core reaches zero or timeout at `75s`.
 - Run: endless segments. Every segment offers safe/supply, normal combat, and elite routes; every 7th segment can offer a boss route.
 - Threat: segment threat rises with distance, and encounter HP/attack scale gradually up to the engine's level cap.
@@ -48,6 +51,8 @@
 - Hold a card to respond to a boss pulse or enemy reinforcement.
 - Choose a safe rest/supply route or an elite route with better relic access.
 - Rotate the fixed squad order at a rest node.
+- Chain two deployments within four seconds to trigger a squad combo, or hold cost to answer the next tactical moment.
+- Break the enemy frontline to recover cost and keep the push going.
 
 ## UI contract
 

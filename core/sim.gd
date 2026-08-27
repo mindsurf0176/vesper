@@ -50,6 +50,8 @@ class SimUnit extends RefCounted:
 	var attack_count := 0
 	var hit_count := 0
 	var kill_stacks := 0
+	var combo_atk_mult := 1.0
+	var combo_attacks_left := 0
 
 	func is_active() -> bool:
 		return deployed and alive
@@ -88,6 +90,8 @@ var _next_uid := 0
 var _trait_regen := [0.0, 0.0]
 var _relic_regen := [0.0, 0.0]
 var _regen := [Defs.COST_REGEN, Defs.COST_REGEN]
+var _last_deployed_def_id := ["", ""]
+var _last_deployed_time := [-999.0, -999.0]
 var _encounter_pattern := ""
 var _boss_phase_two := false
 var _pattern_pulse := 0
@@ -95,6 +99,14 @@ var _pattern_pulse := 0
 ## 상호 확살이 동시 사망으로 처리된다.
 var _pending: Dictionary = {}
 var _events: Array = []        ## 시각화용. consume_events()로 비우며 가져간다.
+
+const DEPLOY_COMBO_WINDOW := 4.0
+const DEPLOY_COMBOS := {
+	"capricorn>sagittarius": {"name":"엄호 사격", "atk_mult":1.30, "attacks":2},
+	"aries>pisces": {"name":"돌파 신호", "atk_mult":1.45, "attacks":1},
+	"sagittarius>aries": {"name":"표적 고정", "atk_mult":1.25, "attacks":2},
+	"pisces>capricorn": {"name":"후퇴 엄호", "shield_ratio":0.22},
+}
 
 
 ## placements: [{def_id, star, order}]
@@ -141,7 +153,10 @@ func cast_command_strike(damage: float = 48.0) -> bool:
 		_events.append({"t":"command_hit", "to":unit.uid, "dmg":damage})
 		hit = true
 		if unit.hp <= 0.0:
+			var was_frontline := _front_unit(unit.team) == unit
 			unit.alive = false
+			if was_frontline:
+				_emit_frontline_break(unit)
 			_events.append({"t":"death", "uid":unit.uid})
 	_check_end()
 	return hit
@@ -159,18 +174,20 @@ func apply_tactical_order(order: String, power: int = 1) -> bool:
 		return false
 	var strength := maxi(power, 1)
 	if order == "전진":
+		var bonus := _enemy_leads_line()
 		for unit in units:
 			if unit.team == 0 and unit.is_active():
-				unit.pos = minf(Defs.FIELD_LEN - 18.0, unit.pos + 12.0 * strength)
+				unit.pos = minf(Defs.FIELD_LEN - 18.0, unit.pos + 12.0 * strength * (1.5 if bonus else 1.0))
 		tactical_charges[0] -= 1
-		_events.append({"t":"tactical", "name":order, "team":0, "charges":tactical_charges[0], "time":time})
+		_events.append({"t":"tactical", "name":order, "team":0, "charges":tactical_charges[0], "bonus":"압박 돌파" if bonus else "", "time":time})
 		return true
 	if order == "방어":
+		var bonus := _enemy_leads_line()
 		for unit in units:
 			if unit.team == 0 and unit.is_active():
-				unit.shield = maxf(unit.shield, unit.max_hp * 0.18 * strength)
+				unit.shield = maxf(unit.shield, unit.max_hp * (0.27 if bonus else 0.18) * strength)
 		tactical_charges[0] -= 1
-		_events.append({"t":"tactical", "name":order, "team":0, "charges":tactical_charges[0], "time":time})
+		_events.append({"t":"tactical", "name":order, "team":0, "charges":tactical_charges[0], "bonus":"긴급 방벽" if bonus else "", "time":time})
 		return true
 	if order == "집중":
 		var target: SimUnit = null
@@ -180,12 +197,18 @@ func apply_tactical_order(order: String, power: int = 1) -> bool:
 		if target == null:
 			return false
 		var damage := 36.0 * strength
+		var finishing := target.hp / maxf(target.max_hp, 1.0) <= 0.40
+		if finishing:
+			damage *= 1.35
 		tactical_charges[0] -= 1
 		target.hp = maxf(0.0, target.hp - damage)
 		_events.append({"t": "command_hit", "to": target.uid, "dmg": damage})
 		_events.append({"t":"tactical", "name":order, "team":0, "charges":tactical_charges[0], "time":time})
 		if target.hp <= 0.0:
+			var was_frontline := _front_unit(target.team) == target
 			target.alive = false
+			if was_frontline:
+				_emit_frontline_break(target)
 			_events.append({"t": "death", "uid": target.uid})
 		_check_end()
 		return true
@@ -204,6 +227,8 @@ func manual_deploy(team: int, uid: int) -> bool:
 	cost[team] -= unit.deploy_cost
 	_queue[team].erase(unit)
 	_deploy_unit(team, unit)
+	if team == 0:
+		_apply_deployment_combo(unit)
 	return true
 
 
@@ -221,6 +246,9 @@ func manual_retreat(team: int, uid: int) -> bool:
 	unit.shield = 0.0
 	unit.recovery_left = Defs.RETREAT_RECOVERY_TIME
 	unit.retreat_count += 1
+	if team == 0:
+		_last_deployed_def_id[team] = ""
+		_last_deployed_time[team] = -999.0
 	_events.append({"t": "retreat", "uid": unit.uid, "team": team, "time": time})
 	return true
 
@@ -379,6 +407,31 @@ func _deploy_unit(team: int, u: SimUnit) -> void:
 	_events.append({"t": "deploy", "uid": u.uid, "team": team, "time": time})
 
 
+func _apply_deployment_combo(unit: SimUnit) -> void:
+	var previous := str(_last_deployed_def_id[0])
+	var elapsed := time - float(_last_deployed_time[0])
+	if not previous.is_empty() and elapsed <= DEPLOY_COMBO_WINDOW:
+		var combo_key := "%s>%s" % [previous, unit.def_id]
+		if DEPLOY_COMBOS.has(combo_key):
+			var combo: Dictionary = DEPLOY_COMBOS[combo_key]
+			unit.combo_atk_mult = float(combo.get("atk_mult", 1.0))
+			unit.combo_attacks_left = int(combo.get("attacks", 0))
+			var shield_ratio := float(combo.get("shield_ratio", 0.0))
+			if shield_ratio > 0.0:
+				unit.shield = maxf(unit.shield, unit.max_hp * shield_ratio)
+			_events.append({"t":"combo", "from_def":previous, "uid":unit.uid,
+				"name":combo.get("name", "출격 연계"), "time":time})
+	_last_deployed_def_id[0] = unit.def_id
+	_last_deployed_time[0] = time
+
+
+func _emit_frontline_break(victim: SimUnit) -> void:
+	if not manual_control[0]:
+		return
+	cost[0] = minf(Defs.MAX_COST, cost[0] + 2.0)
+	_events.append({"t":"break", "team":0, "uid":victim.uid, "name":"전선 돌파", "cost":2.0, "time":time})
+
+
 func _apply_regen(dt: float) -> void:
 	for team in 2:
 		var ability_rate := 0.0
@@ -470,7 +523,7 @@ func _try_attack(u: SimUnit, target: SimUnit) -> void:
 
 	var armor_pierce := clampf(float(u.ability.get("armor_pierce", 0.0)) + u.relic_armor_pierce_add, 0.0, 0.95)
 	var effective_armor := target.armor * (1.0 - armor_pierce)
-	var dmg: float = u.atk * (1.0 + float(u.kill_stacks) \
+	var dmg: float = u.atk * _consume_combo_attack(u) * (1.0 + float(u.kill_stacks) \
 		* float(u.ability.get("kill_atk_mult", 0.0)))
 	if u.relic_opening_attacks > 0:
 		dmg *= 1.0 + u.relic_opening_atk_mult
@@ -522,8 +575,11 @@ func _resolve_damage() -> void:
 			t.hp -= dmg
 			if t.hp <= 0.0:
 				t.hp = 0.0
+				var was_frontline := _front_unit(t.team) == t
 				t.alive = false
 				killed_by[uid] = contributors.keys()
+				if was_frontline:
+					_emit_frontline_break(t)
 				_events.append({"t": "death", "uid": uid, "time": time})
 				break
 
@@ -563,7 +619,7 @@ func _try_hit_core(u: SimUnit) -> void:
 		return
 	u.cd = 1.0 / maxf(u.atk_speed, 0.05)
 	var enemy := 1 - u.team
-	var dmg: float = u.atk * (1.0 + float(u.kill_stacks) \
+	var dmg: float = u.atk * _consume_combo_attack(u) * (1.0 + float(u.kill_stacks) \
 		* float(u.ability.get("kill_atk_mult", 0.0))) * damage_rampup()
 	dmg *= u.relic_core_damage_mult
 	dmg *= 1.0 - _active_core_reduction(enemy)
@@ -596,6 +652,22 @@ func _front_unit(team: int) -> SimUnit:
 			best_pos = o.pos
 			best = o
 	return best
+
+
+func _enemy_leads_line() -> bool:
+	var ally := _front_unit(0)
+	var enemy := _front_unit(1)
+	return ally != null and enemy != null and enemy.pos > ally.pos
+
+
+func _consume_combo_attack(unit: SimUnit) -> float:
+	if unit.combo_attacks_left <= 0:
+		return 1.0
+	unit.combo_attacks_left -= 1
+	var multiplier := unit.combo_atk_mult
+	if unit.combo_attacks_left == 0:
+		unit.combo_atk_mult = 1.0
+	return multiplier
 
 
 func _is_frontline(u: SimUnit) -> bool:

@@ -215,12 +215,29 @@ func _consume_events() -> void:
 		var kind := String(event.get("t", ""))
 		match kind:
 			"tactical":
+				var bonus := String(event.get("bonus", ""))
 				_ability_calls.append({
-					"label": "전술 명령  ·  %s" % String(event.get("name", "실행")),
+					"label": "전술 명령  ·  %s%s" % [String(event.get("name", "실행")), "  ·  " + bonus if not bonus.is_empty() else ""],
 					"def_id": "aries",
 					"until": Time.get_ticks_msec() / 1000.0 + 0.9 / maxf(playback_speed, 1.0),
 				})
 				_stage.relic_fx(Vector3(0.0, 1.0, 0.0), Color("7cc5cf"))
+			"combo":
+				var combo_actor := _active_actor(int(event.get("uid", -1)))
+				if combo_actor != null:
+					_ability_calls.append({
+						"label": "출격 연계  ·  %s" % String(event.get("name", "발동")),
+						"def_id": combo_actor.def_id,
+						"until": Time.get_ticks_msec() / 1000.0 + 1.0 / maxf(playback_speed, 1.0),
+					})
+					_stage.relic_fx(combo_actor.position, Color("f3c777"))
+			"break":
+				_ability_calls.append({
+					"label": "전선 돌파  ·  코스트 +%d" % int(event.get("cost", 2.0)),
+					"def_id": "aries",
+					"until": Time.get_ticks_msec() / 1000.0 + 1.0 / maxf(playback_speed, 1.0),
+				})
+				_stage.relic_fx(Vector3(0.0, 1.0, 0.0), Color("ef8354"))
 			"pattern":
 				_ability_calls.append({
 					"label": "경고  ·  %s" % String(event.get("name", "패턴")),
