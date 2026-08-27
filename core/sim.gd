@@ -75,6 +75,7 @@ class SimUnit extends RefCounted:
 var units: Array[SimUnit] = []
 var core_hp := [Defs.CORE_HP, Defs.CORE_HP]
 var cost := [Defs.START_COST, Defs.START_COST]
+var tactical_charges := [2, 0] ## 플레이어가 전투 중 쓸 수 있는 전술 명령 횟수.
 var time := 0.0
 var finished := false
 var winner := -1               ## 0/1, 무승부는 -1
@@ -88,6 +89,7 @@ var _trait_regen := [0.0, 0.0]
 var _relic_regen := [0.0, 0.0]
 var _regen := [Defs.COST_REGEN, Defs.COST_REGEN]
 var _encounter_pattern := ""
+var _boss_phase_two := false
 var _pattern_pulse := 0
 ## 틱 내 피해는 모았다가 끝에 한 번에 적용한다. 그래야 배열 순서가 승패를 가르지 않고
 ## 상호 확살이 동시 사망으로 처리된다.
@@ -146,18 +148,22 @@ func cast_command_strike(damage: float = 48.0) -> bool:
 
 
 func apply_tactical_order(order: String, power: int = 1) -> bool:
-	if finished:
+	if finished or tactical_charges[0] <= 0 or not ["전진", "방어", "집중"].has(order):
 		return false
 	var strength := maxi(power, 1)
 	if order == "전진":
 		for unit in units:
 			if unit.team == 0 and unit.is_active():
 				unit.pos = minf(Defs.FIELD_LEN - 18.0, unit.pos + 12.0 * strength)
+		tactical_charges[0] -= 1
+		_events.append({"t":"tactical", "name":order, "team":0, "charges":tactical_charges[0], "time":time})
 		return true
 	if order == "방어":
 		for unit in units:
 			if unit.team == 0 and unit.is_active():
 				unit.shield = maxf(unit.shield, unit.max_hp * 0.18 * strength)
+		tactical_charges[0] -= 1
+		_events.append({"t":"tactical", "name":order, "team":0, "charges":tactical_charges[0], "time":time})
 		return true
 	if order == "집중":
 		var target: SimUnit = null
@@ -167,8 +173,10 @@ func apply_tactical_order(order: String, power: int = 1) -> bool:
 		if target == null:
 			return false
 		var damage := 36.0 * strength
+		tactical_charges[0] -= 1
 		target.hp = maxf(0.0, target.hp - damage)
 		_events.append({"t": "command_hit", "to": target.uid, "dmg": damage})
+		_events.append({"t":"tactical", "name":order, "team":0, "charges":tactical_charges[0], "time":time})
 		if target.hp <= 0.0:
 			target.alive = false
 			_events.append({"t": "death", "uid": target.uid})
@@ -234,7 +242,7 @@ func _make_unit(team: int, p: Dictionary, order: int, tr: Traits) -> SimUnit:
 	u.armor = float(d["armor"]) + float(mods["armor_add"]) + float(p.get("relic_armor_add", 0.0))
 	u.atk_speed = float(d["atk_speed"]) * float(mods["as_mult"]) * float(p.get("relic_as_mult", 1.0)) * float(p.get("tactic_as_mult", 1.0))
 	u.atk_range = float(d["atk_range"]) + float(p.get("relic_range_add", 0.0))
-	u.move_speed = float(d["move_speed"]) * float(p.get("relic_move_mult", 1.0))
+	u.move_speed = float(d["move_speed"]) * float(p.get("relic_move_mult", 1.0)) * float(p.get("tactic_move_mult", 1.0))
 	u.ability = d["ability"].duplicate(true)
 	u.relic_opening_atk_mult = float(p.get("relic_opening_atk_mult", 0.0))
 	u.relic_opening_attacks = 1 if u.relic_opening_atk_mult > 0.0 else 0
@@ -285,7 +293,14 @@ func step(dt: float) -> void:
 
 
 func _apply_encounter_pattern() -> void:
-	var interval := 6.0 if _encounter_pattern == "엘리트" else 5.0 if _encounter_pattern == "보스" else 0.0
+	if _encounter_pattern == "보스" and not _boss_phase_two and core_hp[1] <= Defs.CORE_HP * 0.5:
+		_boss_phase_two = true
+		for unit in units:
+			if unit.team == 1 and unit.is_active():
+				unit.atk_speed *= 1.15
+				unit.move_speed *= 1.15
+		_events.append({"t":"pattern", "name":"매듭 붕괴", "phase":2, "time":time})
+	var interval := 6.0 if _encounter_pattern == "엘리트" else 4.0 if _boss_phase_two else 5.0 if _encounter_pattern == "보스" else 0.0
 	if interval <= 0.0:
 		return
 	var pulse := int(floor(time / interval))
@@ -308,11 +323,11 @@ func _apply_encounter_pattern() -> void:
 		var healed := false
 		for unit in units:
 			if unit.team == 1 and unit.is_active():
-				unit.hp = minf(unit.max_hp, unit.hp + 12.0)
+				unit.hp = minf(unit.max_hp, unit.hp + (8.0 if _boss_phase_two else 12.0))
 				healed = true
-		core_hp[1] = minf(Defs.CORE_HP, core_hp[1] + 8.0)
+		core_hp[1] = minf(Defs.CORE_HP, core_hp[1] + (5.0 if _boss_phase_two else 8.0))
 		if healed:
-			_events.append({"t": "pattern", "name": "매듭 재생", "heal": 12.0})
+			_events.append({"t": "pattern", "name": "매듭 재생", "heal": 8.0 if _boss_phase_two else 12.0})
 
 
 func _tick_cost(dt: float) -> void:

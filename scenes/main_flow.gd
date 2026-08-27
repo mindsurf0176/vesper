@@ -38,6 +38,7 @@ var _view: BattlePresenter
 var _battle_top: Label
 var _speed_btn: Button
 var _command_btn: Button
+var _tactical_buttons: Array[Button] = []
 var _command_left := 0.0
 var _plan_buttons: Array[Button] = []
 var _result_layer: Control
@@ -48,6 +49,7 @@ var _help_layer: Control
 var _corridor_layer: Control
 var _corridor_box: VBoxContainer
 var _pending_relic_choices: Array[String] = []
+var _pending_special_options: Array[Dictionary] = []
 var _intro_pending := true
 var _squad_locked := false
 var _encounter_kind := "전투"
@@ -140,7 +142,7 @@ func _build_battle() -> void:
 	_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root_box.add_child(_view)
 	var card_panel := PanelContainer.new()
-	card_panel.custom_minimum_size.y = 132
+	card_panel.custom_minimum_size.y = 170
 	card_panel.add_theme_stylebox_override("panel", _panel_style("0d1a25"))
 	root_box.add_child(card_panel)
 	var card_bar := HBoxContainer.new()
@@ -152,6 +154,16 @@ func _build_battle() -> void:
 	var card_hint := _label("출격 카드  ·  전선에서는 후퇴, 본진 회복 뒤 재출격", 12, "8bd9c6")
 	card_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	card_box.add_child(card_hint)
+	var tactical_bar := HBoxContainer.new()
+	tactical_bar.add_theme_constant_override("separation", 8)
+	tactical_bar.alignment = BoxContainer.ALIGNMENT_CENTER
+	for order in ["전진", "방어", "집중"]:
+		var tactical_button := _button(order, _on_tactical.bind(order))
+		tactical_button.custom_minimum_size = Vector2(116, 30)
+		tactical_button.add_theme_font_size_override("font_size", 12)
+		_tactical_buttons.append(tactical_button)
+		tactical_bar.add_child(tactical_button)
+	card_box.add_child(tactical_bar)
 	card_box.add_child(card_bar)
 	for i in 4:
 		var plan_button := _button("", _on_deploy_card.bind(i))
@@ -320,13 +332,27 @@ func _configure_corridor_encounter() -> void:
 	var threat := float(node.get("threat", 1.0))
 	var threat_level := maxi(0, roundi((threat - 1.0) * 3.0))
 	foe.level = clampi(3 + ids.size() + threat_level, UnitDB.MIN_LEVEL, UnitDB.MAX_LEVEL)
+	var variant := str(node.get("variant", ""))
+	if variant == "증식":
+		ids.append("aries")
 	for i in ids.size():
 		var escalation := maxf(0.0, threat - 1.0)
+		var variant_hp := 1.0
+		var variant_atk := 1.0
+		var variant_move := 1.0
+		if variant == "철벽" and i == 0:
+			variant_hp = 1.28
+			variant_move = 0.86
+		elif variant == "돌격":
+			variant_move = 1.22
+			variant_atk = 1.06
 		foe.roster.append({"def_id": ids[i],
 			"star": 2 if kind == "보스" or kind == "엘리트" else 1,
 			"order": i,
-			"tactic_hp_mult": 1.0 + escalation * 0.05,
-			"tactic_atk_mult": 1.0 + escalation * 0.035,
+			"tactic_hp_mult": (1.0 + escalation * 0.05) * variant_hp,
+			"tactic_atk_mult": (1.0 + escalation * 0.035) * variant_atk,
+			"tactic_move_mult": variant_move,
+			"encounter_variant": variant,
 			"encounter_pattern": kind if kind == "보스" or kind == "엘리트" else ""})
 
 
@@ -436,6 +462,13 @@ func _refresh_battle_hud() -> void:
 	_command_btn.disabled = phase != Phase.BATTLE or _command_left > 0.0 or sim.finished or not _has_active_enemy()
 	_command_btn.text = "지휘기 %.1f" % _command_left if _command_left > 0.0 else "지휘기 대기" if not _has_active_enemy() else "지휘기"
 	_command_btn.tooltip_text = "적 사도가 전장에 들어오면 사용할 수 있습니다."
+	var tactical_count := int(sim.tactical_charges[0])
+	for i in _tactical_buttons.size():
+		var tactical_button := _tactical_buttons[i]
+		var order: String = ["전진", "방어", "집중"][i]
+		tactical_button.text = "%s  [%d]" % [order, tactical_count]
+		tactical_button.disabled = sim.finished or tactical_count <= 0 or (order == "집중" and not _has_active_enemy())
+		tactical_button.tooltip_text = "전투당 2회 · " + ("아군 전선을 밀어붙입니다." if order == "전진" else "최전방에 보호막을 부여합니다." if order == "방어" else "적 최전방에 즉시 피해를 줍니다.")
 	for i in _plan_buttons.size():
 		var plan_button := _plan_buttons[i]
 		var unit: CombatSim.SimUnit = null
@@ -482,6 +515,13 @@ func _on_command() -> void:
 		return
 	if sim.cast_command_strike(48.0):
 		_command_left = 12.0
+		_refresh_battle_hud()
+
+
+func _on_tactical(order: String) -> void:
+	if phase != Phase.BATTLE or sim == null or sim.finished:
+		return
+	if sim.apply_tactical_order(order):
 		_refresh_battle_hud()
 
 
@@ -612,7 +652,9 @@ func _show_corridor() -> void:
 	distance_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	path.add_child(distance_label)
 	_corridor_box.add_child(path)
-	var info := _label("SEED %d   ·   구간 %d\n%s  ·  위협 배율 %.1f" % [corridor.seed, int(current.get("floor", 1)), current.get("name", ""), float(current.get("threat", 1.0))], 15, "b9cfca")
+	var variant := str(current.get("variant", ""))
+	var encounter_note := ("\n변종  ·  " + variant) if not variant.is_empty() else ""
+	var info := _label("SEED %d   ·   구간 %d\n%s  ·  위협 배율 %.1f%s" % [corridor.seed, int(current.get("floor", 1)), current.get("name", ""), float(current.get("threat", 1.0)), encounter_note], 15, "b9cfca")
 	info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_corridor_box.add_child(info)
 	var note := _label("전투 노드에서는 하단 사도 카드를 눌러 실시간으로 출격합니다.\n보급·이벤트·휴식처에서 다음 전투를 준비할 수 있습니다.", 14, "e8efeb")
@@ -697,19 +739,14 @@ func _choose_corridor(option_index: int = -1) -> void:
 		return
 	if option_index >= 0 and not corridor.choose_option(option_index):
 		return
-	_corridor_layer.visible = false
 	var node := corridor.current()
 	var kind := str(node.get("kind", "전투"))
+	if kind == "보급" or kind == "이벤트":
+		_show_special_choice()
+		return
+	_corridor_layer.visible = false
 	if kind == "휴식":
 		_show_rest_choice()
-		return
-	if kind == "보급" or kind == "이벤트":
-		var p := game.human_seat().player
-		p.gold += 6 if kind == "보급" else 3
-		p.hp = mini(Econ.START_HP, p.hp + (12 if kind == "보급" else 0))
-		corridor.complete_current()
-		_queue_latest_relic_choice()
-		_show_relic_choice() if not _pending_relic_choices.is_empty() else _show_corridor()
 		return
 	game.seats[1].name = str(node.get("name", "회랑의 적"))
 	_begin_round()
@@ -757,6 +794,47 @@ func _rest_heal() -> void:
 	player.hp = mini(Econ.START_HP, player.hp + 20)
 	corridor.complete_current()
 	_show_corridor()
+
+
+func _show_special_choice() -> void:
+	phase = Phase.MAP
+	_prep.visible = false
+	_battle_layer.visible = false
+	_result_layer.visible = false
+	_help_layer.visible = false
+	_corridor_layer.visible = true
+	_pending_special_options = corridor.special_options()
+	for child in _corridor_box.get_children():
+		child.queue_free()
+	var kind := str(corridor.current().get("kind", "이벤트"))
+	var title_text := "보급고  //  무엇을 챙길까" if kind == "보급" else "신호 분기점  //  어느 길을 택할까"
+	var title := _label(title_text, 25, "f3c777")
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_corridor_box.add_child(title)
+	var body := _label("선택은 이번 원정의 자원과 다음 전투 준비를 바꿉니다.", 14, "e8efeb")
+	body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_corridor_box.add_child(body)
+	for option in _pending_special_options:
+		var button := _button("%s\n%s" % [option.get("name", "선택"), option.get("desc", "")], _choose_special.bind(str(option.get("id", ""))))
+		button.custom_minimum_size.y = 58
+		_corridor_box.add_child(button)
+
+
+func _choose_special(choice_id: String) -> void:
+	if not _pending_special_options.any(func(option: Dictionary) -> bool: return str(option.get("id", "")) == choice_id):
+		return
+	var outcome := corridor.choose_special(choice_id)
+	if outcome.is_empty():
+		return
+	var p := game.human_seat().player
+	p.hp = clampi(p.hp + int(outcome.get("hp", 0)), 0, Econ.START_HP)
+	p.gold += int(outcome.get("gold", 0))
+	_pending_special_options.clear()
+	_pending_relic_choices.clear()
+	for relic in outcome.get("relic_choices", []):
+		if not p.relics.has(str(relic)):
+			_pending_relic_choices.append(str(relic))
+	_show_relic_choice() if not _pending_relic_choices.is_empty() else _show_corridor()
 
 
 func _rest_reorder() -> void:

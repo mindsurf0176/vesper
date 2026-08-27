@@ -12,6 +12,7 @@ const ENCOUNTERS := [
 	{"id":"black_procession", "name":"검은 행렬", "kind":"엘리트", "threat":1.5},
 	{"id":"vesper_core", "name":"베스퍼 매듭", "kind":"보스", "threat":2.0},
 ]
+const BATTLE_VARIANTS := ["철벽", "돌격", "증식"]
 
 var seed: int
 var rng := RandomNumberGenerator.new()
@@ -66,6 +67,38 @@ func choose_option(option_index: int) -> bool:
 	route[route_index] = branch_options[option_index].duplicate(true)
 	branch_chosen = true
 	return true
+
+
+func special_options() -> Array[Dictionary]:
+	var kind := str(current().get("kind", ""))
+	if kind == "보급":
+		return [
+			{"id":"repair", "name":"응급 수리", "desc":"원정 체력 +18", "hp":18, "gold":0},
+			{"id":"salvage", "name":"잔해 회수", "desc":"골드 +12, 원정 체력 -8", "hp":-8, "gold":12},
+		]
+	if kind == "이벤트":
+		return [
+			{"id":"decode", "name":"신호 해독", "desc":"유물 보상을 확보하지만 체력은 회복하지 못함", "hp":0, "gold":3, "take_relic":true},
+			{"id":"overload", "name":"강제 우회", "desc":"골드 +12, 원정 체력 -12", "hp":-12, "gold":12, "take_relic":false},
+		]
+	return []
+
+
+func choose_special(choice_id: String) -> Dictionary:
+	if is_finished():
+		return {}
+	var kind := str(current().get("kind", ""))
+	if kind != "보급" and kind != "이벤트":
+		return {}
+	for option in special_options():
+		if str(option.get("id", "")) != choice_id:
+			continue
+		var reward := _reward_for(current())
+		var outcome := option.duplicate(true)
+		outcome["relic_choices"] = reward.get("relic_choices", []) if bool(option.get("take_relic", false)) else []
+		complete_current()
+		return outcome
+	return {}
 
 func fail() -> void:
 	failed = true
@@ -129,12 +162,16 @@ func _make_node(kind: String, floor_index: int) -> Dictionary:
 		threat += 0.35
 	elif kind == "보스":
 		threat += 0.75
+	var variant := ""
+	if kind == "전투" or kind == "엘리트" or kind == "보스":
+		variant = BATTLE_VARIANTS[rng.randi_range(0, BATTLE_VARIANTS.size() - 1)]
 	return {
 		"id": "%d-%d-%d" % [floor_index, route_index, rng.randi()],
 		"name": template.get("name", "회랑"),
 		"kind": kind,
 		"floor": floor_index,
 		"threat": threat,
+		"variant": variant,
 		"enemy_seed": rng.randi(),
 	}
 

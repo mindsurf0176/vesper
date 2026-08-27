@@ -7,6 +7,7 @@ func _init() -> void:
 	var b = Run.new(777)
 	assert(a.route == b.route, "같은 시드의 회랑 경로가 달라짐")
 	assert(a.current().get("kind", "") == "전투", "첫 노드가 라인 전투가 아님")
+	assert(["철벽", "돌격", "증식"].has(a.current().get("variant", "")), "전투 변종이 생성되지 않음")
 	assert(a.distance == 0 and a.best_distance == 0, "새 런의 거리가 0에서 시작하지 않음")
 	a.complete_current()
 	assert(a.route_index == 1 and a.distance == 1 and not a.is_finished(), "전투 후 다음 탐험 구간으로 이동하지 않음")
@@ -22,5 +23,19 @@ func _init() -> void:
 	assert(a.distance == 13 and a.best_distance == 13, "무한 회랑 거리 기록이 누적되지 않음")
 	assert(not a.is_finished() and a.current().get("floor", 0) == 14, "보스 이후에도 회랑이 계속되지 않음")
 	assert(reward_relic_count >= 36, "전투 보상에 충분한 유물 선택지가 없음")
+	var special := Run.new(1717)
+	var saw_special := false
+	for _i in 20:
+		if special.current().get("kind", "") == "보급" or special.current().get("kind", "") == "이벤트":
+			var special_options := special.special_options()
+			assert(special_options.size() == 2, "특수 노드의 선택지가 2개가 아님")
+			var outcome := special.choose_special(str(special_options[0]["id"]))
+			assert(not outcome.is_empty(), "특수 노드 선택 결과가 비어 있음")
+			saw_special = true
+			break
+		special.complete_current()
+		if not special.available_options().is_empty():
+			special.choose_option(0)
+	assert(saw_special, "결정론 테스트 시 특수 노드를 찾지 못함")
 	print("PASS endless corridor run")
 	quit(0)

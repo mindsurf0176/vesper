@@ -23,10 +23,12 @@ func _init() -> void:
 		tactical.step(1.0)
 	var ally_unit = tactical.units[0]
 	var before_pos: float = ally_unit.pos
+	assert(tactical.tactical_charges[0] == 2, "전투 시작 전술 충전량이 잘못됨")
 	assert(tactical.apply_tactical_order("전진"), "전진 명령을 적용하지 못함")
 	assert(ally_unit.pos > before_pos, "전진 명령이 전선에 반영되지 않음")
 	assert(tactical.apply_tactical_order("방어"), "방어 명령을 적용하지 못함")
 	assert(ally_unit.shield > 0.0, "방어 명령이 보호막에 반영되지 않음")
+	assert(tactical.tactical_charges[0] == 0 and not tactical.apply_tactical_order("전진"), "전술 명령 사용 제한이 작동하지 않음")
 	var heavy := Sim.create([ally], [enemy], 3, 3)
 	heavy.units[0].deployed = true
 	heavy.units[1].deployed = true
@@ -53,6 +55,18 @@ func _init() -> void:
 		if String(event.get("t", "")) == "pattern":
 			pattern_seen = true
 	assert(pattern_seen, "엘리트 패턴 이벤트가 발생하지 않음")
+	var boss := Sim.create([ally], [
+		{"def_id":"taurus", "order":0, "star":1, "encounter_pattern":"보스"}], 3, 3)
+	boss.units[0].deployed = true
+	boss.units[1].deployed = true
+	boss.core_hp[1] = Defs.CORE_HP * 0.45
+	boss._apply_encounter_pattern()
+	assert(boss._boss_phase_two, "보스 체력 절반 페이즈가 시작되지 않음")
+	var boss_phase_seen := false
+	for event in boss.consume_events():
+		if String(event.get("name", "")) == "매듭 붕괴":
+			boss_phase_seen = true
+	assert(boss_phase_seen, "보스 페이즈 전환 이벤트가 발생하지 않음")
 	var manual := Sim.create([ally], [enemy], 3, 3, true)
 	for _i in 3:
 		manual.step(1.0)
