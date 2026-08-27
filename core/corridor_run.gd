@@ -13,6 +13,11 @@ const ENCOUNTERS := [
 	{"id":"vesper_core", "name":"베스퍼 매듭", "kind":"보스", "threat":2.0},
 ]
 const BATTLE_VARIANTS := ["철벽", "돌격", "증식"]
+const MUTATORS := [
+	{"id":"overclock", "name":"과충전", "description":"아군 코스트 충전 +12%, 적 공격력 +8%", "player_cost_regen_mult":1.12, "enemy_atk_mult":1.08},
+	{"id":"thin_lantern", "name":"희박한 등불", "description":"아군 공격력 +8%, 적 최대 체력 +12%", "player_atk_mult":1.08, "enemy_hp_mult":1.12},
+	{"id":"red_tide", "name":"붉은 조류", "description":"적 이동 속도 +15%, 적 공격력 -8%", "enemy_move_mult":1.15, "enemy_atk_mult":0.92},
+]
 
 var seed: int
 var rng := RandomNumberGenerator.new()
@@ -26,16 +31,21 @@ var failed := false
 var distance := 0
 var best_distance := 0
 var rewards: Array[Dictionary] = []
+var mutator: Dictionary = {}
 
 func _init(run_seed: int) -> void:
 	seed = run_seed
 	rng.seed = seed
 	_build_route()
+	_roll_mutator()
 
 func current() -> Dictionary:
 	if route_index < 0 or route_index >= route.size():
 		return {}
 	return route[route_index].duplicate(true)
+
+func current_mutator() -> Dictionary:
+	return mutator.duplicate(true)
 
 func complete_current() -> void:
 	if cleared or failed:
@@ -118,6 +128,10 @@ func _build_route() -> void:
 	# 한 번에 한 노드만 생성한다. 런은 보스에서 끝나지 않고, 플레이어가
 	# 전멸할 때까지 다음 회랑을 계속 만든다.
 	_ensure_current_node()
+
+
+func _roll_mutator() -> void:
+	mutator = MUTATORS[rng.randi_range(0, MUTATORS.size() - 1)].duplicate(true)
 
 
 func _ensure_current_node() -> void:

@@ -75,6 +75,7 @@ func _ready() -> void:
 	_build_ui()
 	_load_best_distance()
 	corridor = CorridorRun.new(rng.randi())
+	game.set_corridor_mutator(corridor.current_mutator())
 	_show_corridor()
 
 
@@ -623,6 +624,7 @@ func _restart() -> void:
 	game = CorridorSession.create(rng.randi())
 	_seed_starter_squad()
 	corridor = CorridorRun.new(rng.randi())
+	game.set_corridor_mutator(corridor.current_mutator())
 	_intro_pending = true
 	_squad_locked = false
 	_has_seen_battle_help = false
@@ -685,6 +687,11 @@ func _show_corridor() -> void:
 	var info := _label("SEED %d   ·   구간 %d\n%s  ·  위협 배율 %.1f%s" % [corridor.seed, int(current.get("floor", 1)), current.get("name", ""), float(current.get("threat", 1.0)), encounter_note], 15, "b9cfca")
 	info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_corridor_box.add_child(info)
+	var mutator := corridor.current_mutator()
+	var mutator_label := _label("회랑 변칙  ·  %s\n%s" % [mutator.get("name", "없음"), mutator.get("description", "이번 런에는 변칙이 없습니다.")], 14, "f09a79")
+	mutator_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	mutator_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_corridor_box.add_child(mutator_label)
 	var note := _label("전투 노드에서는 하단 사도 카드를 눌러 실시간으로 출격합니다.\n보급·이벤트·휴식처에서 다음 전투를 준비할 수 있습니다.", 14, "e8efeb")
 	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_corridor_box.add_child(note)

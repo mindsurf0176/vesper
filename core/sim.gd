@@ -102,10 +102,10 @@ var _events: Array = []        ## 시각화용. consume_events()로 비우며 �
 ## 큐 뒤쪽 유닛이 전투 시간 안에 나올 수 있다.
 static func create(team0: Array, team1: Array,
 		level0: int = Defs.LEVEL_BASE, level1: int = Defs.LEVEL_BASE,
-		manual_team0: bool = false) -> CombatSim:
+		manual_team0: bool = false, cost_regen_mult0: float = 1.0) -> CombatSim:
 	var sim := CombatSim.new()
 	sim.manual_control[0] = manual_team0
-	sim._regen = [Defs.cost_regen_for(level0), Defs.cost_regen_for(level1)]
+	sim._regen = [Defs.cost_regen_for(level0) * cost_regen_mult0, Defs.cost_regen_for(level1)]
 	sim._build_team(0, team0)
 	sim._build_team(1, team1)
 	return sim
@@ -243,13 +243,13 @@ func _make_unit(team: int, p: Dictionary, order: int, tr: Traits) -> SimUnit:
 	u.role = d["role"]
 	u.deploy_cost = float(UnitDB.deploy_cost(def_id))
 
-	u.max_hp = float(d["hp"]) * sm * float(mods["hp_mult"]) * float(p.get("relic_hp_mult", 1.0)) * float(p.get("tactic_hp_mult", 1.0))
+	u.max_hp = float(d["hp"]) * sm * float(mods["hp_mult"]) * float(p.get("relic_hp_mult", 1.0)) * float(p.get("tactic_hp_mult", 1.0)) * float(p.get("mutator_hp_mult", 1.0))
 	u.hp = u.max_hp
-	u.atk = float(d["atk"]) * sm * float(mods["atk_mult"]) * float(p.get("relic_atk_mult", 1.0)) * float(p.get("tactic_atk_mult", 1.0))
+	u.atk = float(d["atk"]) * sm * float(mods["atk_mult"]) * float(p.get("relic_atk_mult", 1.0)) * float(p.get("tactic_atk_mult", 1.0)) * float(p.get("mutator_atk_mult", 1.0))
 	u.armor = float(d["armor"]) + float(mods["armor_add"]) + float(p.get("relic_armor_add", 0.0))
 	u.atk_speed = float(d["atk_speed"]) * float(mods["as_mult"]) * float(p.get("relic_as_mult", 1.0)) * float(p.get("tactic_as_mult", 1.0))
 	u.atk_range = float(d["atk_range"]) + float(p.get("relic_range_add", 0.0))
-	u.move_speed = float(d["move_speed"]) * float(p.get("relic_move_mult", 1.0)) * float(p.get("tactic_move_mult", 1.0))
+	u.move_speed = float(d["move_speed"]) * float(p.get("relic_move_mult", 1.0)) * float(p.get("tactic_move_mult", 1.0)) * float(p.get("mutator_move_mult", 1.0))
 	u.ability = d["ability"].duplicate(true)
 	u.relic_opening_atk_mult = float(p.get("relic_opening_atk_mult", 0.0))
 	u.relic_opening_attacks = 1 if u.relic_opening_atk_mult > 0.0 else 0

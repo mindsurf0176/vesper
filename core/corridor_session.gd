@@ -16,6 +16,7 @@ var seats: Array[Seat] = []
 var round_no := 1
 var current_pairs: Array = []
 var last_results: Array = []
+var active_mutator: Dictionary = {}
 
 static func create(seed_value: int):
 	var session = new()
@@ -31,6 +32,9 @@ static func create(seed_value: int):
 func human_seat() -> Seat:
 	return seats[0]
 
+func set_corridor_mutator(value: Dictionary) -> void:
+	active_mutator = value.duplicate(true)
+
 func pair_up() -> Array:
 	current_pairs = [[0, 1]]
 	return current_pairs.duplicate(true)
@@ -43,11 +47,15 @@ func build_sim(a: int, b: int) -> CombatSim:
 		var placement: Dictionary = unit.duplicate(true)
 		_apply_relic_modifiers(placement, pa.relics)
 		_apply_tactic_modifiers(placement, pa.tactic)
+		_apply_mutator_modifiers(placement, 0)
 		allies.append(placement)
 	var enemies: Array = []
 	for unit in pb.queued_units():
-		enemies.append(unit.duplicate(true))
-	return CombatSim.create(allies, enemies, pa.level, pb.level, true)
+		var placement: Dictionary = unit.duplicate(true)
+		_apply_mutator_modifiers(placement, 1)
+		enemies.append(placement)
+	var cost_regen_mult := float(active_mutator.get("player_cost_regen_mult", 1.0))
+	return CombatSim.create(allies, enemies, pa.level, pb.level, true, cost_regen_mult)
 
 func resolve_round(pairs: Array, precomputed: Dictionary = {}) -> void:
 	last_results.clear()
@@ -94,3 +102,13 @@ func _apply_tactic_modifiers(placement: Dictionary, tactic: String) -> void:
 	elif tactic == "순환":
 		placement["tactic_hp_mult"] = 0.92
 		placement["tactic_as_mult"] = 1.14
+
+func _apply_mutator_modifiers(placement: Dictionary, team: int) -> void:
+	if active_mutator.is_empty():
+		return
+	if team == 0:
+		placement["mutator_atk_mult"] = float(active_mutator.get("player_atk_mult", 1.0))
+		return
+	placement["mutator_atk_mult"] = float(active_mutator.get("enemy_atk_mult", 1.0))
+	placement["mutator_hp_mult"] = float(active_mutator.get("enemy_hp_mult", 1.0))
+	placement["mutator_move_mult"] = float(active_mutator.get("enemy_move_mult", 1.0))
