@@ -13,18 +13,26 @@ const _SPECS := {
 	"aries": {
 		"source_character": "",
 		"asset_provenance": "AssetForge: moa-ungoo-benchmark-clips-v21",
+		"animation_provenance": {
+			"walk": "AssetForge: moa-douse-motion-review-v2; Douse gait benchmark",
+			"attack": "AssetForge: moa-v25-from-scratch-attack-sheet-v1",
+			"hit": "AssetForge: moa-v25-from-scratch-hit-sheet-v1",
+			"death": "AssetForge: moa-v25-from-scratch-death-sheet-v1",
+		},
 		"sprite": "res://assets/sprites/moa_pl",
 		"portrait": "res://assets/art/characters/moa/moa-identity-v2-cutout.png",
 		"card_art": "res://assets/art/characters/moa/moa-identity-v2-cutout.png",
 		"target_height": 2.25,
-		"visible_bounds": Rect2i(4, 4, 238, 240),
+		# v25 from-scratch high-res 전체 클립의 공통 콘텐츠 envelope: 360x360 캔버스.
+		# 고해상도 프레임을 같은 월드 높이로 표시해 픽셀 밀도를 높인다.
+		"visible_bounds": Rect2i(3, 11, 355, 343),
 		"ground_offset": 0.0,
 		"face_scale": 1.0,
 		"filtering": "nearest",
 		"migration_only": false,
 		"battle_ready": true,
 		"asset_blocked": false,
-		# v21은 공통 126색 팔레트와 matte 보정이 적용된 5개 정본 클립이다. 전투 대기 상태는 idle을 고정 재생한다.
+		# v25 from-scratch high-res 전체 모션을 사용한다. 전투 대기 상태는 idle을 고정 재생한다.
 		"animation_aliases": {"aim": "idle"},
 		"animation_fps": {"idle": 8.0, "walk": 12.0, "attack": 14.0, "hit": 12.0, "death": 10.0},
 	},
@@ -244,6 +252,11 @@ static func animation_frame_count(def_id: String, animation: String) -> int:
 static func animation_source(def_id: String, animation: String) -> String:
 	var aliases := spec(def_id).get("animation_aliases", {}) as Dictionary
 	return String(aliases.get(animation, animation))
+
+
+static func animation_provenance(def_id: String, animation: String) -> String:
+	var animation_sources := spec(def_id).get("animation_provenance", {}) as Dictionary
+	return String(animation_sources.get(animation, spec(def_id).get("asset_provenance", "")))
 
 
 static func animation_fps(def_id: String, animation: String, fallback: float) -> float:

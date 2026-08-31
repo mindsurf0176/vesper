@@ -10,3 +10,5 @@ captures/
 screenshots/
 save/
 user_data/
+.vercel
+.env*.local

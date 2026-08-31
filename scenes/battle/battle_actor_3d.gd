@@ -18,6 +18,7 @@ const LOOPED := {"idle": true, "walk": true, "aim": true}
 const COMPLETION_GRACE := 0.02
 const MOVE_DEADZONE := 0.018
 const MOVE_HOLD := 0.10
+const WALK_CYCLE_WORLD_DISTANCE := 0.72
 const DEATH_FADE := 0.20
 const DEATH_FALLBACK := 0.45
 const DEATH_HARD_LIMIT := 2.0
@@ -30,6 +31,7 @@ var role := 0
 var element := 0
 var retiring := false
 var playback_speed := 1.0
+var _walk_phase := 0.0
 var target_position := Vector3.ZERO
 var visual_height := 1.6
 
@@ -202,8 +204,10 @@ func _process(delta: float) -> void:
 		_process_death(scaled_delta)
 		return
 
+	var previous_position := position
 	var distance := position.distance_to(target_position)
 	position = position.lerp(target_position, clampf(delta * 12.0 * minf(playback_speed, 2.0), 0.0, 1.0))
+	var moved_distance := position.distance_to(previous_position)
 	if distance > MOVE_DEADZONE:
 		_moving_hold = MOVE_HOLD
 	else:
@@ -216,6 +220,7 @@ func _process(delta: float) -> void:
 			_state = State.LOCOMOTION
 	if _action_lock.is_empty() and _state == State.LOCOMOTION:
 		_resolve_locomotion()
+	_sync_walk_to_motion(moved_distance)
 	_process_hit_flash(scaled_delta)
 
 
@@ -417,8 +422,24 @@ func _set_bar_ratio(bar: MeshInstance3D, ratio: float) -> void:
 func _play_loop(animation: String) -> void:
 	if _sprite == null or not _sprite.sprite_frames.has_animation(animation):
 		animation = "idle"
-	if _sprite.animation != animation or not _sprite.is_playing():
+	if _sprite.animation != animation:
 		_sprite.play(animation)
+	if animation == "walk":
+		_sprite.pause()
+	elif not _sprite.is_playing():
+		_sprite.play(animation)
+
+
+func _sync_walk_to_motion(moved_distance: float) -> void:
+	if _sprite == null or _sprite.animation != "walk":
+		return
+	var frame_count := _sprite.sprite_frames.get_frame_count("walk")
+	if frame_count <= 0:
+		return
+	# Walk phase follows actual world displacement so a slowing actor does not foot-slide.
+	if moved_distance > 0.00001:
+		_walk_phase = fmod(_walk_phase + moved_distance / WALK_CYCLE_WORLD_DISTANCE, 1.0)
+	_sprite.frame = mini(int(floor(_walk_phase * float(frame_count))), frame_count - 1)
 
 
 func _play_action(animation: String, next_state: State, restart: bool = false) -> void:

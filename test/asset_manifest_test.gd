@@ -154,12 +154,18 @@ func _test_moa_final_contract() -> void:
 			and String(spec.get("filtering", "")) == "nearest"
 			and String(spec.get("asset_provenance", "")) == "AssetForge: moa-ungoo-benchmark-clips-v21",
 		"모아는 AssetForge v21 nearest-filtered final asset이다")
-	var expected := {"idle": 6, "walk": 12, "aim": 6, "attack": 14, "hit": 6, "death": 10}
+	ok(CharacterVisuals.animation_provenance("aries", "walk") == "AssetForge: moa-douse-motion-review-v2; Douse gait benchmark",
+		"모아 walk는 Douse gait benchmark v2 provenance를 가진다")
+	ok(CharacterVisuals.animation_provenance("aries", "attack") == "AssetForge: moa-v25-from-scratch-attack-sheet-v1"
+			and CharacterVisuals.animation_provenance("aries", "hit") == "AssetForge: moa-v25-from-scratch-hit-sheet-v1"
+			and CharacterVisuals.animation_provenance("aries", "death") == "AssetForge: moa-v25-from-scratch-death-sheet-v1",
+		"모아 attack/hit/death는 v25 from-scratch high-res 시트 provenance를 가진다")
+	var expected := {"idle": 6, "walk": 8, "aim": 6, "attack": 14, "hit": 6, "death": 10}
 	var frame_counts_ok := true
 	for animation in expected:
 		frame_counts_ok = frame_counts_ok \
 			and CharacterVisuals.animation_frame_count("aries", animation) == int(expected[animation])
-	ok(frame_counts_ok, "모아는 idle 6·walk 12·aim 6·attack 14·hit 6·death 10 frame 계약을 가진다")
+	ok(frame_counts_ok, "모아는 idle 6·walk 8·aim 6·attack 14·hit 6·death 10 frame 계약을 가진다")
 	ok(CharacterVisuals.animation_source("aries", "aim") == "idle"
 			and is_equal_approx(CharacterVisuals.animation_fps("aries", "idle", 0.0), 8.0)
 			and is_equal_approx(CharacterVisuals.animation_fps("aries", "walk", 0.0), 12.0)
@@ -168,8 +174,8 @@ func _test_moa_final_contract() -> void:
 			and is_equal_approx(CharacterVisuals.animation_fps("aries", "death", 0.0), 10.0),
 		"모아의 AssetForge 정본 FPS와 aim idle alias가 런타임에 연결된다")
 	var bounds := spec["visible_bounds"] as Rect2i
-	ok(bounds == Rect2i(4, 4, 238, 240),
-		"모아 48 frame alpha bounds가 244x247 정본 기준선과 일치한다", str(bounds))
+	ok(bounds == Rect2i(3, 11, 355, 343),
+		"모아 v25 high-res frame alpha bounds가 360x360 정본 기준선과 일치한다", str(bounds))
 	ok(CharacterVisuals.texture("aries", "portrait") != null
 			and CharacterVisuals.texture("aries", "card_art") != null,
 		"모아 identity 카드·초상화 에셋을 load한다")
